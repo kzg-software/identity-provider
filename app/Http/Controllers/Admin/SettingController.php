@@ -90,9 +90,9 @@ class SettingController extends Controller
     {
         $this->guardAgainstOversizedUpload($request, 'favicon');
 
-        $request->validate(['favicon' => 'required|image|max:2048'], [
+        $request->validate(['favicon' => 'required|file|mimes:png,jpg,jpeg,gif,svg,webp,ico,bmp|max:2048'], [
             'favicon.required' => 'Bitte eine Bilddatei für das Favicon auswählen.',
-            'favicon.image' => 'Die Datei muss ein Bild sein (PNG, JPG, GIF, SVG oder WebP).',
+            'favicon.mimes' => 'Erlaubt sind PNG, JPG, GIF, SVG, WebP, BMP oder ICO.',
             'favicon.max' => 'Das Favicon darf höchstens 2 MB groß sein.',
         ]);
 

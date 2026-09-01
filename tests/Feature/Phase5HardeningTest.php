@@ -292,6 +292,25 @@ class Phase5HardeningTest extends TestCase
         \Illuminate\Support\Facades\Storage::disk('public')->assertMissing($faviconPath);
     }
 
+    public function test_favicon_upload_accepts_ico_files(): void
+    {
+        \Illuminate\Support\Facades\Storage::fake('public');
+        $this->installed();
+
+        $admin = $this->localUser(admin: true, username: 'admin');
+
+        $ico = \Illuminate\Http\UploadedFile::fake()->create('favicon.ico', 40, 'image/vnd.microsoft.icon');
+
+        $this->actingAs($admin)->post(route('admin.settings.favicon.upload'), ['favicon' => $ico])
+            ->assertRedirect()
+            ->assertSessionHasNoErrors();
+
+        $faviconPath = SystemSetting::get('favicon_path');
+        $this->assertNotEmpty($faviconPath);
+        $this->assertStringEndsWith('.ico', $faviconPath);
+        \Illuminate\Support\Facades\Storage::disk('public')->assertExists($faviconPath);
+    }
+
     public function test_admin_audit_log_page_is_restricted_to_local_admins(): void
     {
         $this->installed();

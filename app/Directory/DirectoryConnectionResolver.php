@@ -5,6 +5,8 @@ namespace App\Directory;
 use App\Models\Directory as DirectoryModel;
 use LdapRecord\Container;
 use LdapRecord\Connection;
+use LdapRecord\Models\ActiveDirectory\Entry as ActiveDirectoryEntry;
+use Throwable;
 
 /**
  * Registers a Directory model's LDAP connection with LdapRecord's connection
@@ -36,5 +38,39 @@ class DirectoryConnectionResolver
         $connection->connect();
 
         return $connection;
+    }
+
+    /**
+     * Bereinigter Base DN für Suchen. Ist im Verzeichnis keiner hinterlegt,
+     * wird er einmalig aus dem RootDSE der Domäne ermittelt und gespeichert.
+     * Gibt null zurück, wenn beides nicht klappt.
+     */
+    public static function resolveBaseDn(DirectoryModel $directory, ?string $connectionName = null): ?string
+    {
+        $base = $directory->searchBaseDn();
+
+        if ($base !== null) {
+            return $base;
+        }
+
+        $connectionName ??= self::connectionName($directory);
+
+        try {
+            $rootDse = ActiveDirectoryEntry::getRootDse($connectionName);
+
+            $discovered = DirectoryModel::cleanDn(
+                $rootDse->getFirstAttribute('defaultnamingcontext')
+                ?? $rootDse->getFirstAttribute('rootdomainnamingcontext')
+                ?? $rootDse->getFirstAttribute('namingcontexts')
+            );
+        } catch (Throwable) {
+            $discovered = null;
+        }
+
+        if ($discovered !== null && $directory->exists) {
+            $directory->forceFill(['base_dn' => $discovered])->saveQuietly();
+        }
+
+        return $discovered;
     }
 }

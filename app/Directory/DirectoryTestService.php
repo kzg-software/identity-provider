@@ -34,8 +34,11 @@ class DirectoryTestService
             DirectoryConnectionResolver::connect($directory);
             $name = DirectoryConnectionResolver::connectionName($directory);
 
+            $base = DirectoryConnectionResolver::resolveBaseDn($directory, $name);
+            $searchDn = DirectoryModel::cleanDn($directory->user_dn) ?: $base;
+
             $results = User::on($name)
-                ->in($directory->user_dn ?: $directory->base_dn)
+                ->in($searchDn)
                 ->where(function ($query) use ($term) {
                     $query->orWhere('samaccountname', 'contains', $term)
                         ->orWhere('userprincipalname', 'contains', $term)
@@ -66,8 +69,11 @@ class DirectoryTestService
             DirectoryConnectionResolver::connect($directory);
             $name = DirectoryConnectionResolver::connectionName($directory);
 
+            $base = DirectoryConnectionResolver::resolveBaseDn($directory, $name);
+            $searchDn = DirectoryModel::cleanDn($directory->group_dn) ?: $base;
+
             $results = Group::on($name)
-                ->in($directory->group_dn ?: $directory->base_dn)
+                ->in($searchDn)
                 ->where('cn', 'contains', $term)
                 ->limit(25)
                 ->get();
@@ -109,10 +115,22 @@ class DirectoryTestService
     {
         try {
             $connection = DirectoryConnectionResolver::connect($directory);
+            $name = DirectoryConnectionResolver::connectionName($directory);
+
+            $base = DirectoryConnectionResolver::resolveBaseDn($directory, $name);
+
+            if ($base === null) {
+                return [
+                    'ok' => false,
+                    'message' => 'Für dieses Verzeichnis ist keine Base DN hinterlegt und sie ließ sich '
+                        .'auch nicht automatisch ermitteln. Bitte unter "Bearbeiten" eintragen, '
+                        .'z. B. DC=firma,DC=local.',
+                ];
+            }
 
             $results = $connection->query()
-                ->setBaseDn($directory->base_dn)
-                ->rawFilter($filter)
+                ->setBaseDn($base)
+                ->rawFilter(trim($filter))
                 ->limit($limit)
                 ->get();
 
@@ -141,10 +159,25 @@ class DirectoryTestService
 
     private function friendlyMessage(Throwable $e): string
     {
-        if ($e instanceof LdapRecordException) {
-            return 'LDAP-Fehler: '.$e->getMessage();
+        $raw = $e->getMessage();
+        $lower = strtolower($raw);
+
+        if (str_contains($lower, 'invalid dn syntax')) {
+            return 'LDAP-Fehler: Ungültige DN-Syntax. Das betrifft nicht den Filter, sondern den '
+                .'Suchpfad (Base DN bzw. User/Group DN) des Verzeichnisses. Häufig steckt ein '
+                .'unsichtbarer Zeilenumbruch oder ein Leerzeichen vom Kopieren darin. Bitte die '
+                .'DN-Felder unter "Bearbeiten" neu eintragen.';
         }
 
-        return 'Verbindung fehlgeschlagen: '.$e->getMessage();
+        if (str_contains($lower, 'bad search filter') || str_contains($lower, 'filter error')) {
+            return 'LDAP-Fehler: Der Suchfilter ist ungültig. Klammern müssen paarweise geschlossen '
+                .'sein, z. B. (&(objectClass=user)(memberOf=CN=Gruppe,OU=...,DC=firma,DC=local)).';
+        }
+
+        if ($e instanceof LdapRecordException) {
+            return 'LDAP-Fehler: '.$raw;
+        }
+
+        return 'Verbindung fehlgeschlagen: '.$raw;
     }
 }

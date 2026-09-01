@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Attributes\Fillable;
+use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
@@ -23,6 +24,65 @@ class Directory extends Model
             'last_sync_at' => 'datetime',
             'bind_password_encrypted' => 'encrypted',
         ];
+    }
+
+    /*
+     * DN-Felder werden beim Speichern bereinigt: Zeilenumbrüche und
+     * umgebende Leerzeichen aus einem Copy-and-paste sind die häufigste
+     * Ursache für "ldap_search(): Invalid DN syntax", obwohl der Wert auf
+     * den ersten Blick richtig aussieht.
+     */
+    protected function baseDn(): Attribute
+    {
+        return Attribute::make(set: fn ($value) => static::cleanDn($value));
+    }
+
+    protected function userDn(): Attribute
+    {
+        return Attribute::make(set: fn ($value) => static::cleanDn($value));
+    }
+
+    protected function groupDn(): Attribute
+    {
+        return Attribute::make(set: fn ($value) => static::cleanDn($value));
+    }
+
+    protected function bindUser(): Attribute
+    {
+        return Attribute::make(set: fn ($value) => static::cleanDn($value));
+    }
+
+    /**
+     * Bereinigter, zum Durchsuchen genutzter Base DN (oder null).
+     */
+    public function searchBaseDn(): ?string
+    {
+        return static::cleanDn($this->base_dn);
+    }
+
+    public function userSearchDn(): ?string
+    {
+        return static::cleanDn($this->user_dn) ?: $this->searchBaseDn();
+    }
+
+    public function groupSearchDn(): ?string
+    {
+        return static::cleanDn($this->group_dn) ?: $this->searchBaseDn();
+    }
+
+    /**
+     * Entfernt Zeilenumbrüche und umgebende Leerzeichen. Leere Werte -> null.
+     */
+    public static function cleanDn(mixed $value): ?string
+    {
+        if ($value === null) {
+            return null;
+        }
+
+        $value = str_replace(["\r", "\n", "\t"], '', (string) $value);
+        $value = trim($value);
+
+        return $value === '' ? null : $value;
     }
 
     public function users(): HasMany

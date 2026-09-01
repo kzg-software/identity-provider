@@ -144,7 +144,8 @@
             @csrf
             <div class="flex-1">
                 <x-input-label value="Neues Favicon hochladen" />
-                <input type="file" name="favicon" accept="image/*" required class="block w-full text-sm text-gray-600 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-laravel-50 file:text-laravel-700 hover:file:bg-laravel-100">
+                <input type="file" name="favicon" accept="image/*,.ico,image/x-icon,image/vnd.microsoft.icon" required class="block w-full text-sm text-gray-600 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-laravel-50 file:text-laravel-700 hover:file:bg-laravel-100">
+                <p class="text-xs text-gray-400 mt-1">PNG, SVG, WebP oder ICO.</p>
             </div>
             <x-button type="submit" variant="secondary" size="sm">Hochladen</x-button>
         </form>

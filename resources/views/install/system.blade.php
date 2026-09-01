@@ -39,7 +39,7 @@
         </div>
         <div>
             <x-input-label value="Favicon" />
-            <input type="file" name="favicon" accept="image/*" class="block w-full text-sm text-gray-600 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-laravel-50 file:text-laravel-700 hover:file:bg-laravel-100">
+            <input type="file" name="favicon" accept="image/*,.ico,image/x-icon,image/vnd.microsoft.icon" class="block w-full text-sm text-gray-600 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-laravel-50 file:text-laravel-700 hover:file:bg-laravel-100">
         </div>
     </div>
 

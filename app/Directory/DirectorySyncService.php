@@ -87,7 +87,7 @@ class DirectorySyncService
     private function syncGroups(DirectoryModel $directory, string $connectionName): int
     {
         $groups = LdapGroup::on($connectionName)
-            ->in($directory->group_dn ?: $directory->base_dn)
+            ->in($directory->groupSearchDn() ?? DirectoryConnectionResolver::resolveBaseDn($directory, $connectionName))
             ->get();
 
         $count = 0;
@@ -120,7 +120,7 @@ class DirectorySyncService
     private function syncUsers(DirectoryModel $directory, string $connectionName): int
     {
         $users = LdapUser::on($connectionName)
-            ->in($directory->user_dn ?: $directory->base_dn)
+            ->in($directory->userSearchDn() ?? DirectoryConnectionResolver::resolveBaseDn($directory, $connectionName))
             ->get();
 
         $count = 0;

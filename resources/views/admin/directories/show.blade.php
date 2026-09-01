@@ -96,10 +96,16 @@
         </x-card>
 
         <x-card title="LDAP-Abfrage testen">
-            <form method="POST" action="{{ route('admin.directories.raw-query', $directory) }}" class="flex gap-2">
+            <form method="POST" action="{{ route('admin.directories.raw-query', $directory) }}" class="space-y-2">
                 @csrf
-                <x-input type="text" name="filter" placeholder="(&(objectClass=user)(sAMAccountName=jkinzig))" required />
-                <x-button type="submit" variant="secondary" size="sm" class="shrink-0">Abfragen</x-button>
+                <x-textarea name="filter" rows="3" required class="font-mono text-xs"
+                            placeholder="(&(objectClass=user)(memberOf=CN=IDP-Login,OU=Gruppen,DC=firma,DC=local))">{{ old('filter') }}</x-textarea>
+                <p class="text-xs text-gray-500">
+                    Nur der Filter, ohne Suchpfad. Gesucht wird ab
+                    <code class="bg-gray-100 px-1 rounded">{{ $directory->searchBaseDn() ?? 'automatisch aus der Domäne' }}</code>.
+                    Klammern paarweise schließen.
+                </p>
+                <x-button type="submit" variant="secondary" size="sm">Abfragen</x-button>
             </form>
         </x-card>
     </div>

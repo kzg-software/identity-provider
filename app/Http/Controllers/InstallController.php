@@ -199,7 +199,7 @@ class InstallController extends Controller
             'locale' => 'required|string',
             'session_lifetime' => 'required|integer|min:5',
             'logo' => 'nullable|image|max:2048',
-            'favicon' => 'nullable|image|max:1024',
+            'favicon' => 'nullable|file|mimes:png,jpg,jpeg,gif,svg,webp,ico,bmp|max:1024',
             'mail_host' => 'nullable|string',
             'mail_port' => 'nullable|numeric',
             'mail_username' => 'nullable|string',

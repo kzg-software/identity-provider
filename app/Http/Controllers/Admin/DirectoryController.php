@@ -100,7 +100,7 @@ class DirectoryController extends Controller
         $term = $request->validate(['term' => 'required|string|min:2'])['term'];
         $result = (new DirectoryTestService)->searchUser($directory, $term);
 
-        return back()->with('ldap_search_result', $result);
+        return back()->withInput()->with('ldap_search_result', $result);
     }
 
     public function searchGroup(Request $request, Directory $directory): RedirectResponse
@@ -108,7 +108,7 @@ class DirectoryController extends Controller
         $term = $request->validate(['term' => 'required|string|min:2'])['term'];
         $result = (new DirectoryTestService)->searchGroup($directory, $term);
 
-        return back()->with('ldap_search_result', $result);
+        return back()->withInput()->with('ldap_search_result', $result);
     }
 
     public function testAuthenticate(Request $request, Directory $directory): RedirectResponse
@@ -121,10 +121,10 @@ class DirectoryController extends Controller
 
     public function rawQuery(Request $request, Directory $directory): RedirectResponse
     {
-        $data = $request->validate(['filter' => 'required|string|max:500']);
+        $data = $request->validate(['filter' => 'required|string|max:2000']);
         $result = (new DirectoryTestService)->rawQuery($directory, $data['filter']);
 
-        return back()->with('ldap_search_result', $result);
+        return back()->withInput()->with('ldap_search_result', $result);
     }
 
     public function sync(Request $request, Directory $directory): RedirectResponse

@@ -83,7 +83,7 @@ class WindowsSsoAuthenticate
         $connectionName = DirectoryConnectionResolver::connectionName($directory);
 
         $ldapUser = LdapUser::on($connectionName)
-            ->in($directory->user_dn ?: $directory->base_dn)
+            ->in($directory->userSearchDn() ?? DirectoryConnectionResolver::resolveBaseDn($directory, $connectionName))
             ->where('samaccountname', '=', $samAccountName)
             ->first();
 

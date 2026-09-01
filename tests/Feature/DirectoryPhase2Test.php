@@ -16,6 +16,14 @@ class DirectoryPhase2Test extends TestCase
 {
     use RefreshDatabase;
 
+    protected function tearDown(): void
+    {
+        // Registrierte LDAP-Verbindungen nicht in den nächsten Test durchreichen.
+        \LdapRecord\Container::getInstance()->getConnectionManager()->flush();
+
+        parent::tearDown();
+    }
+
     private function admin(): User
     {
         SystemSetting::set('installed', '1');
@@ -59,6 +67,45 @@ class DirectoryPhase2Test extends TestCase
         // Als Gast zeigt die Anmeldeseite jetzt keinen Auto-Login-Versuch mehr.
         auth()->logout();
         $this->get(route('login'))->assertDontSee('auth/negotiate', false);
+    }
+
+    public function test_dn_fields_are_trimmed_on_save(): void
+    {
+        $directory = Directory::create([
+            'name' => 'AD',
+            'type' => 'active_directory',
+            'base_dn' => "  DC=ad,DC=firma,DC=de\r\n",
+            'user_dn' => "OU=Benutzer,DC=ad,DC=firma,DC=de\n",
+            'group_dn' => '   ',
+            'bind_user' => "  svc-ldap@firma.de  ",
+        ]);
+
+        $this->assertSame('DC=ad,DC=firma,DC=de', $directory->fresh()->base_dn);
+        $this->assertSame('OU=Benutzer,DC=ad,DC=firma,DC=de', $directory->fresh()->user_dn);
+        $this->assertNull($directory->fresh()->group_dn);
+        $this->assertSame('svc-ldap@firma.de', $directory->fresh()->bind_user);
+
+        // Group-Suche fällt ohne group_dn auf den Base DN zurück.
+        $this->assertSame('DC=ad,DC=firma,DC=de', $directory->fresh()->groupSearchDn());
+    }
+
+    public function test_raw_query_without_base_dn_gives_a_clear_message_not_invalid_dn(): void
+    {
+        $directory = Directory::create([
+            'name' => 'AD',
+            'type' => 'active_directory',
+            'ldap_server' => '127.0.0.1',
+            'ldap_port' => 1,
+            'base_dn' => null,
+        ]);
+
+        $result = (new \App\Directory\DirectoryTestService)->rawQuery(
+            $directory,
+            '(&(objectClass=user)(memberOf=CN=IDP-Login,OU=Gruppen,DC=ad,DC=firma,DC=de))'
+        );
+
+        $this->assertFalse($result['ok']);
+        $this->assertStringNotContainsStringIgnoringCase('invalid dn syntax', $result['message']);
     }
 
     public function test_bind_password_is_stored_encrypted(): void
