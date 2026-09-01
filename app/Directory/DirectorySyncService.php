@@ -90,9 +90,11 @@ class DirectorySyncService
 
     private function syncGroups(DirectoryModel $directory, string $connectionName): int
     {
+        // paginate() holt alle Seiten (AD begrenzt get() sonst auf MaxPageSize,
+        // meist 1000) - so landen wirklich alle Gruppen im Vorschlags-Katalog.
         $groups = LdapGroup::on($connectionName)
             ->in($directory->groupSearchDn() ?? DirectoryConnectionResolver::resolveBaseDn($directory, $connectionName))
-            ->get();
+            ->paginate(500);
 
         $count = 0;
 
@@ -259,7 +261,7 @@ class DirectorySyncService
 
             $groupIds = $this->syncUserGroupMemberships($directory, $connectionName, $ldapUser, $directoryUser);
 
-            $roles = GroupRoleMapping::whereIn('directory_group_id', $groupIds)->pluck('role')->unique()->values()->all();
+            $roles = $this->resolveRoles($directory, $groupIds);
 
             $user = User::updateOrCreate(
                 ['object_guid' => $guid],
@@ -295,6 +297,41 @@ class DirectorySyncService
 
             return $user;
         });
+    }
+
+    /**
+     * Rollen des Benutzers aus den Gruppen-zu-Rollen-Mappings: verknüpfte
+     * Gruppen (per ID) plus frei eingetragene Namen (per Gruppenname,
+     * gross-/kleinschreibungsunabhängig, optional aufs Verzeichnis beschränkt).
+     *
+     * @param  array<int>  $groupIds
+     * @return array<int, string>
+     */
+    public function resolveRoles(DirectoryModel $directory, array $groupIds): array
+    {
+        $groupNames = DirectoryGroup::whereIn('id', $groupIds)
+            ->pluck('name')
+            ->map(fn ($n) => mb_strtolower(trim((string) $n)))
+            ->filter()
+            ->values()
+            ->all();
+
+        return GroupRoleMapping::query()
+            ->where(function ($query) use ($groupIds, $groupNames, $directory) {
+                $query->when($groupIds !== [], fn ($q) => $q->orWhereIn('directory_group_id', $groupIds));
+
+                if ($groupNames !== []) {
+                    $query->orWhere(function ($q) use ($groupNames, $directory) {
+                        $q->whereNotNull('group_name')
+                            ->whereIn(DB::raw('LOWER(group_name)'), $groupNames)
+                            ->where(fn ($q2) => $q2->whereNull('directory_id')->orWhere('directory_id', $directory->id));
+                    });
+                }
+            })
+            ->pluck('role')
+            ->unique()
+            ->values()
+            ->all();
     }
 
     /**

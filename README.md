@@ -107,7 +107,7 @@ werden nur verschlüsselt gespeichert.
 * Synchronisiert wird manuell per Knopf, bei jeder Windows-SSO-Anmeldung und regelmäßig über den Scheduler.
 * Pro Verzeichnis einstellbar, was mit Benutzern passiert, die bei einer vollen Synchronisierung nicht mehr im Suchbereich liegen (aus der OU verschoben oder im Verzeichnis gelöscht): behalten, sperren oder löschen. Liefert die Suche gar nichts, wird nichts angetastet.
 * Einzelne Benutzer lassen sich auch von Hand entfernen (`/admin/users`), auch solche aus einem Verzeichnis.
-* Unter `/admin/group-role-mappings` lassen sich AD-Gruppen auf interne Rollen abbilden, zum Beispiel auf `admin`.
+* Unter `/admin/group-role-mappings` lassen sich AD-Gruppen auf interne Rollen abbilden, zum Beispiel auf `admin`. Der Gruppenname kann direkt eingetragen werden (auch bevor synchronisiert wurde); bekannte Gruppen werden vorgeschlagen. Optional auf ein Verzeichnis begrenzen.
 
 ## Windows-SSO
 

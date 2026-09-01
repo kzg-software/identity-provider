@@ -225,14 +225,16 @@ class DirectoryPhase2Test extends TestCase
             'distinguished_name' => 'CN=IT-Admins,DC=test,DC=local',
         ]);
 
+        // Exakter Name einer bekannten Gruppe -> wird direkt verknüpft.
         $this->actingAs($admin)->post(route('admin.group-role-mappings.store'), [
-            'directory_group_id' => $group->id,
+            'group' => 'it-admins',
             'role' => 'admin',
             'claims' => '{"roles":["admin"]}',
-        ])->assertRedirect();
+        ])->assertRedirect()->assertSessionHasNoErrors();
 
         $this->assertDatabaseHas('group_role_mappings', [
             'directory_group_id' => $group->id,
+            'group_name' => null,
             'role' => 'admin',
         ]);
 
@@ -243,6 +245,49 @@ class DirectoryPhase2Test extends TestCase
             ->assertRedirect();
 
         $this->assertDatabaseMissing('group_role_mappings', ['id' => $mapping->id]);
+    }
+
+    public function test_group_role_mapping_accepts_a_free_text_group_name(): void
+    {
+        $admin = $this->admin();
+
+        $this->actingAs($admin)->post(route('admin.group-role-mappings.store'), [
+            'group' => 'GG_Nicht_Synchronisiert',
+            'role' => 'reviewer',
+        ])->assertRedirect()->assertSessionHasNoErrors();
+
+        $this->assertDatabaseHas('group_role_mappings', [
+            'directory_group_id' => null,
+            'group_name' => 'GG_Nicht_Synchronisiert',
+            'role' => 'reviewer',
+        ]);
+    }
+
+    public function test_roles_resolve_from_both_linked_and_free_text_group_mappings(): void
+    {
+        $this->admin();
+        $directory = Directory::create(['name' => 'AD', 'type' => 'active_directory', 'base_dn' => 'DC=test,DC=local']);
+
+        $linked = DirectoryGroup::create([
+            'directory_id' => $directory->id, 'object_guid' => 'g-linked',
+            'name' => 'GG_App_Admins', 'distinguished_name' => 'CN=GG_App_Admins,DC=test,DC=local',
+        ]);
+        $byName = DirectoryGroup::create([
+            'directory_id' => $directory->id, 'object_guid' => 'g-name',
+            'name' => 'GG_Reviewer', 'distinguished_name' => 'CN=GG_Reviewer,DC=test,DC=local',
+        ]);
+
+        $other = Directory::create(['name' => 'AD2', 'type' => 'active_directory', 'base_dn' => 'DC=other,DC=local']);
+
+        GroupRoleMapping::create(['directory_group_id' => $linked->id, 'role' => 'admin']);
+        GroupRoleMapping::create(['group_name' => 'gg_reviewer', 'directory_id' => null, 'role' => 'reviewer']);
+        // an ein anderes Verzeichnis gebunden -> darf hier NICHT greifen
+        GroupRoleMapping::create(['group_name' => 'gg_reviewer', 'directory_id' => $other->id, 'role' => 'nope']);
+
+        $roles = (new \App\Directory\DirectorySyncService)->resolveRoles($directory, [$linked->id, $byName->id]);
+
+        sort($roles);
+        $this->assertSame(['admin', 'reviewer'], $roles);
     }
 
     public function test_non_admin_cannot_manage_directories(): void
