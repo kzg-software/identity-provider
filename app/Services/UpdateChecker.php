@@ -4,7 +4,9 @@ namespace App\Services;
 
 use App\Support\Version;
 use Carbon\CarbonImmutable;
+use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Http\Client\PendingRequest;
+use Illuminate\Http\Client\RequestException;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
@@ -97,6 +99,11 @@ class UpdateChecker
 
         $ttl = max(1, (int) config('updates.ttl_hours', 24));
 
+        // Nach einem Fehler (z. B. API-Limit) früher erneut versuchen.
+        if (! empty($cached['error'])) {
+            $ttl = (int) max(1, min($ttl, 2));
+        }
+
         try {
             return CarbonImmutable::parse($cached['checked_at'])->addHours($ttl)->isPast();
         } catch (Throwable) {
@@ -131,11 +138,12 @@ class UpdateChecker
                 'checked_at' => now()->toIso8601String(),
             ], now()->addDays(30));
         } catch (Throwable $e) {
+            $message = self::friendlyError($e);
             Log::warning('Update-Prüfung fehlgeschlagen: '.$e->getMessage());
 
             $existing = Cache::get(self::CACHE_KEY);
             $existing = is_array($existing) ? $existing : [];
-            $existing['error'] = $e->getMessage();
+            $existing['error'] = $message;
             $existing['checked_at'] = now()->toIso8601String();
 
             Cache::put(self::CACHE_KEY, $existing, now()->addDays(30));
@@ -194,6 +202,21 @@ class UpdateChecker
             'url' => self::repositoryUrl().'/releases/tag/'.$tag,
             'published_at' => null,
         ];
+    }
+
+    private static function friendlyError(Throwable $e): string
+    {
+        if ($e instanceof RequestException && $e->response->status() === 403
+            && str_contains(strtolower($e->response->body()), 'rate limit')) {
+            return 'GitHub-API-Limit erreicht. Die Prüfung läuft automatisch später erneut; '
+                .'für ein höheres Limit ein UPDATE_GITHUB_TOKEN hinterlegen.';
+        }
+
+        if ($e instanceof ConnectionException) {
+            return 'Keine Verbindung zur GitHub-API.';
+        }
+
+        return $e->getMessage();
     }
 
     private static function request(): PendingRequest

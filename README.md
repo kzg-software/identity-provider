@@ -1,92 +1,131 @@
-# Zentrales Authentifizierungs- und SSO-System
+# Identity Provider
 
-Ein zentrales Identity & Access Management / Single-Sign-On-System auf Basis von **Laravel 13**, das lokale
-Konten, **Active Directory / LDAP / Kerberos-SSO**, einen vollständigen **OAuth 2.0 / OpenID-Connect-Provider**
-und einen **SAML-2.0-Identity-Provider** in einer Anwendung vereint. Kein NodeJS/npm/Vite — Frontend läuft
-vollständig mit Blade + Bootstrap 5 (CDN).
+Zentrale Anmeldung für interne Anwendungen. Eine Laravel-Anwendung, die lokale
+Konten, Active Directory und Windows-SSO als Anmeldequellen zusammenführt und
+nach außen als OAuth 2.0 / OpenID Connect Provider und als SAML 2.0 Identity
+Provider auftritt.
 
-## Installation
+Kein Node, kein npm, kein Build-Schritt. Das Frontend besteht aus
+Blade-Templates mit Tailwind und Alpine.js über CDN.
 
-> **Deployment-Wege im Detail:** [`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md) —
-> drei vollständig unterstützte Wege:
-> **A** manuell (ohne Docker, ohne Skript) ·
-> **B** mit Skript (`deploy/install.sh`, Zero-Downtime-VM) ·
-> **C** mit Docker (vordefinierte `docker-compose`, automatischer Image-Build via CI).
+## Was drin ist
 
-### Voraussetzungen
+* Lokale Benutzerkonten, optional mit Zwei-Faktor-Anmeldung (TOTP plus Recovery-Codes)
+* Active Directory und LDAP, mehrere Verzeichnisse gleichzeitig, verschachtelte Gruppen werden rekursiv aufgelöst
+* Windows-SSO über Kerberos/SPNEGO. Den Handshake macht der Webserver, die App verarbeitet `REMOTE_USER`
+* OAuth 2.0 und OpenID Connect: Authorization Code mit PKCE, Client Credentials, Refresh Token, Discovery, JWKS, UserInfo, Token-Revocation
+* SAML 2.0 Identity Provider mit signierten Assertions, Metadata pro Anwendung und Attribut-Mapping
+* Rollen-Mapping von AD-Gruppen auf interne Rollen
+* Audit-Log, Sitzungsübersicht, Systemstatus-Seite, Rate-Limiting auf den Anmelde- und Token-Endpunkten
+* Versionsanzeige im Footer und automatische Prüfung auf neue Releases in der Administration
 
-- PHP **8.3+** (entwickelt/getestet mit PHP 8.4)
-- Composer 2.x
-- PHP-Extensions: `openssl`, `ldap`, `xml`, `curl`, `mbstring`, `intl`, `session`, `sodium`, `pdo` (+ Treiber für
-  MySQL/MariaDB bzw. SQLite)
-- Ein Webserver (Apache, Nginx oder IIS) mit PHP-FPM/FastCGI, oder `php artisan serve` für Entwicklung/Test
-- MySQL/MariaDB (produktiv empfohlen) oder SQLite (Entwicklung/Erstinstallation)
-- Schreibrechte für den Webserver-Benutzer auf `storage/` und `bootstrap/cache/`
-
-### Schritte
+## Schnellstart (lokal)
 
 ```bash
 composer install
 cp .env.example .env
 php artisan key:generate
+php artisan serve
 ```
 
-Beim ersten Aufruf der Basis-URL (z.B. `https://auth.domain.de`) erkennt das System automatisch, dass es noch
-nicht installiert ist, und führt durch den **Web-Installer**:
+Beim ersten Aufruf der Startseite erkennt die Anwendung, dass sie noch nicht
+eingerichtet ist, und startet den Web-Installer.
 
-1. **Systemprüfung** — PHP-Version, Extensions, Schreibrechte
-2. **Datenbank** — Verbindungstest, führt Migrationen automatisch aus
-3. **System** — Systemname, Basis-URL, Zeitzone, Sprache, Session-Dauer, Logo/Favicon, E-Mail
-4. **Lokaler Administrator** — Break-Glass-Account, unabhängig von Active Directory
-5. **Active Directory** (optional) — kann übersprungen und später unter `/admin/directories` eingerichtet werden
-6. **Windows SSO** — Hilfeseite mit konkreten Server-Konfigurationsschritten (siehe unten)
-7. **Abschluss** — sperrt den Installer dauerhaft; erneuter Aufruf von `/install` leitet danach auf `/login` um
+Für den Produktivbetrieb gibt es drei Wege (manuell, Skript, Docker). Sie
+stehen in [`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md).
 
-Nach Abschluss ist der Installer nicht mehr öffentlich erreichbar (`system_settings.installed = 1`).
+## Einrichtung über den Web-Installer
 
-### Produktivbetrieb
+Der Installer führt durch sieben Schritte:
 
-- `.env`: `APP_ENV=production`, `APP_DEBUG=false`, `SESSION_DRIVER=database`, `SESSION_SECURE_COOKIE=true` (nur
-  über HTTPS betreiben — SAML/OIDC/Kerberos-SSO setzen einen vertrauenswürdigen Transport voraus)
-  - dieses Projekt terminiert TLS nicht selbst; produktiv gehört ein Reverse Proxy (Nginx/IIS/Apache) mit
-    gültigem Zertifikat davor
-- `php artisan config:cache && php artisan route:cache`
-- Laravel Scheduler per Cron/Aufgabenplanung: `* * * * * php artisan schedule:run` — betreibt u.a. die
-  periodische AD-Synchronisierung (`directory:sync-groups` alle 15 Min, `directory:sync-users` täglich) und den
-  Heartbeat für die Systemstatus-Seite (`/admin/status`)
-- Queue-Worker, falls Jobs eingesetzt werden: `php artisan queue:work`
+1. Systemprüfung: PHP-Version, Extensions, Schreibrechte
+2. Datenbank: Verbindung testen, Migrationen laufen automatisch
+3. System: Name, Basis-URL, Zeitzone, Sprache, Sitzungsdauer, Logo, Favicon, E-Mail
+4. Lokaler Administrator: ein Konto unabhängig von Active Directory, für den Notfall
+5. Active Directory: optional, lässt sich überspringen und später unter `/admin/directories` nachholen
+6. Windows-SSO: Hilfeseite mit den konkreten Schritten für IIS, Apache und Nginx
+7. Abschluss: sperrt den Installer dauerhaft
 
-## Active Directory / LDAP
+Danach ist `/install` nicht mehr erreichbar (`system_settings.installed = 1`),
+ein erneuter Aufruf leitet auf `/login`.
 
-Directories werden unter `Administration → Verzeichnisse` (`/admin/directories`) verwaltet — mehrere gleichzeitig
-möglich. Benötigt wird ein **Bind-Service-Account** (Lesezugriff auf Benutzer/Gruppen, kein Domain-Admin
-erforderlich) sowie die **Base DN** (z.B. `DC=domain,DC=local`). Bind-Passwörter werden ausschließlich
-verschlüsselt gespeichert (Laravel `encrypted` Cast).
+## Produktivbetrieb
 
-- **LDAP vs. LDAPS**: LDAPS (Port 636) wird empfohlen; unverschlüsseltes LDAP (Port 389) nur in vertrauenswürdigen
-  Netzen. Der Verbindungstyp ist pro Directory konfigurierbar.
-- Direkt in der Directory-Detailansicht: **Verbindung testen**, **Benutzer suchen**, **Gruppe suchen**,
-  **Testbenutzer authentifizieren**, **rohe LDAP-Abfrage**.
-- Synchronisierung: manuell per Button, bei jedem Windows-SSO-Login, sowie periodisch über den Scheduler.
-  Verschachtelte Gruppen (nested groups) werden rekursiv aufgelöst.
-- AD-Gruppen können unter `/admin/group-role-mappings` auf interne Rollen (z.B. `admin`) abgebildet werden.
+Voraussetzungen:
 
-## Windows SSO (Integrated Windows Authentication / Kerberos)
+* PHP 8.3 oder neuer, entwickelt und getestet mit 8.4
+* Composer 2
+* PHP-Extensions: `openssl`, `ldap`, `xml`, `curl`, `mbstring`, `intl`, `session`, `sodium`, `pdo` samt Treiber für MariaDB/MySQL oder SQLite
+* Webserver mit PHP-FPM (Apache, Nginx, IIS)
+* MariaDB oder MySQL für den Produktivbetrieb, SQLite reicht für Tests
+* Schreibrechte für den Webserver-Benutzer auf `storage/` und `bootstrap/cache/`
 
-Der Kerberos/SPNEGO-Handshake findet auf **Webserver-Ebene** statt — Laravel selbst spricht kein Kerberos. Der
-Webserver validiert das vom Browser übermittelte Ticket und reicht die authentifizierte Identität als
-`REMOTE_USER` (z.B. `DOMAIN\jkinzig`) durch; die `WindowsSsoAuthenticate`-Middleware übernimmt ab dort Parsing,
-AD-Lookup/Sync und Login. **Ohne gesetztes `REMOTE_USER` erfolgt kein automatischer Login** — es gibt keinen
-Fallback-/Fake-Login.
+In der `.env`:
 
-Eine ausführliche, interaktive Anleitung mit den konkreten Konfigurationsschritten steht auch im Installer
-(Schritt 6, `/install/windows-sso`). Kurzfassung:
+```dotenv
+APP_ENV=production
+APP_DEBUG=false
+SESSION_DRIVER=database
+SESSION_SECURE_COOKIE=true
+```
 
-**IIS**: Windows-Authentifizierung-Feature aktivieren, anonyme Authentifizierung deaktivieren, Provider-Reihenfolge
-`Negotiate` vor `NTLM`, SPN registrieren (`setspn -S HTTP/auth.domain.local DOMAIN\svc-auth`). IIS setzt
-`REMOTE_USER` automatisch, FastCGI reicht es durch.
+Die Anwendung terminiert kein TLS. Davor gehört ein Reverse Proxy mit gültigem
+Zertifikat. SAML, OIDC und Kerberos setzen HTTPS voraus.
 
-**Apache** (`mod_auth_gssapi`): Keytab erzeugen (`ktpass` bzw. `msktutil`), dann:
+Nach dem Deploy:
+
+```bash
+php artisan config:cache
+php artisan route:cache
+```
+
+Der Scheduler muss laufen. Ein Eintrag in Cron oder Aufgabenplanung genügt:
+
+```
+* * * * * php artisan schedule:run
+```
+
+Er betreibt die AD-Synchronisierung (`directory:sync-groups` alle 15 Minuten,
+`directory:sync-users` täglich), den Heartbeat für die Statusseite und die
+Prüfung auf neue Releases.
+
+Werden Hintergrundjobs genutzt, zusätzlich einen Worker starten:
+
+```bash
+php artisan queue:work
+```
+
+## Active Directory und LDAP
+
+Verzeichnisse werden unter `Administration → Verzeichnisse` (`/admin/directories`)
+gepflegt. Nötig sind ein Service-Konto mit Lesezugriff auf Benutzer und Gruppen
+(kein Domain-Admin) und die Base DN, etwa `DC=firma,DC=local`. Bind-Passwörter
+werden nur verschlüsselt gespeichert.
+
+* LDAPS auf Port 636 wird empfohlen. Unverschlüsseltes LDAP auf Port 389 nur in vertrauenswürdigen Netzen. Der Typ ist pro Verzeichnis einstellbar.
+* In der Detailansicht eines Verzeichnisses: Verbindung testen, Benutzer suchen, Gruppe suchen, Testbenutzer anmelden, rohe LDAP-Abfrage.
+* Synchronisiert wird manuell per Knopf, bei jeder Windows-SSO-Anmeldung und regelmäßig über den Scheduler.
+* Unter `/admin/group-role-mappings` lassen sich AD-Gruppen auf interne Rollen abbilden, zum Beispiel auf `admin`.
+
+## Windows-SSO
+
+Den Kerberos-Handshake macht der Webserver, nicht Laravel. Der Webserver prüft
+das Ticket des Browsers und übergibt die Identität als `REMOTE_USER`, zum
+Beispiel `FIRMA\mmuster`. Ab da übernimmt die Middleware
+`WindowsSsoAuthenticate`: sie zerlegt den Namen, schlägt den Benutzer im AD
+nach, synchronisiert ihn und meldet ihn an. Ohne `REMOTE_USER` passiert nichts,
+einen Ersatz-Login gibt es nicht.
+
+Die ausführliche Anleitung steht im Installer unter Schritt 6
+(`/install/windows-sso`). In Kürze:
+
+**IIS:** Windows-Authentifizierung aktivieren, anonyme Authentifizierung aus,
+Anbieter-Reihenfolge `Negotiate` vor `NTLM`, SPN registrieren
+(`setspn -S HTTP/auth.firma.local FIRMA\svc-auth`). IIS setzt `REMOTE_USER`,
+FastCGI reicht es durch.
+
+**Apache mit `mod_auth_gssapi`:** Keytab erzeugen (`ktpass` oder `msktutil`),
+dann:
 
 ```apache
 <Location />
@@ -98,106 +137,113 @@ Eine ausführliche, interaktive Anleitung mit den konkreten Konfigurationsschrit
 </Location>
 ```
 
-**Nginx** hat kein natives SPNEGO-Modul — entweder als Reverse-Proxy vor Apache/IIS betreiben (die dann
-`REMOTE_USER` per Header durchreichen) oder ein Drittanbieter-Modul (`nginx-http-auth-spnego`) einsetzen.
+**Nginx** hat kein eigenes SPNEGO-Modul. Entweder Apache oder IIS als Reverse
+Proxy davorstellen, die `REMOTE_USER` als Header weitergeben, oder ein
+Drittanbieter-Modul einsetzen. Alternativ gibt es den eingebauten Endpunkt
+`/auth/negotiate`, der ohne vorgeschalteten Kerberos-Server auskommt. Er prüft
+aber nur den gemeldeten Namen, nicht dessen Echtheit gegen den Domain
+Controller. Das ist eine bewusste Entscheidung für abgeschottete interne Netze,
+siehe Kommentar in `app/Http/Controllers/Auth/NegotiateController.php`.
 
-Benötigte Werte, unabhängig vom Webserver: **SPN** (`HTTP/auth.domain.local`), **Kerberos-Realm**
-(`DOMAIN.LOCAL`), **Hostname**, **Keytab** (Apache/Linux) bzw. registrierter SPN auf dem Dienstkonto (IIS), sowie
-der **HTTP Principal**.
+Benötigte Werte, unabhängig vom Webserver: SPN (`HTTP/auth.firma.local`),
+Kerberos-Realm (`FIRMA.LOCAL`), Hostname, Keytab (Apache, Linux) oder der auf
+dem Dienstkonto registrierte SPN (IIS), dazu der HTTP-Principal.
 
-## OAuth 2.0 / OpenID Connect
+## OAuth 2.0 und OpenID Connect
 
-Das System ist selbst ein vollständiger OIDC-Provider:
+| Zweck | Route |
+|---|---|
+| Discovery | `GET /.well-known/openid-configuration` |
+| JWKS | `GET /.well-known/jwks.json` |
+| Authorization | `GET /oauth/authorize` |
+| Token | `POST /oauth/token` |
+| UserInfo | `GET` oder `POST /oauth/userinfo` |
+| Revocation | `POST /oauth/revoke` |
 
-- Discovery: `GET /.well-known/openid-configuration`
-- JWKS: `GET /.well-known/jwks.json` (Key-Rotation über `/admin/oidc-keys`)
-- Authorization: `GET /oauth/authorize`
-- Token: `POST /oauth/token` (Authorization Code + PKCE, Client Credentials, Refresh Token)
-- UserInfo: `GET|POST /oauth/userinfo`
-- Revocation: `POST /oauth/revoke`
+Clients werden unter `/admin/applications` angelegt: Redirect-URIs, Scopes,
+Grant-Types, Token-Laufzeiten, PKCE-Pflicht. Das Client-Secret ist nur direkt
+nach dem Anlegen im Klartext sichtbar. Die Signaturschlüssel werden unter
+`/admin/oidc-keys` rotiert.
 
-Anwendungen/Clients werden unter `/admin/applications` angelegt (Redirect-URIs, Scopes, Grant-Types,
-Token-Lifetimes, PKCE-Pflicht). Das Client-Secret wird nur direkt nach der Erstellung im Klartext angezeigt.
-
-### Beispiel-Client-Integration (Authorization Code + PKCE)
+Ablauf für einen Client mit Authorization Code und PKCE:
 
 ```
-1. Client generiert code_verifier + code_challenge (S256) und einen zufälligen state.
-2. Redirect zu:
-   GET https://auth.domain.de/oauth/authorize
+1. code_verifier und code_challenge (S256) erzeugen, dazu einen zufälligen state.
+2. Weiterleitung auf:
+   GET /oauth/authorize
        ?response_type=code
        &client_id=<client_id>
-       &redirect_uri=https://app1.domain.de/callback
+       &redirect_uri=https://app.firma.de/callback
        &scope=openid profile email groups
        &state=<state>
        &code_challenge=<code_challenge>
        &code_challenge_method=S256
-3. Nach Login/Consent: Redirect zurück mit ?code=...&state=...
-4. Token-Tausch:
+3. Nach Anmeldung und Zustimmung: Ruecksprung mit ?code=...&state=...
+4. Code gegen Token tauschen:
    POST /oauth/token
    grant_type=authorization_code&code=...&redirect_uri=...&client_id=...&code_verifier=...
-   → { access_token, id_token, refresh_token, token_type, expires_in }
-5. ID-Token gegen /.well-known/jwks.json verifizieren (RS256, "kid" im Header beachten).
+   Antwort: access_token, id_token, refresh_token, token_type, expires_in
+5. id_token gegen /.well-known/jwks.json pruefen (RS256, kid im Header beachten).
 ```
 
 ## SAML 2.0
 
-Das System ist ein SAML-2.0-**Identity Provider**. Service Provider werden unter
-`/admin/saml-service-providers` angelegt (Entity ID, ACS-/SLO-URL, NameID-Format, Signaturanforderungen,
-Attribut-Mappings).
+Die Anwendung ist ein SAML-2.0-Identity-Provider. Service Provider werden unter
+`/admin/saml-service-providers` eingetragen: Entity ID, ACS-URL, SLO-URL,
+NameID-Format, Signaturanforderungen, Attribut-Mapping.
 
-- Metadata (global): `GET /saml/metadata`
-- Metadata (pro Anwendung): `GET /saml/{application}/metadata`
-- SSO-Endpoint (nimmt AuthnRequests entgegen): `GET|POST /saml/sso`
-- Single Logout: `GET|POST /saml/slo`
+| Zweck | Route |
+|---|---|
+| Metadata global | `GET /saml/metadata` |
+| Metadata pro Anwendung | `GET /saml/{application}/metadata` |
+| SSO | `GET` oder `POST /saml/sso` |
+| Single Logout | `GET` oder `POST /saml/slo` |
 
-### Beispiel-SP-Integration
+Einen SP anbinden:
 
-1. Im SP die IdP-Metadata unter `https://auth.domain.de/saml/{application}/metadata` einbinden (enthält
-   Entity ID, SSO-/SLO-URL und das öffentliche Signing-Zertifikat).
-2. Im Admin-Bereich einen `SamlServiceProvider`-Eintrag mit der Entity ID und ACS-URL des SP anlegen.
-3. Attribut-Mapping prüfen/anpassen (Default: `uid`→`username`, `mail`→`email`, `displayName`→`display_name`,
-   `department`→`department`, `groups`→AD-Gruppen).
-4. Der SP schickt eine AuthnRequest an `/saml/sso`; nach Login (lokal oder Windows-SSO) wird eine signierte
-   Assertion per Auto-Submit-POST an die ACS-URL gesendet.
+1. Im SP die IdP-Metadata von `/saml/{application}/metadata` einlesen. Sie enthält Entity ID, SSO- und SLO-URL und das öffentliche Signaturzertifikat.
+2. Im Adminbereich einen Eintrag mit Entity ID und ACS-URL des SP anlegen.
+3. Attribut-Mapping prüfen. Standard: `uid` auf `username`, `mail` auf `email`, `displayName` auf `display_name`, `department` auf `department`, `groups` auf die AD-Gruppen.
+4. Der SP schickt eine AuthnRequest an `/saml/sso`. Nach der Anmeldung geht eine signierte Assertion per Auto-Submit-Formular an die ACS-URL.
 
-Zertifikate werden unter `/admin/saml-certificates` verwaltet (automatische Selbstsignierung möglich, Rotation,
-Ablaufwarnung). Signaturpflichtige AuthnRequests müssen über POST-Binding gesendet werden (Signaturprüfung für
-das Redirect-Binding ist aktuell nicht implementiert).
+Zertifikate liegen unter `/admin/saml-certificates`: Selbstsignierung, Rotation,
+Ablaufwarnung. Signierte AuthnRequests müssen über das POST-Binding kommen. Die
+Signaturprüfung für das Redirect-Binding fehlt noch.
 
-## Sicherheit & Betrieb
+## Sicherheit und Betrieb
 
-- Zwei-Faktor-Authentifizierung (TOTP + Recovery-Codes) für lokale Konten unter `Profil → Zwei-Faktor`
-- Aktive Sessions einsehbar/widerrufbar unter `Profil → Meine Sitzungen` bzw. `Administration → Alle Sessions`
-- Vollständiges Audit-Log unter `Administration → Audit-Log` (Login, Token-Ereignisse, Consent, SAML,
-  Admin-Aktionen, …)
-- Systemstatus/Health-Checks unter `Administration → Systemstatus` (DB, Cache, Dateisystem, Queue, Scheduler,
-  AD/LDAP, OIDC-Signing-Key- und SAML-Zertifikatsablauf)
-- Rate-Limiting auf Login, `/oauth/token`, `/oauth/revoke` und `/saml/sso`
+* Zwei-Faktor-Anmeldung (TOTP und Recovery-Codes) für lokale Konten unter `Profil → Zwei-Faktor`
+* Eigene Sitzungen unter `Profil → Meine Sitzungen`, alle Sitzungen unter `Administration → Alle Sessions`, jeweils einsehbar und widerrufbar
+* Audit-Log unter `Administration → Audit-Log`: Anmeldungen, Token-Ereignisse, Zustimmungen, SAML, Admin-Aktionen
+* Systemstatus unter `Administration → Systemstatus`: Datenbank, Cache, Dateisystem, Queue, Scheduler, AD-Verbindungen, Ablauf von OIDC-Schlüsseln und SAML-Zertifikaten
+* Rate-Limiting auf Anmeldung, `/oauth/token`, `/oauth/revoke` und `/saml/sso`
+* Versionsnummer im Footer, verlinkt auf die passende Release-Seite. Die Administration prüft regelmäßig auf neue Releases und zeigt Changelog und Update-Hinweise unter `Administration → Aktualisierungen`.
 
-## Bekannte Einschränkungen / was für eine echte Produktivumgebung zusätzlich nötig ist
+## Was noch fehlt
 
-Dieses Projekt implementiert alle Kernprotokolle funktional und mit echten Tests (`php artisan test`), ist aber
-kein fertig abgenommenes Produkt. Vor einem produktiven Einsatz zusätzlich einplanen:
+Die Kernprotokolle funktionieren und sind mit Tests abgedeckt
+(`php artisan test`). Vor einem echten Produktiveinsatz fehlt noch:
 
-- **HTTPS/Reverse-Proxy-Setup** inkl. gültiger Zertifikate — SAML/OIDC/Kerberos sind ohne TLS nicht sicher zu
-  betreiben
-- **Echter Mailversand** (Passwort-Reset o.ä.) ist noch nicht an einen SMTP-Provider angebunden/getestet
-- **Penetrationstest / Security-Review** durch Dritte, insbesondere der SAML-XML- und OAuth-Token-Pfade
-- **Lasttest** unter realistischer Nutzerzahl (insbesondere LDAP-Sync-Läufe und Token-Endpoint)
-- **IdP-initiierter SAML-Logout** ist nicht implementiert (nur SP-initiiert)
-- **SAML-Assertion-Verschlüsselung** (Encryption-Zertifikat-Handling) ist vorbereitet, aber nicht fertig
-- **SAML-Redirect-Binding-Signaturprüfung** fehlt (POST-Binding wird korrekt geprüft und ist der empfohlene Weg)
-- **Externe Identity Provider** (Microsoft Entra ID, Keycloak, Google, externe SAML-IdPs) sind als
-  Konfigurationsfeld vorbereitet, aber nicht angebunden
-- **Home Realm Discovery** ist nicht vollautomatisiert (E-Mail-Domain-/IP-Netz-/Policy-basiert)
-- Ein **AD-Benutzername/Passwort-Login** (zusätzlich zu Windows-SSO) existiert noch nicht — AD-Benutzer melden
-  sich aktuell ausschließlich über Windows-SSO an
-- OAuth-Access-Token-Validierung nutzt bei Key-Rotation aktuell nur den zuletzt aktiven Signing-Key (ID-Token-
-  Prüfung über JWKS funktioniert dagegen mit allen historischen Keys)
+* Ein erprobtes HTTPS- und Reverse-Proxy-Setup mit gültigen Zertifikaten
+* Echter Mailversand für Passwort-Reset, aktuell nicht an einen SMTP-Dienst angebunden
+* Ein externer Security-Review, vor allem der SAML-XML- und OAuth-Token-Pfade
+* Ein Lasttest mit realistischer Nutzerzahl, besonders für LDAP-Sync und Token-Endpunkt
+* IdP-initiierter SAML-Logout, bisher nur SP-initiiert
+* SAML-Assertion-Verschlüsselung, vorbereitet aber nicht fertig
+* Signaturprüfung für das SAML-Redirect-Binding
+* Anbindung externer Identity Provider (Entra ID, Keycloak, Google), bisher nur als Konfigurationsfeld vorhanden
+* Automatische Home-Realm-Discovery
+* Ein Benutzername/Passwort-Login für AD-Konten zusätzlich zu Windows-SSO
+* Bei rotierten OAuth-Schlüsseln nutzt die Access-Token-Prüfung nur den zuletzt aktiven Schlüssel. Die ID-Token-Prüfung über JWKS deckt alle bisherigen Schlüssel ab
 
 ## Tests
 
 ```bash
 php artisan test
 ```
+
+## Lizenz
+
+Siehe [`LICENSE`](LICENSE). Nutzung, Änderung und Weitergabe sind erlaubt,
+solange der Urheberhinweis erhalten bleibt und bei einem sichtbaren Betrieb ein
+Link auf das Ursprungsprojekt gesetzt wird.
