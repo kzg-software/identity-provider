@@ -1,0 +1,5 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Sicherheitslücke melden
+    url: https://github.com/kzg-software/identity-provider/security/advisories/new
+    about: Bitte Sicherheitsprobleme nicht öffentlich als Issue melden.
