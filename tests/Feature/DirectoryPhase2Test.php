@@ -247,6 +247,26 @@ class DirectoryPhase2Test extends TestCase
         $this->assertDatabaseMissing('group_role_mappings', ['id' => $mapping->id]);
     }
 
+    public function test_group_role_mapping_page_renders_with_mixed_mappings(): void
+    {
+        $admin = $this->admin();
+        $directory = Directory::create(['name' => 'AD', 'type' => 'active_directory', 'base_dn' => 'DC=test,DC=local']);
+        $group = DirectoryGroup::create([
+            'directory_id' => $directory->id, 'object_guid' => 'g1',
+            'name' => 'Linked', 'distinguished_name' => 'CN=Linked,DC=test,DC=local',
+        ]);
+        GroupRoleMapping::create(['directory_group_id' => $group->id, 'role' => 'admin']);
+        GroupRoleMapping::create(['group_name' => 'FreeText', 'directory_id' => $directory->id, 'role' => 'reviewer']);
+        GroupRoleMapping::create(['group_name' => 'Everywhere', 'role' => 'viewer']);
+
+        $this->actingAs($admin)->get(route('admin.group-role-mappings.index'))
+            ->assertOk()
+            ->assertSee('Linked')
+            ->assertSee('FreeText')
+            ->assertSee('Everywhere')
+            ->assertSee('(nach Name)');
+    }
+
     public function test_group_role_mapping_accepts_a_free_text_group_name(): void
     {
         $admin = $this->admin();
