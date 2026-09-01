@@ -1,0 +1,23 @@
+# Override: Image lokal aus dem Quellcode bauen statt aus der Registry ziehen.
+#
+#   docker compose -f docker-compose.yml -f docker-compose.build.yml up -d --build
+#
+# Danach reicht wieder "docker compose ... up -d" (Image ist als
+# auth-system:local getaggt).
+
+name: auth-system
+
+x-build: &build
+  build:
+    context: .
+    dockerfile: Dockerfile
+  image: ${APP_IMAGE:-auth-system:local}
+  pull_policy: build
+
+services:
+  app:
+    <<: *build
+  scheduler:
+    <<: *build
+  queue:
+    <<: *build

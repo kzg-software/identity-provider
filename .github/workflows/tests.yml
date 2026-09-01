@@ -1,0 +1,44 @@
+name: Tests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  phpunit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: PHP 8.4 einrichten
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          extensions: mbstring, intl, pdo_sqlite, sqlite3, ldap, gd, zip, bcmath, sodium, openssl, curl, dom, xml, fileinfo
+          coverage: none
+          ini-values: error_reporting=E_ALL
+          # GitHub-Token an Composer durchreichen -> keine API-Rate-Limits
+          # beim Herunterladen der Pakete.
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Composer-Cache
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/composer
+          key: composer-${{ runner.os }}-${{ hashFiles('composer.lock') }}
+          restore-keys: composer-${{ runner.os }}-
+
+      - name: Abhängigkeiten installieren
+        run: composer install --no-interaction --no-progress --prefer-dist
+
+      - name: .env vorbereiten
+        run: |
+          cp .env.example .env
+          php artisan key:generate
+
+      - name: Testsuite
+        run: php artisan test

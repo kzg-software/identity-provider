@@ -1,0 +1,28 @@
+# Nur das ins Build-Image, was wirklich gebraucht wird.
+.git
+.github
+.gitea
+.idea
+.vscode
+node_modules
+vendor
+tests
+storage/logs/*
+storage/framework/cache/data/*
+storage/framework/sessions/*
+storage/framework/views/*
+storage/app/public/*
+bootstrap/cache/*.php
+database/*.sqlite
+database/*.sqlite-journal
+
+# Umgebungs-/Geheimdateien niemals ins Image
+.env
+.env.*
+!.env.example
+
+# Deployment-/Doku-Kram wird im Image nicht benötigt
+deploy
+docs
+*.md
+docker-compose*.yml

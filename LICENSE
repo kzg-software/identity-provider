@@ -1,0 +1,127 @@
+Attribution & Link-Back License (ALBL) v1.0
+==========================================
+
+Copyright (c) 2026 KZG-Software <kzg-software@proton.me>
+
+Dieses Werk umfasst den Quellcode, die Dokumentation und alle weiteren
+Bestandteile dieses Repositories ("die Software").
+
+
+1. Gewährte Rechte
+------------------
+
+Hiermit wird jeder natürlichen oder juristischen Person ("Sie")
+unentgeltlich die Erlaubnis erteilt,
+
+  a) die Software herunterzuladen, zu speichern und zu vervielfältigen,
+  b) die Software für private, betriebliche, kommerzielle sowie
+     Ausbildungs- und Forschungszwecke einzusetzen und zu betreiben,
+  c) die Software zu verändern, zu erweitern und abgeleitete Werke davon
+     zu erstellen,
+  d) die Software sowie abgeleitete Werke weiterzugeben und öffentlich
+     zugänglich zu machen,
+
+sofern sämtliche nachfolgenden Bedingungen eingehalten werden.
+
+
+2. Pflicht zur Namensnennung und Verlinkung
+-------------------------------------------
+
+2.1  In jeder weitergegebenen Kopie der Software oder eines abgeleiteten
+     Werkes - ob im Quelltext oder in ausführbarer Form - müssen dieser
+     Lizenztext, der oben genannte Urheberrechtsvermerk und der folgende
+     Hinweis unverändert enthalten sein:
+
+        "Basiert auf dem Identity Provider von KZG-Software
+         (https://github.com/kzg-software/identity-provider)."
+
+2.2  Wird die Software oder ein abgeleitetes Werk als Dienst, Anwendung
+     oder Website betrieben, die für Endnutzer sichtbar ist, so muss an
+     einer für den Nutzer zumutbar auffindbaren Stelle (z. B. Fußzeile,
+     "Über"-Seite, Impressum oder Hilfe-/Info-Dialog) ein klar lesbarer
+     Hinweis mit einem funktionierenden Hyperlink auf das
+     Ursprungsprojekt sowie den Urheber angebracht werden. Der Hyperlink
+
+       - muss als anklickbarer Link (HTML `<a href>` oder gleichwertig)
+         ausgeführt sein,
+       - darf nicht durch `rel="nofollow"`, `robots`-Anweisungen,
+         Weiterleitungs-Tarnung oder ähnliche Techniken entwertet werden,
+       - muss auf die vom Urheber benannte kanonische Projekt-Adresse
+         verweisen. Ist keine andere Adresse bekannt, gilt
+         https://github.com/kzg-software/identity-provider als
+         kanonische Adresse.
+
+2.3  Die Namensnennung und der Link dürfen nicht so gestaltet oder
+     platziert werden, dass eine Billigung, Partnerschaft oder
+     Unterstützung durch den Urheber suggeriert wird, die nicht besteht.
+
+2.4  Der Urhebervermerk, der Hinweis nach 2.1 und der Link nach 2.2
+     dürfen nicht entfernt, unkenntlich gemacht, verkleinert bis zur
+     Unlesbarkeit oder verdeckt werden.
+
+
+3. Änderungen kenntlich machen
+------------------------------
+
+Veränderte Fassungen der Software müssen an geeigneter Stelle einen
+Hinweis enthalten, dass Änderungen gegenüber dem Original vorgenommen
+wurden, einschließlich Datum und - soweit zumutbar - Art der Änderung.
+Der Eindruck, die veränderte Fassung sei die unveränderte
+Originalfassung des Urhebers, darf nicht erweckt werden.
+
+
+4. Marken
+---------
+
+Diese Lizenz gewährt keine Rechte an Namen, Logos, Marken oder sonstigen
+Kennzeichen des Urhebers, ausgenommen die in Abschnitt 2 ausdrücklich
+vorgeschriebene Namensnennung.
+
+
+5. Weitergabe unter gleichen Bedingungen
+----------------------------------------
+
+Jede Weitergabe der Software oder eines abgeleiteten Werkes darf nur
+unter dieser Lizenz in unveränderter Fassung erfolgen. Zusätzliche
+Einschränkungen, die über diese Lizenz hinausgehen, dürfen den
+Empfängern nicht auferlegt werden.
+
+
+6. Gewährleistungsausschluss
+----------------------------
+
+DIE SOFTWARE WIRD OHNE MÄNGELGEWÄHR UND OHNE JEGLICHE AUSDRÜCKLICHE ODER
+STILLSCHWEIGENDE GEWÄHRLEISTUNG ZUR VERFÜGUNG GESTELLT, EINSCHLIESSLICH,
+ABER NICHT BESCHRÄNKT AUF DIE GEWÄHRLEISTUNG DER MARKTGÄNGIGKEIT, DER
+EIGNUNG FÜR EINEN BESTIMMTEN ZWECK UND DER NICHTVERLETZUNG VON RECHTEN
+DRITTER.
+
+
+7. Haftungsbeschränkung
+-----------------------
+
+IN KEINEM FALL HAFTET DER URHEBER FÜR ANSPRÜCHE, SCHÄDEN ODER SONSTIGE
+VERPFLICHTUNGEN, GLEICH OB AUS VERTRAG, UNERLAUBTER HANDLUNG ODER
+ANDERWEITIG, DIE AUS DER SOFTWARE ODER DER NUTZUNG DER SOFTWARE ODER
+SONSTIGEM UMGANG MIT IHR ENTSTEHEN. Zwingende gesetzliche Haftung,
+insbesondere für Vorsatz und grobe Fahrlässigkeit sowie nach dem
+Produkthaftungsgesetz, bleibt unberührt.
+
+
+8. Beendigung
+-------------
+
+Bei einem Verstoß gegen diese Lizenz enden die Ihnen unter Abschnitt 1
+gewährten Rechte automatisch. Sie leben wieder auf, sobald der Verstoß
+innerhalb von 30 Tagen nach Kenntnis oder Abmahnung vollständig behoben
+wird und kein weiterer Verstoß vorliegt. Rechte Dritter, die die
+Software rechtmäßig von Ihnen erhalten haben und die Lizenz einhalten,
+bleiben bestehen.
+
+
+9. Anwendbares Recht
+--------------------
+
+Es gilt das Recht der Bundesrepublik Deutschland unter Ausschluss des
+UN-Kaufrechts. Soweit gesetzlich zulässig, ist Gerichtsstand der
+Wohnsitz des Urhebers.

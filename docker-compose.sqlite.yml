@@ -1,0 +1,61 @@
+# Auth-System – minimaler Stack ohne separaten DB-Server (SQLite).
+# Baut das Image lokal, braucht KEINE Registry.
+#
+#   cp .env.docker.example .env
+#   #  in .env:  DB_CONNECTION=sqlite  und  APP_URL anpassen
+#   docker compose -f docker-compose.sqlite.yml up -d --build
+#
+# Gut für Test/kleine Installationen. Für größere Umgebungen -> docker-compose.yml (MariaDB).
+
+name: auth-system
+
+x-app: &app
+  build:
+    context: .
+  image: ${APP_IMAGE:-auth-system:local}
+  restart: unless-stopped
+  env_file: [.env]
+  volumes:
+    - ./.env:/var/www/html/.env
+    - app-storage:/var/www/html/storage
+    - app-database:/var/www/html/database
+
+services:
+  app:
+    <<: *app
+    environment:
+      CONTAINER_ROLE: app
+      DB_CONNECTION: sqlite
+      DB_DATABASE: /var/www/html/database/database.sqlite
+    ports:
+      - "${APP_PORT:-8080}:8080"
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://127.0.0.1:8080/up"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 40s
+
+  scheduler:
+    <<: *app
+    environment:
+      CONTAINER_ROLE: scheduler
+      DB_CONNECTION: sqlite
+      DB_DATABASE: /var/www/html/database/database.sqlite
+    depends_on:
+      app:
+        condition: service_healthy
+
+  queue:
+    <<: *app
+    environment:
+      CONTAINER_ROLE: queue
+      DB_CONNECTION: sqlite
+      DB_DATABASE: /var/www/html/database/database.sqlite
+    depends_on:
+      app:
+        condition: service_healthy
+
+volumes:
+  app-storage:
+  app-database:

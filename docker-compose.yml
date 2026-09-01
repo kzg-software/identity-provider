@@ -1,0 +1,81 @@
+# Auth-System – Produktions-Stack mit MariaDB.
+#
+#   cp .env.docker.example .env      # Werte anpassen (DB-Passwörter, APP_URL, APP_IMAGE)
+#   docker compose up -d
+#
+# Nutzt ein fertig gebautes Image (APP_IMAGE aus .env, Default ghcr.io/kzg-software/identity-provider).
+# Selbst bauen statt ziehen:
+#   docker compose -f docker-compose.yml -f docker-compose.build.yml up -d --build
+#
+# Ohne separate DB (SQLite, ein Container-Set):
+#   docker compose -f docker-compose.sqlite.yml up -d
+
+name: auth-system
+
+x-app: &app
+  # Registry-Weg: APP_IMAGE in .env setzen (z.B. ghcr.io/kzg-software/identity-provider:latest).
+  # Lokal bauen:  docker compose -f docker-compose.yml -f docker-compose.build.yml up -d --build
+  image: ${APP_IMAGE:-auth-system:local}
+  restart: unless-stopped
+  env_file: [.env]
+  volumes:
+    - ./.env:/var/www/html/.env
+    - app-storage:/var/www/html/storage
+  depends_on:
+    db:
+      condition: service_healthy
+
+services:
+  app:
+    <<: *app
+    environment:
+      CONTAINER_ROLE: app
+    ports:
+      - "${APP_PORT:-8080}:8080"
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://127.0.0.1:8080/up"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 40s
+
+  scheduler:
+    <<: *app
+    environment:
+      CONTAINER_ROLE: scheduler
+      AUTO_MIGRATE: "false"
+    ports: []
+    depends_on:
+      app:
+        condition: service_healthy
+
+  queue:
+    <<: *app
+    environment:
+      CONTAINER_ROLE: queue
+      AUTO_MIGRATE: "false"
+    ports: []
+    depends_on:
+      app:
+        condition: service_healthy
+
+  db:
+    image: mariadb:11
+    restart: unless-stopped
+    environment:
+      MARIADB_DATABASE: ${DB_DATABASE:-auth_system}
+      MARIADB_USER: ${DB_USERNAME:-auth_system}
+      MARIADB_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD in .env setzen}
+      MARIADB_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:?DB_ROOT_PASSWORD in .env setzen}
+    volumes:
+      - db-data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 20s
+
+volumes:
+  app-storage:
+  db-data:
