@@ -75,23 +75,23 @@
 
     <div>
         <x-input-label value="Service Principal Name (SPN)" />
-        <x-input type="text" name="spn" placeholder="HTTP/auth.example.local" />
+        <x-input type="text" name="spn" value="{{ old('spn') }}" placeholder="HTTP/auth.example.local" />
     </div>
 
     <div class="grid grid-cols-2 gap-4">
         <div>
             <x-input-label value="Realm" />
-            <x-input type="text" name="realm" />
+            <x-input type="text" name="realm" value="{{ old('realm') }}" />
         </div>
         <div>
             <x-input-label value="Hostname" />
-            <x-input type="text" name="hostname" value="{{ request()->getHost() }}" />
+            <x-input type="text" name="hostname" value="{{ old('hostname', request()->getHost()) }}" />
         </div>
     </div>
 
     <div>
         <x-input-label value="HTTP Principal" />
-        <x-input type="text" name="http_principal" />
+        <x-input type="text" name="http_principal" value="{{ old('http_principal') }}" />
     </div>
 
     <x-button type="submit">Weiter</x-button>

@@ -48,26 +48,26 @@
     <div class="grid grid-cols-2 gap-4">
         <div>
             <x-input-label value="SMTP-Host" />
-            <x-input type="text" name="mail_host" />
+            <x-input type="text" name="mail_host" value="{{ old('mail_host') }}" />
         </div>
         <div>
             <x-input-label value="SMTP-Port" />
-            <x-input type="number" name="mail_port" />
+            <x-input type="number" name="mail_port" value="{{ old('mail_port') }}" />
         </div>
     </div>
     <div class="grid grid-cols-2 gap-4">
         <div>
             <x-input-label value="Benutzer" />
-            <x-input type="text" name="mail_username" />
+            <x-input type="text" name="mail_username" value="{{ old('mail_username') }}" />
         </div>
         <div>
             <x-input-label value="Passwort" />
-            <x-input type="password" name="mail_password" />
+            <x-input type="password" name="mail_password" value="{{ old('mail_password') }}" />
         </div>
     </div>
     <div>
         <x-input-label value="Absenderadresse" />
-        <x-input type="email" name="mail_from_address" />
+        <x-input type="email" name="mail_from_address" value="{{ old('mail_from_address') }}" />
     </div>
 
     <x-button type="submit">Weiter</x-button>

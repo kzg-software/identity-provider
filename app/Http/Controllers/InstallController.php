@@ -85,7 +85,7 @@ class InstallController extends Controller
             return back()->withInput()->withErrors(['connection' => 'Verbindung fehlgeschlagen: '.$e->getMessage()]);
         }
 
-        return back()->with('status', 'Verbindung erfolgreich.');
+        return back()->withInput()->with('status', 'Verbindung erfolgreich.');
     }
 
     public function databaseStore(Request $request): RedirectResponse

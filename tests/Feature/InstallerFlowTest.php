@@ -61,6 +61,50 @@ class InstallerFlowTest extends TestCase
         $this->get(route('install.index'))->assertRedirect(route('login'));
     }
 
+    public function test_database_connection_test_keeps_the_entered_values(): void
+    {
+        $response = $this->from(route('install.database'))
+            ->followingRedirects()
+            ->post(route('install.database.test'), [
+                'connection' => 'mysql',
+                'host' => '127.0.0.1',
+                'port' => '3307',
+                'database' => 'auth_prod',
+                'username' => 'auth_rw',
+                'password' => 'Geheim!123',
+            ]);
+
+        $response->assertOk();
+        $response->assertSee('value="3307"', false);
+        $response->assertSee('value="auth_prod"', false);
+        $response->assertSee('value="auth_rw"', false);
+        $response->assertSee('value="Geheim!123"', false);
+        $response->assertSee('value="mysql" selected', false);
+    }
+
+    public function test_directory_connection_test_keeps_the_entered_values(): void
+    {
+        $response = $this->from(route('install.directory'))
+            ->followingRedirects()
+            ->post(route('install.directory.test'), [
+                'name' => 'AD Zentrale',
+                'domain' => 'intern.example',
+                'ldap_server' => '127.0.0.1',
+                'ldap_port' => '389',
+                'use_ldaps' => '1',
+                'base_dn' => 'DC=intern,DC=example',
+                'bind_user' => 'svc-ldap',
+                'bind_password' => 'BindPw!42',
+            ]);
+
+        $response->assertOk();
+        $response->assertSee('value="intern.example"', false);
+        $response->assertSee('value="DC=intern,DC=example"', false);
+        $response->assertSee('checked', false);
+        $response->assertSee('value="svc-ldap"', false);
+        $response->assertSee('value="BindPw!42"', false);
+    }
+
     public function test_finish_is_rejected_without_local_admin(): void
     {
         $this->post(route('install.complete'))->assertRedirect(route('install.admin'));
