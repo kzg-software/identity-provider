@@ -6,6 +6,9 @@ use App\Http\Controllers\Admin\DirectoryController;
 use App\Http\Controllers\Admin\GroupRoleMappingController;
 use App\Http\Controllers\Admin\ImpersonateController;
 use App\Http\Controllers\Admin\OidcKeyController;
+use App\Http\Controllers\Admin\SamlCertificateController;
+use App\Http\Controllers\Admin\SamlServiceProviderController;
+use App\Http\Controllers\Admin\SessionController;
 use App\Http\Controllers\Admin\SettingController;
 use App\Http\Controllers\Admin\SystemStatusController;
 use App\Http\Controllers\Admin\SystemUpdateController;
@@ -19,8 +22,6 @@ use App\Http\Controllers\Oidc\DiscoveryController;
 use App\Http\Controllers\Oidc\JwksController;
 use App\Http\Controllers\Oidc\TokenController;
 use App\Http\Controllers\Oidc\UserInfoController;
-use App\Http\Controllers\Admin\SamlCertificateController;
-use App\Http\Controllers\Admin\SamlServiceProviderController;
 use App\Http\Controllers\Profile\SessionController as ProfileSessionController;
 use App\Http\Controllers\Saml\MetadataController;
 use App\Http\Controllers\Saml\SloController;
@@ -90,12 +91,15 @@ Route::middleware('auth')->group(function () {
     Route::delete('profile/sessions/{userSession}', [ProfileSessionController::class, 'destroy'])->name('profile.sessions.destroy');
     Route::post('profile/sessions/destroy-others', [ProfileSessionController::class, 'destroyOthers'])->name('profile.sessions.destroy-others');
 
-    Route::prefix('admin')->name('admin.')->middleware('local_admin')->group(function () {
+    Route::prefix('admin')->name('admin.')->middleware('admin')->group(function () {
+        Route::get('/', [App\Http\Controllers\Admin\DashboardController::class, 'index'])->name('dashboard');
+
         Route::get('users', [UserController::class, 'index'])->name('users.index');
         Route::get('users/create', [UserController::class, 'create'])->name('users.create');
         Route::post('users', [UserController::class, 'store'])->name('users.store');
         Route::get('users/{user}', [UserController::class, 'show'])->name('users.show');
         Route::post('users/{user}/reset-password', [UserController::class, 'resetPassword'])->name('users.reset-password');
+        Route::post('users/{user}/toggle-admin', [UserController::class, 'toggleAdmin'])->name('users.toggle-admin');
         Route::post('users/{user}/impersonate', [ImpersonateController::class, 'start'])->name('users.impersonate');
         Route::delete('users/{user}', [UserController::class, 'destroy'])->name('users.destroy');
 
@@ -163,7 +167,7 @@ Route::middleware('auth')->group(function () {
 
         Route::get('audit-log', [AuditLogController::class, 'index'])->name('audit-log.index');
 
-        Route::get('sessions', [\App\Http\Controllers\Admin\SessionController::class, 'index'])->name('sessions.index');
-        Route::delete('sessions/{userSession}', [\App\Http\Controllers\Admin\SessionController::class, 'destroy'])->name('sessions.destroy');
+        Route::get('sessions', [SessionController::class, 'index'])->name('sessions.index');
+        Route::delete('sessions/{userSession}', [SessionController::class, 'destroy'])->name('sessions.destroy');
     });
 });

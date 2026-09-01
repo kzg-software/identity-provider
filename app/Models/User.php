@@ -18,13 +18,22 @@ use Illuminate\Notifications\Notifiable;
     'directory_id', 'object_guid', 'sid', 'sam_account_name', 'upn',
     'display_name', 'phone', 'department', 'company', 'position', 'office',
     'manager', 'distinguished_name', 'domain', 'account_status',
-    'extra_attributes', 'roles', 'last_synced_at', 'last_login_at', 'last_login_method',
+    'extra_attributes', 'roles', 'manual_roles', 'last_synced_at', 'last_login_at', 'last_login_method',
 ])]
 #[Hidden(['password', 'remember_token'])]
 class User extends Authenticatable
 {
     /** @use HasFactory<UserFactory> */
     use HasFactory, Notifiable;
+
+    protected static function booted(): void
+    {
+        // is_admin ist immer aus den Rollen abgeleitet (Gruppen-Mapping über
+        // "roles" plus manuelle Zuweisung über "manual_roles").
+        static::saving(function (User $user) {
+            $user->is_admin = $user->hasRole('admin');
+        });
+    }
 
     protected function casts(): array
     {
@@ -35,6 +44,7 @@ class User extends Authenticatable
             'is_active' => 'boolean',
             'extra_attributes' => 'array',
             'roles' => 'array',
+            'manual_roles' => 'array',
             'last_synced_at' => 'datetime',
             'last_login_at' => 'datetime',
             'locked_at' => 'datetime',
@@ -84,5 +94,44 @@ class User extends Authenticatable
     public function isLocal(): bool
     {
         return $this->auth_source === 'local';
+    }
+
+    /**
+     * Zugewiesene Rollen aus Gruppen-Mapping und manueller Vergabe.
+     *
+     * @return array<int, string>
+     */
+    public function effectiveRoles(): array
+    {
+        return array_values(array_unique(array_merge(
+            array_map('strval', (array) ($this->roles ?? [])),
+            array_map('strval', (array) ($this->manual_roles ?? [])),
+        )));
+    }
+
+    public function hasRole(string $role): bool
+    {
+        return in_array($role, $this->effectiveRoles(), true);
+    }
+
+    /** Kommt die Administrator-Rolle aus einem Gruppen-Mapping (nicht manuell)? */
+    public function adminFromGroupMapping(): bool
+    {
+        return in_array('admin', array_map('strval', (array) ($this->roles ?? [])), true);
+    }
+
+    public function grantManualRole(string $role): void
+    {
+        $roles = array_map('strval', (array) ($this->manual_roles ?? []));
+        $roles[] = $role;
+        $this->manual_roles = array_values(array_unique($roles));
+    }
+
+    public function revokeManualRole(string $role): void
+    {
+        $this->manual_roles = array_values(array_diff(
+            array_map('strval', (array) ($this->manual_roles ?? [])),
+            [$role],
+        ));
     }
 }

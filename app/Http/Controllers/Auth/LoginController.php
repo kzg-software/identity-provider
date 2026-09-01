@@ -6,6 +6,7 @@ use App\Directory\DirectoryAuthService;
 use App\Http\Controllers\Controller;
 use App\Models\AuditLog;
 use App\Models\User;
+use App\Models\UserSession;
 use App\Services\SessionTracker;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -140,7 +141,10 @@ class LoginController extends Controller
             return redirect()->route('saml.sso.resume');
         }
 
-        return redirect()->intended(route('dashboard'));
+        // Administratoren landen in der Systemverwaltung, alle anderen im Portal.
+        $home = $user->is_admin ? route('admin.dashboard') : route('dashboard');
+
+        return redirect()->intended($home);
     }
 
     public function logout(Request $request, SessionTracker $tracker): RedirectResponse
@@ -150,7 +154,7 @@ class LoginController extends Controller
         // Must happen BEFORE invalidate() rotates/destroys the session - the
         // `user_sessions` tracking row otherwise never gets marked revoked,
         // and would keep showing as "active" under Meine Sitzungen forever.
-        $currentSession = \App\Models\UserSession::where('session_id', $request->session()->getId())->first();
+        $currentSession = UserSession::where('session_id', $request->session()->getId())->first();
         if ($currentSession) {
             $tracker->revoke($currentSession);
         }

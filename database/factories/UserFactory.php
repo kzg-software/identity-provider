@@ -36,6 +36,25 @@ class UserFactory extends Factory
     }
 
     /**
+     * is_admin wird aus den Rollen abgeleitet (User::booted). Wer die
+     * Fabrik mit ['is_admin' => true] aufruft, soll trotzdem ein
+     * Administrator werden - also die Rolle mit hinterlegen.
+     */
+    public function configure(): static
+    {
+        return $this->afterMaking(function (User $user) {
+            if ($user->is_admin && ! $user->hasRole('admin')) {
+                $user->grantManualRole('admin');
+            }
+        });
+    }
+
+    public function admin(): static
+    {
+        return $this->state(fn () => ['manual_roles' => ['admin']]);
+    }
+
+    /**
      * Indicate that the model's email address should be unverified.
      */
     public function unverified(): static

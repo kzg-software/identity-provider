@@ -12,9 +12,38 @@
                 'E-Mail' => $user->email,
                 'Domain' => $user->domain,
                 'Auth-Quelle' => $user->auth_source,
+                'Rollen' => $user->effectiveRoles() ? implode(', ', $user->effectiveRoles()) : '–',
                 'Letzter Login' => $user->last_login_at,
             ]" />
         </x-card>
+
+        @if ($user->id !== auth()->id())
+            <x-card title="Administrator-Rechte">
+                @if ($user->is_admin)
+                    <p class="text-sm text-gray-600 mb-3">
+                        <x-badge color="laravel">Administrator</x-badge>
+                        @if ($user->adminFromGroupMapping())
+                            <span class="ml-1 text-xs text-gray-400">über Gruppen-Mapping</span>
+                        @endif
+                    </p>
+                @else
+                    <p class="text-sm text-gray-500 mb-3">Kein Administrator.</p>
+                @endif
+
+                <form method="POST" action="{{ route('admin.users.toggle-admin', $user) }}">
+                    @csrf
+                    @if ($user->is_admin)
+                        <x-button type="submit" variant="secondary" size="sm">Administrator-Rechte entziehen</x-button>
+                        @if ($user->adminFromGroupMapping())
+                            <p class="text-xs text-gray-400 mt-2">Solange die Gruppe im Rollen-Mapping auf „admin" zeigt, bleibt der Benutzer Administrator.</p>
+                        @endif
+                    @else
+                        <x-button type="submit" size="sm">Zum Administrator machen</x-button>
+                        <p class="text-xs text-gray-400 mt-2">Vergibt die Rolle „admin" fest für diesen Benutzer. Bleibt bei einer Verzeichnis-Synchronisierung erhalten.</p>
+                    @endif
+                </form>
+            </x-card>
+        @endif
 
         @if ($user->auth_source === 'local')
             <x-card title="Passwort zurücksetzen">

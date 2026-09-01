@@ -83,9 +83,9 @@ class MaintenanceGate
             return false;
         }
 
-        // Lokale Administratoren müssen immer durchkommen - sonst könnte
-        // niemand den Wartungsmodus wieder abschalten.
-        if ($user->auth_source === 'local' && $user->is_admin) {
+        // Administratoren müssen immer durchkommen - sonst könnte niemand den
+        // Wartungsmodus wieder abschalten.
+        if ($user->is_admin) {
             return true;
         }
 

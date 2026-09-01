@@ -15,7 +15,8 @@ Blade-Templates mit Tailwind und Alpine.js über CDN.
 * Windows-SSO über Kerberos/SPNEGO. Den Handshake macht der Webserver, die App verarbeitet `REMOTE_USER`
 * OAuth 2.0 und OpenID Connect: Authorization Code mit PKCE, Client Credentials, Refresh Token, Discovery, JWKS, UserInfo, Token-Revocation
 * SAML 2.0 Identity Provider mit signierten Assertions, Metadata pro Anwendung und Attribut-Mapping
-* Rollen-Mapping von AD-Gruppen auf interne Rollen
+* Rollen-Mapping von AD-Gruppen auf interne Rollen (auch AD-Konten können Administrator werden)
+* Getrennter Administrationsbereich unter `/admin`, das persönliche Portal (freigegebene Anwendungen) liegt unter `/`
 * Audit-Log, Sitzungsübersicht, Systemstatus-Seite, Rate-Limiting auf den Anmelde- und Token-Endpunkten
 * Versionsanzeige im Footer und automatische Prüfung auf neue Releases in der Administration
 
@@ -109,6 +110,7 @@ werden nur verschlüsselt gespeichert.
 * Pro Verzeichnis einstellbar, was mit Benutzern passiert, die bei einer vollen Synchronisierung nicht mehr im Suchbereich liegen (aus der OU verschoben, im Verzeichnis gelöscht oder nicht mehr in der Gruppe): behalten, sperren oder löschen. Liefert die Suche gar nichts, wird nichts angetastet.
 * Einzelne Benutzer lassen sich auch von Hand entfernen (`/admin/users`), auch solche aus einem Verzeichnis.
 * Unter `/admin/group-role-mappings` lassen sich AD-Gruppen auf interne Rollen abbilden, zum Beispiel auf `admin`. Der Gruppenname kann direkt eingetragen werden (auch bevor synchronisiert wurde); bekannte Gruppen werden vorgeschlagen. Optional auf ein Verzeichnis begrenzen.
+* Die Rolle `admin` (aus dem Gruppen-Mapping oder manuell pro Benutzer unter `/admin/users`) macht auch AD- und LDAP-Konten zu Administratoren. Der lokale Break-Glass-Administrator bleibt als Absicherung erhalten und lässt sich nicht als letzter herabstufen oder löschen.
 
 ## Windows-SSO
 

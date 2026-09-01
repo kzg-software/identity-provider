@@ -126,11 +126,12 @@ class InstallerFlowTest extends TestCase
         $this->post(route('login.attempt'), [
             'username' => 'admin1',
             'password' => 'Password123!',
-        ])->assertRedirect(route('dashboard'));
+        ])->assertRedirect(route('admin.dashboard'));
 
         $this->assertAuthenticatedAs($user);
 
-        $this->get(route('dashboard'))->assertOk()->assertSee('Dashboard');
+        $this->get(route('admin.dashboard'))->assertOk()->assertSee('Dashboard');
+        $this->get(route('dashboard'))->assertOk()->assertViewIs('dashboard-user');
         $this->get(route('admin.users.index'))->assertOk();
         $this->get(route('admin.settings.edit'))->assertOk();
     }

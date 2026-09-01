@@ -3,8 +3,9 @@
 namespace Tests\Feature;
 
 use App\Models\AccessPolicy;
-use App\Models\AuditLog;
 use App\Models\Application;
+use App\Models\AuditLog;
+use App\Models\OidcKey;
 use App\Models\SamlCertificate;
 use App\Models\SystemSetting;
 use App\Models\User;
@@ -26,13 +27,22 @@ class DashboardAccessTest extends TestCase
     {
         $admin = User::factory()->create(['auth_source' => 'local', 'is_admin' => true, 'is_active' => true]);
 
-        $response = $this->actingAs($admin)->get(route('dashboard'));
+        $response = $this->actingAs($admin)->get(route('admin.dashboard'));
 
         $response->assertOk();
-        $response->assertViewIs('dashboard');
+        $response->assertViewIs('admin.dashboard');
         $response->assertSee('Benutzer insgesamt');
         $response->assertSee('Aktive Benutzer');
         $response->assertSee('Schnellzugriffe');
+    }
+
+    public function test_admin_dashboard_route_shows_the_personal_portal(): void
+    {
+        $admin = User::factory()->create(['auth_source' => 'local', 'is_admin' => true, 'is_active' => true]);
+
+        $this->actingAs($admin)->get(route('dashboard'))
+            ->assertOk()
+            ->assertViewIs('dashboard-user');
     }
 
     public function test_normal_user_only_sees_applications_they_are_allowed_to_access(): void
@@ -168,7 +178,7 @@ class DashboardAccessTest extends TestCase
             'is_active' => true,
         ]);
 
-        $response = $this->actingAs($admin)->get(route('dashboard'));
+        $response = $this->actingAs($admin)->get(route('admin.dashboard'));
 
         $response->assertOk();
         $response->assertSee('Handlungsbedarf');
@@ -191,7 +201,7 @@ class DashboardAccessTest extends TestCase
             'is_active' => true,
         ]);
 
-        \App\Models\OidcKey::create([
+        OidcKey::create([
             'kid' => 'test-kid',
             'algorithm' => 'RS256',
             'public_key' => 'dummy',
@@ -200,7 +210,7 @@ class DashboardAccessTest extends TestCase
             'rotated_at' => now(),
         ]);
 
-        $response = $this->actingAs($admin)->get(route('dashboard'));
+        $response = $this->actingAs($admin)->get(route('admin.dashboard'));
 
         $response->assertOk();
         $response->assertDontSee('Handlungsbedarf');
@@ -214,7 +224,7 @@ class DashboardAccessTest extends TestCase
         (new AuditLog)->forceFill(['event' => 'login.failed', 'created_at' => now()->subHours(10)])->save();
         (new AuditLog)->forceFill(['event' => 'login.failed', 'created_at' => now()->subDays(3)])->save();
 
-        $response = $this->actingAs($admin)->get(route('dashboard'));
+        $response = $this->actingAs($admin)->get(route('admin.dashboard'));
 
         $response->assertOk();
         $response->assertSee('Fehlgeschlagene Logins (24h)');

@@ -2,25 +2,29 @@
 
 @section('content')
 @php
-$isAdmin = (bool) (auth()->user()?->is_admin);
+    $isAdmin = (bool) (auth()->user()?->is_admin);
+    $isConsole = request()->routeIs('admin.*');
 
-$navItems = collect();
-$navItems->push(['route' => 'dashboard', 'match' => 'dashboard', 'label' => 'Dashboard', 'icon' => 'grid']);
-$navItems->push(['route' => 'profile.sessions', 'match' => 'profile.sessions*', 'label' => 'Meine Sitzungen', 'icon' => 'monitor']);
-$adminItems = collect([
-    ['route' => 'admin.users.index', 'match' => 'admin.users.*', 'label' => 'Benutzer', 'icon' => 'users'],
-    ['route' => 'admin.directories.index', 'match' => 'admin.directories.*', 'label' => 'Verzeichnisse', 'icon' => 'server'],
-    ['route' => 'admin.group-role-mappings.index', 'match' => 'admin.group-role-mappings.*', 'label' => 'Rollen-Mapping', 'icon' => 'signpost'],
-    ['route' => 'admin.applications.index', 'match' => 'admin.applications.*', 'label' => 'Anwendungen', 'icon' => 'building'],
-    ['route' => 'admin.oidc-keys.index', 'match' => 'admin.oidc-keys.*', 'label' => 'OIDC-Schlüssel', 'icon' => 'key'],
-    ['route' => 'admin.saml-service-providers.index', 'match' => 'admin.saml-service-providers.*', 'label' => 'SAML Service Provider', 'icon' => 'shield-check'],
-    ['route' => 'admin.saml-certificates.index', 'match' => 'admin.saml-certificates.*', 'label' => 'SAML-Zertifikate', 'icon' => 'lock-closed'],
-    ['route' => 'admin.settings.edit', 'match' => 'admin.settings.*', 'label' => 'Systemeinstellungen', 'icon' => 'cog'],
-    ['route' => 'admin.status.index', 'match' => 'admin.status.*', 'label' => 'Systemstatus', 'icon' => 'heart-pulse'],
-    ['route' => 'admin.updates.index', 'match' => 'admin.updates.*', 'label' => 'Aktualisierungen', 'icon' => 'sparkles'],
-    ['route' => 'admin.audit-log.index', 'match' => 'admin.audit-log.*', 'label' => 'Audit-Log', 'icon' => 'journal'],
-    ['route' => 'admin.sessions.index', 'match' => 'admin.sessions.*', 'label' => 'Alle Sessions', 'icon' => 'monitor'],
-]);
+    $portalNav = collect([
+        ['route' => 'dashboard', 'match' => 'dashboard', 'label' => 'Meine Anwendungen', 'icon' => 'grid'],
+        ['route' => 'profile.sessions', 'match' => 'profile.sessions*', 'label' => 'Meine Sitzungen', 'icon' => 'monitor'],
+    ]);
+
+    $adminNav = collect([
+        ['route' => 'admin.dashboard', 'match' => 'admin.dashboard', 'label' => 'Übersicht', 'icon' => 'grid'],
+        ['route' => 'admin.users.index', 'match' => 'admin.users.*', 'label' => 'Benutzer', 'icon' => 'users'],
+        ['route' => 'admin.directories.index', 'match' => 'admin.directories.*', 'label' => 'Verzeichnisse', 'icon' => 'server'],
+        ['route' => 'admin.group-role-mappings.index', 'match' => 'admin.group-role-mappings.*', 'label' => 'Rollen-Mapping', 'icon' => 'signpost'],
+        ['route' => 'admin.applications.index', 'match' => 'admin.applications.*', 'label' => 'Anwendungen', 'icon' => 'building'],
+        ['route' => 'admin.oidc-keys.index', 'match' => 'admin.oidc-keys.*', 'label' => 'OIDC-Schlüssel', 'icon' => 'key'],
+        ['route' => 'admin.saml-service-providers.index', 'match' => 'admin.saml-service-providers.*', 'label' => 'SAML Service Provider', 'icon' => 'shield-check'],
+        ['route' => 'admin.saml-certificates.index', 'match' => 'admin.saml-certificates.*', 'label' => 'SAML-Zertifikate', 'icon' => 'lock-closed'],
+        ['route' => 'admin.settings.edit', 'match' => 'admin.settings.*', 'label' => 'Systemeinstellungen', 'icon' => 'cog'],
+        ['route' => 'admin.status.index', 'match' => 'admin.status.*', 'label' => 'Systemstatus', 'icon' => 'heart-pulse'],
+        ['route' => 'admin.updates.index', 'match' => 'admin.updates.*', 'label' => 'Aktualisierungen', 'icon' => 'sparkles'],
+        ['route' => 'admin.audit-log.index', 'match' => 'admin.audit-log.*', 'label' => 'Audit-Log', 'icon' => 'journal'],
+        ['route' => 'admin.sessions.index', 'match' => 'admin.sessions.*', 'label' => 'Alle Sessions', 'icon' => 'monitor'],
+    ]);
 @endphp
 <div x-data="{ mobileOpen: false }" class="min-h-screen bg-gray-100 flex flex-col">
     {{-- Header --}}
@@ -28,11 +32,13 @@ $adminItems = collect([
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="flex justify-between h-16 gap-4">
                 <div class="flex min-w-0">
-                    <button @click="mobileOpen = !mobileOpen" class="lg:hidden self-center -ml-2 p-2 text-gray-500 hover:text-gray-700" aria-label="Menü">
-                        <svg class="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h16" /></svg>
-                    </button>
+                    @if ($isConsole)
+                        <button @click="mobileOpen = !mobileOpen" class="lg:hidden self-center -ml-2 p-2 text-gray-500 hover:text-gray-700" aria-label="Menü">
+                            <svg class="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h16" /></svg>
+                        </button>
+                    @endif
 
-                    <a href="{{ route('dashboard') }}" class="flex items-center gap-2 shrink-0 font-semibold text-gray-800">
+                    <a href="{{ $isConsole ? route('admin.dashboard') : route('dashboard') }}" class="flex items-center gap-2 shrink-0 font-semibold text-gray-800">
                         @if (! empty($systemLogoUrl))
                             <img src="{{ $systemLogoUrl }}" alt="{{ $systemName }}" class="h-8 max-w-[10rem] object-contain">
                         @else
@@ -43,20 +49,29 @@ $adminItems = collect([
                         @endif
                     </a>
 
-                    @unless ($isAdmin)
-                        {{-- Normale Nutzer: gewohnte horizontale Navigation im Header --}}
+                    @if ($isConsole)
+                        <span class="ml-3 self-center hidden sm:inline-flex items-center rounded-full bg-laravel-50 px-2.5 py-0.5 text-xs font-medium text-laravel-700">Administration</span>
+                    @else
                         <div class="hidden lg:flex lg:ml-8 lg:space-x-6 overflow-x-auto">
-                            @foreach ($navItems as $item)
+                            @foreach ($portalNav as $item)
                                 <a href="{{ route($item['route']) }}" class="inline-flex items-center gap-1.5 px-1 pt-1 border-b-2 text-sm font-medium whitespace-nowrap {{ request()->routeIs($item['match']) ? 'border-laravel-600 text-gray-900' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300' }}">
                                     <x-icon :name="$item['icon']" class="h-4 w-4 shrink-0" />
                                     {{ $item['label'] }}
                                 </a>
                             @endforeach
                         </div>
-                    @endunless
+                    @endif
                 </div>
 
                 <div class="flex items-center gap-3">
+                    @if ($isAdmin)
+                        <a href="{{ $isConsole ? route('dashboard') : route('admin.dashboard') }}"
+                           class="hidden sm:inline-flex items-center gap-1.5 rounded-md border border-gray-300 px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-50">
+                            <x-icon :name="$isConsole ? 'grid' : 'cog'" class="h-4 w-4" />
+                            {{ $isConsole ? 'Zum Portal' : 'Administration' }}
+                        </a>
+                    @endif
+
                     <div class="hidden sm:block">
                         <x-theme-toggle />
                     </div>
@@ -73,6 +88,11 @@ $adminItems = collect([
                             <div class="px-4 py-2 text-xs text-gray-400 border-b border-gray-100">
                                 Angemeldet als <span class="font-medium text-gray-600">{{ auth()->user()->display_name ?? auth()->user()->username }}</span>
                             </div>
+                            @if ($isAdmin)
+                                <a href="{{ $isConsole ? route('dashboard') : route('admin.dashboard') }}" class="sm:hidden flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+                                    <x-icon :name="$isConsole ? 'grid' : 'cog'" class="h-4 w-4 text-gray-400" />{{ $isConsole ? 'Zum Portal' : 'Administration' }}
+                                </a>
+                            @endif
                             <div class="sm:hidden border-b border-gray-100 px-4 py-2.5">
                                 <div class="text-xs uppercase tracking-wide text-gray-400 mb-1.5">Farbschema</div>
                                 <x-theme-toggle />
@@ -87,10 +107,9 @@ $adminItems = collect([
             </div>
         </div>
 
-        @unless ($isAdmin)
-            {{-- Normale Nutzer: mobiles Menü direkt unter dem Header --}}
+        @unless ($isConsole)
             <div x-show="mobileOpen" x-transition style="display:none" class="lg:hidden border-t border-gray-200 bg-white">
-                @foreach ($navItems as $item)
+                @foreach ($portalNav as $item)
                     <a href="{{ route($item['route']) }}" class="flex items-center gap-2 px-4 py-3 text-sm {{ request()->routeIs($item['match']) ? 'bg-laravel-50 text-laravel-700 font-medium' : 'text-gray-600' }}"><x-icon :name="$item['icon']" class="h-4 w-4" />{{ $item['label'] }}</a>
                 @endforeach
             </div>
@@ -110,19 +129,18 @@ $adminItems = collect([
     @endif
 
     <div class="flex-1">
-    @if ($isAdmin)
-        {{-- Administration: Seitenleiste + Hauptbereich, gemeinsam im Container --}}
+    @if ($isConsole)
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
             <div x-show="mobileOpen" x-transition style="display:none" class="lg:hidden mb-4">
                 <div class="rounded-lg border border-gray-200 bg-white p-2" @click="mobileOpen = false">
-                    @include('layouts.partials.admin-nav')
+                    @include('layouts.partials.admin-nav', ['items' => $adminNav])
                 </div>
             </div>
 
             <div class="flex gap-6 lg:gap-8 items-start">
                 <aside class="hidden lg:block w-56 shrink-0">
                     <div class="sticky top-6 max-h-[calc(100vh-3rem)] overflow-y-auto rounded-lg border border-gray-200 bg-white p-2">
-                        @include('layouts.partials.admin-nav')
+                        @include('layouts.partials.admin-nav', ['items' => $adminNav])
                     </div>
                 </aside>
 

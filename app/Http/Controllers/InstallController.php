@@ -260,7 +260,7 @@ class InstallController extends Controller
             'email' => $data['email'],
             'password' => Hash::make($data['password']),
             'auth_source' => 'local',
-            'is_admin' => true,
+            'manual_roles' => ['admin'],
             'is_active' => true,
         ]);
 

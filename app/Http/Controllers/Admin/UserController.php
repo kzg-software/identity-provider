@@ -61,7 +61,7 @@ class UserController extends Controller
             'email' => $data['email'],
             'password' => Hash::make($data['password']),
             'auth_source' => 'local',
-            'is_admin' => $request->boolean('is_admin'),
+            'manual_roles' => $request->boolean('is_admin') ? ['admin'] : [],
             'is_active' => true,
         ]);
 
@@ -108,6 +108,37 @@ class UserController extends Controller
             ->where('is_active', true)
             ->where('id', '!=', $exclude->id)
             ->exists();
+    }
+
+    public function toggleAdmin(Request $request, User $user): RedirectResponse
+    {
+        if ($user->id === $request->user()->id) {
+            return back()->with('error', 'Die eigenen Administrator-Rechte können nicht geändert werden.');
+        }
+
+        if ($user->hasRole('admin')) {
+            if ($user->isLocal() && ! $this->anotherLocalAdminExists($user)) {
+                return back()->with('error', 'Der letzte lokale Administrator kann nicht herabgestuft werden.');
+            }
+
+            $user->revokeManualRole('admin');
+            $user->save();
+
+            $message = $user->hasRole('admin')
+                ? 'Die Administrator-Rolle kommt aus einem Gruppen-Mapping und bleibt bestehen. Passe dazu das Rollen-Mapping an.'
+                : 'Administrator-Rechte entzogen.';
+        } else {
+            $user->grantManualRole('admin');
+            $user->save();
+            $message = 'Administrator-Rechte erteilt.';
+        }
+
+        AuditLog::record('admin.user_admin_toggled', $request->user(), [
+            'target_user_id' => $user->id,
+            'is_admin' => $user->fresh()->is_admin,
+        ]);
+
+        return back()->with('status', $message);
     }
 
     public function resetPassword(Request $request, User $user): RedirectResponse

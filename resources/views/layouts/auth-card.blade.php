@@ -32,6 +32,24 @@
         <div class="mt-6">
             <x-theme-toggle />
         </div>
+
+        @php
+            $fpVersion = \App\Support\Version::current();
+            $fpRepoUrl = \App\Services\UpdateChecker::repositoryUrl();
+            $fpVersionUrl = \App\Services\UpdateChecker::releaseUrl($fpVersion);
+            $fpMuted = $hasLoginBg ? 'text-white/50 hover:text-white/80' : 'text-gray-400 hover:text-gray-500';
+        @endphp
+        <footer class="mt-8 mb-4 flex flex-wrap items-center justify-center gap-x-2 gap-y-1 text-xs {{ $fpMuted }}">
+            <span>{{ $systemName }}</span>
+            <span aria-hidden="true">&middot;</span>
+            @if (\App\Support\Version::isRelease())
+                <a href="{{ $fpVersionUrl }}" target="_blank" rel="noopener noreferrer" class="hover:underline">{{ $fpVersion }}</a>
+            @else
+                <span>{{ $fpVersion }}</span>
+            @endif
+            <span aria-hidden="true">&middot;</span>
+            <a href="{{ $fpRepoUrl }}" target="_blank" rel="noopener noreferrer" class="hover:underline">Quellcode</a>
+        </footer>
     </div>
 </div>
 @endsection

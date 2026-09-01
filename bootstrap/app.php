@@ -1,5 +1,12 @@
 <?php
 
+use App\Http\Middleware\EnsureNotInMaintenance;
+use App\Http\Middleware\EnsureSystemIsInstalled;
+use App\Http\Middleware\RequireAdmin;
+use App\Http\Middleware\TouchUserSession;
+use App\Http\Middleware\ValidateOAuthAccessToken;
+use App\Http\Middleware\WindowsSsoAuthenticate;
+use Illuminate\Contracts\Auth\Middleware\AuthenticatesRequests;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
@@ -35,18 +42,18 @@ return Application::configure(basePath: dirname(__DIR__))
         }
 
         $middleware->prependToGroup('web', [
-            \App\Http\Middleware\EnsureSystemIsInstalled::class,
+            EnsureSystemIsInstalled::class,
         ]);
 
         $middleware->appendToGroup('web', [
-            \App\Http\Middleware\WindowsSsoAuthenticate::class,
-            \App\Http\Middleware\EnsureNotInMaintenance::class,
-            \App\Http\Middleware\TouchUserSession::class,
+            WindowsSsoAuthenticate::class,
+            EnsureNotInMaintenance::class,
+            TouchUserSession::class,
         ]);
 
         $middleware->alias([
-            'local_admin' => \App\Http\Middleware\RequireLocalAdmin::class,
-            'oauth_token' => \App\Http\Middleware\ValidateOAuthAccessToken::class,
+            'admin' => RequireAdmin::class,
+            'oauth_token' => ValidateOAuthAccessToken::class,
         ]);
 
         $middleware->validateCsrfTokens(except: [
@@ -63,8 +70,8 @@ return Application::configure(basePath: dirname(__DIR__))
         // Insert WindowsSsoAuthenticate directly before Authenticate without
         // disturbing the rest of Laravel's default priority ordering.
         $middleware->prependToPriorityList(
-            before: \Illuminate\Contracts\Auth\Middleware\AuthenticatesRequests::class,
-            prepend: \App\Http\Middleware\WindowsSsoAuthenticate::class,
+            before: AuthenticatesRequests::class,
+            prepend: WindowsSsoAuthenticate::class,
         );
     })
     ->withExceptions(function (Exceptions $exceptions): void {

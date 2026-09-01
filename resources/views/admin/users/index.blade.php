@@ -26,7 +26,12 @@
             <tr>
                 <td class="px-4 py-2"><a href="{{ route('admin.users.show', $user) }}" class="text-laravel-600 hover:text-laravel-700 font-medium">{{ $user->name }}</a></td>
                 <td class="px-4 py-2 text-gray-600">{{ $user->username }}</td>
-                <td class="px-4 py-2"><x-badge>{{ $user->auth_source }}</x-badge></td>
+                <td class="px-4 py-2">
+                    <x-badge>{{ $user->auth_source }}</x-badge>
+                    @if ($user->is_admin)
+                        <x-badge color="laravel">Admin</x-badge>
+                    @endif
+                </td>
                 <td class="px-4 py-2">
                     @if ($user->is_active)
                         <x-badge color="green">aktiv</x-badge>
