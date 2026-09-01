@@ -69,6 +69,41 @@ class DirectoryPhase2Test extends TestCase
         $this->get(route('login'))->assertDontSee('auth/negotiate', false);
     }
 
+    public function test_admin_can_delete_a_directory_user(): void
+    {
+        $admin = $this->admin();
+        $directory = Directory::create(['name' => 'AD', 'type' => 'active_directory', 'base_dn' => 'DC=test,DC=local']);
+
+        $adUser = User::factory()->create([
+            'username' => 'aduser',
+            'auth_source' => 'active_directory',
+            'is_active' => true,
+            'directory_id' => $directory->id,
+        ]);
+        \App\Models\DirectoryUser::create([
+            'directory_id' => $directory->id,
+            'user_id' => $adUser->id,
+            'object_guid' => (string) \Illuminate\Support\Str::uuid(),
+            'sam_account_name' => 'aduser',
+            'distinguished_name' => 'CN=aduser,DC=test,DC=local',
+        ]);
+
+        $this->actingAs($admin)->delete(route('admin.users.destroy', $adUser))
+            ->assertRedirect(route('admin.users.index'));
+
+        $this->assertDatabaseMissing('users', ['id' => $adUser->id]);
+        $this->assertDatabaseMissing('directory_users', ['sam_account_name' => 'aduser']);
+    }
+
+    public function test_admin_cannot_delete_their_own_account_or_the_last_admin(): void
+    {
+        $admin = $this->admin();
+
+        $this->actingAs($admin)->delete(route('admin.users.destroy', $admin))
+            ->assertSessionHas('error');
+        $this->assertDatabaseHas('users', ['id' => $admin->id]);
+    }
+
     public function test_dn_fields_are_trimmed_on_save(): void
     {
         $directory = Directory::create([

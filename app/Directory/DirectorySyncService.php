@@ -29,7 +29,9 @@ class DirectorySyncService
             $name = DirectoryConnectionResolver::connectionName($directory);
 
             $groupCount = $this->syncGroups($directory, $name);
-            $userCount = $this->syncUsers($directory, $name);
+            $seenGuids = $this->syncUsers($directory, $name);
+            $userCount = count($seenGuids);
+            $removed = $this->pruneStaleUsers($directory, $seenGuids);
 
             $duration = (int) round(microtime(true) - $start);
 
@@ -37,6 +39,7 @@ class DirectorySyncService
                 'last_sync_at' => now(),
                 'last_sync_duration_seconds' => $duration,
                 'last_sync_user_count' => $userCount,
+                'last_sync_removed_count' => $removed,
                 'last_sync_group_count' => $groupCount,
                 'last_sync_error' => null,
             ])->save();
@@ -45,6 +48,7 @@ class DirectorySyncService
                 'ok' => true,
                 'users' => $userCount,
                 'groups' => $groupCount,
+                'removed' => $removed,
                 'duration' => $duration,
             ];
         } catch (Throwable $e) {
@@ -117,21 +121,97 @@ class DirectorySyncService
         return $count;
     }
 
-    private function syncUsers(DirectoryModel $directory, string $connectionName): int
+    /**
+     * @return array<int, string> object_guids der tatsächlich synchronisierten Benutzer
+     */
+    private function syncUsers(DirectoryModel $directory, string $connectionName): array
     {
         $users = LdapUser::on($connectionName)
             ->in($directory->userSearchDn() ?? DirectoryConnectionResolver::resolveBaseDn($directory, $connectionName))
             ->get();
 
-        $count = 0;
+        $seen = [];
 
         foreach ($users as $ldapUser) {
             /** @var LdapUser $ldapUser */
-            $this->syncSingleUser($directory, $connectionName, $ldapUser);
-            $count++;
+            if ($this->syncSingleUser($directory, $connectionName, $ldapUser)) {
+                $guid = $ldapUser->getConvertedGuid();
+                if ($guid) {
+                    $seen[] = $guid;
+                }
+            }
         }
 
-        return $count;
+        return $seen;
+    }
+
+    /**
+     * Entfernt bzw. sperrt Benutzer dieses Verzeichnisses, die bei diesem Lauf
+     * nicht mehr im Suchbereich (User DN / Group DN) auftauchten. Steuerung
+     * über directory.stale_user_handling.
+     *
+     * @param  array<int, string>  $seenGuids
+     */
+    private function pruneStaleUsers(DirectoryModel $directory, array $seenGuids): int
+    {
+        $mode = $directory->stalePolicy();
+
+        if ($mode === 'keep') {
+            return 0;
+        }
+
+        // Sicherheitsnetz: hat die Suche (z.B. wegen falscher User DN) gar
+        // nichts geliefert, wird NICHTS gelöscht.
+        if ($seenGuids === []) {
+            Log::warning('Stale-User-Bereinigung übersprungen: Synchronisierung lieferte keine Benutzer', [
+                'directory_id' => $directory->id,
+            ]);
+
+            return 0;
+        }
+
+        $stale = DirectoryUser::query()
+            ->where('directory_id', $directory->id)
+            ->whereNotIn('object_guid', $seenGuids)
+            ->get();
+
+        $affected = 0;
+
+        foreach ($stale as $directoryUser) {
+            /** @var DirectoryUser $directoryUser */
+            $user = $directoryUser->user;
+
+            // Lokale Konten und Administratoren nie über die Sync anfassen.
+            if ($user && ($user->auth_source !== 'active_directory' || $user->is_admin)) {
+                continue;
+            }
+
+            DB::transaction(function () use ($mode, $directoryUser, $user) {
+                if ($mode === 'delete') {
+                    $directoryUser->groups()->detach();
+                    $directoryUser->delete();
+                    $user?->delete();
+                } else { // disable
+                    $directoryUser->forceFill(['account_status' => 'removed'])->save();
+                    $user?->forceFill([
+                        'is_active' => false,
+                        'account_status' => 'removed',
+                    ])->save();
+                }
+            });
+
+            $affected++;
+        }
+
+        if ($affected > 0) {
+            Log::info('Stale-User-Bereinigung', [
+                'directory_id' => $directory->id,
+                'mode' => $mode,
+                'affected' => $affected,
+            ]);
+        }
+
+        return $affected;
     }
 
     /**

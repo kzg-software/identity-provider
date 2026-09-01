@@ -35,13 +35,20 @@
                     @endif
                 </td>
                 <td class="px-4 py-2 text-gray-500">{{ $user->last_login_at }}</td>
-                <td class="px-4 py-2 text-right">
-                    @if (! $user->is_admin && $user->is_active && $user->id !== auth()->id())
-                        <form method="POST" action="{{ route('admin.users.impersonate', $user) }}" class="inline">
-                            @csrf
-                            <x-button type="submit" variant="secondary" size="sm"><x-icon name="login" class="h-4 w-4" />Anmelden als</x-button>
-                        </form>
-                    @endif
+                <td class="px-4 py-2">
+                    <div class="flex justify-end gap-2">
+                        @if (! $user->is_admin && $user->is_active && $user->id !== auth()->id())
+                            <form method="POST" action="{{ route('admin.users.impersonate', $user) }}" class="inline">
+                                @csrf
+                                <x-button type="submit" variant="secondary" size="sm"><x-icon name="login" class="h-4 w-4" />Anmelden als</x-button>
+                            </form>
+                        @endif
+                        @if ($user->id !== auth()->id())
+                            <x-confirm-form :action="route('admin.users.destroy', $user)"
+                                            message="{{ $user->name }} wirklich entfernen?"
+                                            label="Löschen" size="sm" />
+                        @endif
+                    </div>
                 </td>
             </tr>
         @empty

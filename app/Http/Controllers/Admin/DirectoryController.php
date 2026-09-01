@@ -136,12 +136,18 @@ class DirectoryController extends Controller
             'result' => $result,
         ]);
 
-        return back()->with(
-            $result['ok'] ? 'status' : 'ldap_error',
-            $result['ok']
-                ? "Synchronisierung abgeschlossen: {$result['users']} Benutzer, {$result['groups']} Gruppen ({$result['duration']}s)."
-                : $result['message']
-        );
+        if (! $result['ok']) {
+            return back()->with('ldap_error', $result['message']);
+        }
+
+        $message = "Synchronisierung abgeschlossen: {$result['users']} Benutzer, {$result['groups']} Gruppen";
+        if (($result['removed'] ?? 0) > 0) {
+            $verb = $directory->stalePolicy() === 'delete' ? 'gelöscht' : 'gesperrt';
+            $message .= ", {$result['removed']} nicht mehr im Verzeichnis ({$verb})";
+        }
+        $message .= " ({$result['duration']}s).";
+
+        return back()->with('status', $message);
     }
 
     private function validateDirectory(Request $request, ?Directory $directory = null): array
@@ -165,6 +171,7 @@ class DirectoryController extends Controller
             'kerberos_realm' => 'nullable|string',
             'priority' => 'nullable|integer',
             'is_active' => 'nullable|boolean',
+            'stale_user_handling' => 'nullable|in:keep,disable,delete',
         ]);
     }
 
@@ -189,6 +196,7 @@ class DirectoryController extends Controller
             'kerberos_realm' => $data['kerberos_realm'] ?? null,
             'priority' => $data['priority'] ?? 0,
             'is_active' => $request->boolean('is_active'),
+            'stale_user_handling' => $data['stale_user_handling'] ?? 'keep',
         ];
     }
 }

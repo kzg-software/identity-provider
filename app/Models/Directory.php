@@ -11,7 +11,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
     'name', 'type', 'domain', 'realm', 'netbios_domain', 'domain_controller',
     'ldap_server', 'ldap_port', 'use_ldaps', 'base_dn', 'user_dn', 'group_dn',
     'bind_user', 'bind_password_encrypted', 'upn_suffix', 'kerberos_realm',
-    'priority', 'is_active', 'config',
+    'priority', 'is_active', 'config', 'stale_user_handling',
 ])]
 class Directory extends Model
 {
@@ -83,6 +83,18 @@ class Directory extends Model
         $value = trim($value);
 
         return $value === '' ? null : $value;
+    }
+
+    /**
+     * Umgang mit Benutzern, die bei einer vollen Synchronisierung nicht mehr
+     * im Suchbereich liegen: 'keep' (nichts tun), 'disable' (sperren) oder
+     * 'delete' (entfernen).
+     */
+    public function stalePolicy(): string
+    {
+        return in_array($this->stale_user_handling, ['disable', 'delete'], true)
+            ? $this->stale_user_handling
+            : 'keep';
     }
 
     public function users(): HasMany

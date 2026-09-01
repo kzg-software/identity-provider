@@ -53,12 +53,20 @@
         </x-card>
 
         <x-card title="Synchronisierung">
-            <x-dl :rows="[
-                'Letzte Synchronisierung' => $directory->last_sync_at ?? 'nie',
-                'Dauer' => $directory->last_sync_duration_seconds !== null ? $directory->last_sync_duration_seconds.'s' : '–',
-                'Benutzer' => $directory->last_sync_user_count,
-                'Gruppen' => $directory->last_sync_group_count,
-            ]" />
+            @php
+                $syncRows = [
+                    'Letzte Synchronisierung' => $directory->last_sync_at ?? 'nie',
+                    'Dauer' => $directory->last_sync_duration_seconds !== null ? $directory->last_sync_duration_seconds.'s' : '–',
+                    'Benutzer' => $directory->last_sync_user_count,
+                    'Gruppen' => $directory->last_sync_group_count,
+                    'Fehlende Benutzer' => ['keep' => 'behalten', 'disable' => 'sperren', 'delete' => 'löschen'][$directory->stalePolicy()],
+                ];
+                if ($directory->last_sync_removed_count) {
+                    $syncRows['Zuletzt entfernt'] = $directory->last_sync_removed_count;
+                }
+            @endphp
+            <x-dl :rows="$syncRows" />
+            <p class="text-xs text-gray-400 mt-2">Voll synchronisiert wird täglich über den Scheduler; die Gruppen zusätzlich alle 15 Minuten.</p>
             @if ($directory->last_sync_error)
                 <p class="text-sm text-red-600 mt-2">Fehler: {{ $directory->last_sync_error }}</p>
             @endif

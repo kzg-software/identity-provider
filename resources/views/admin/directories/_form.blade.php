@@ -183,4 +183,22 @@
             <x-input type="text" name="kerberos_realm" value="{{ old('kerberos_realm', $d?->kerberos_realm) }}" placeholder="FIRMA.LOCAL" />
         </div>
     </div>
+
+    <div class="border-t border-gray-200 pt-4">
+        <div class="flex items-center gap-1.5 mb-1">
+            <span class="text-sm font-medium text-gray-700">Benutzer, die nicht mehr gefunden werden</span>
+            <x-field-info>
+                Verhalten bei einer vollen Synchronisierung für Benutzer, die nicht mehr im Suchbereich
+                (User DN bzw. Group DN) liegen, etwa weil sie in eine andere OU verschoben oder im
+                Verzeichnis gelöscht wurden. "Sperren" setzt sie inaktiv, "Löschen" entfernt sie samt
+                Gruppen-Zuordnung. Liefert die Suche gar nichts, wird nichts angetastet.
+            </x-field-info>
+        </div>
+        <x-select name="stale_user_handling">
+            @php($cur = old('stale_user_handling', $d?->stale_user_handling ?? 'keep'))
+            <option value="keep" @selected($cur === 'keep')>Behalten (nichts tun)</option>
+            <option value="disable" @selected($cur === 'disable')>Sperren</option>
+            <option value="delete" @selected($cur === 'delete')>Löschen</option>
+        </x-select>
+    </div>
 </div>

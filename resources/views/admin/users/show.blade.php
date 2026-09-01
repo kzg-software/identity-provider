@@ -25,8 +25,23 @@
                     <x-button type="submit" size="sm">Zurücksetzen</x-button>
                 </form>
             </x-card>
+        @endif
 
-            <x-confirm-form :action="route('admin.users.destroy', $user)" message="Benutzer wirklich löschen?" label="Benutzer löschen" size="sm" />
+        @if ($user->id !== auth()->id())
+            <x-card title="Benutzer löschen">
+                @if ($user->auth_source === 'local')
+                    <p class="text-sm text-gray-500 mb-3">Entfernt das Konto und alle Sitzungen dauerhaft.</p>
+                @else
+                    <p class="text-sm text-gray-500 mb-3">
+                        Entfernt den lokalen Datensatz samt Gruppen-Zuordnung. Existiert das Konto weiterhin im
+                        Verzeichnis, kann die nächste Synchronisierung es wieder anlegen. Dauerhaft entfernen:
+                        im Verzeichnis selbst löschen oder für dieses Verzeichnis "Fehlende Benutzer: löschen" setzen.
+                    </p>
+                @endif
+                <x-confirm-form :action="route('admin.users.destroy', $user)"
+                                message="{{ $user->name }} wirklich entfernen?"
+                                label="Benutzer löschen" size="sm" />
+            </x-card>
         @endif
     </div>
 

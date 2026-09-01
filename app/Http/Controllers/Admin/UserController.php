@@ -72,14 +72,42 @@ class UserController extends Controller
 
     public function destroy(Request $request, User $user): RedirectResponse
     {
-        if ($user->auth_source !== 'local') {
-            abort(403, 'Nur lokale Benutzer können gelöscht werden.');
+        if ($user->id === $request->user()->id) {
+            return back()->with('error', 'Das eigene Konto kann nicht gelöscht werden.');
         }
 
-        AuditLog::record('admin.user_deleted', $request->user(), ['target_user_id' => $user->id]);
+        if ($user->isLocal() && $user->is_admin && ! $this->anotherLocalAdminExists($user)) {
+            return back()->with('error', 'Der letzte lokale Administrator kann nicht gelöscht werden.');
+        }
+
+        AuditLog::record('admin.user_deleted', $request->user(), [
+            'target_user_id' => $user->id,
+            'auth_source' => $user->auth_source,
+        ]);
+
+        // Verzeichnis-Datensatz und Gruppen-Zuordnungen mitnehmen.
+        $directoryUser = $user->directoryUser;
+        if ($directoryUser) {
+            $directoryUser->groups()->detach();
+            $directoryUser->delete();
+        }
+
         $user->delete();
 
-        return redirect()->route('admin.users.index')->with('status', 'Benutzer wurde gelöscht.');
+        $note = $user->isLocal()
+            ? 'Benutzer wurde gelöscht.'
+            : 'Benutzer wurde entfernt. Liegt das Konto weiter im Verzeichnis, kann die nächste Synchronisierung es erneut anlegen.';
+
+        return redirect()->route('admin.users.index')->with('status', $note);
+    }
+
+    private function anotherLocalAdminExists(User $exclude): bool
+    {
+        return User::where('auth_source', 'local')
+            ->where('is_admin', true)
+            ->where('is_active', true)
+            ->where('id', '!=', $exclude->id)
+            ->exists();
     }
 
     public function resetPassword(Request $request, User $user): RedirectResponse
