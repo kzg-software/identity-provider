@@ -105,7 +105,8 @@ werden nur verschlüsselt gespeichert.
 * LDAPS auf Port 636 wird empfohlen. Unverschlüsseltes LDAP auf Port 389 nur in vertrauenswürdigen Netzen. Der Typ ist pro Verzeichnis einstellbar.
 * In der Detailansicht eines Verzeichnisses: Verbindung testen, Benutzer suchen, Gruppe suchen, Testbenutzer anmelden, rohe LDAP-Abfrage.
 * Synchronisiert wird manuell per Knopf, bei jeder Windows-SSO-Anmeldung und regelmäßig über den Scheduler.
-* Pro Verzeichnis einstellbar, was mit Benutzern passiert, die bei einer vollen Synchronisierung nicht mehr im Suchbereich liegen (aus der OU verschoben oder im Verzeichnis gelöscht): behalten, sperren oder löschen. Liefert die Suche gar nichts, wird nichts angetastet.
+* Pro Verzeichnis lässt sich Synchronisierung und Anmeldung auf Mitglieder bestimmter Gruppen beschränken (Feld „Anmeldung auf Gruppen beschränken", ein Gruppen-DN oder CN pro Zeile, verschachtelte Mitgliedschaft wird berücksichtigt). Der „Group DN" ist davon getrennt und nur der Suchpfad für Gruppenobjekte.
+* Pro Verzeichnis einstellbar, was mit Benutzern passiert, die bei einer vollen Synchronisierung nicht mehr im Suchbereich liegen (aus der OU verschoben, im Verzeichnis gelöscht oder nicht mehr in der Gruppe): behalten, sperren oder löschen. Liefert die Suche gar nichts, wird nichts angetastet.
 * Einzelne Benutzer lassen sich auch von Hand entfernen (`/admin/users`), auch solche aus einem Verzeichnis.
 * Unter `/admin/group-role-mappings` lassen sich AD-Gruppen auf interne Rollen abbilden, zum Beispiel auf `admin`. Der Gruppenname kann direkt eingetragen werden (auch bevor synchronisiert wurde); bekannte Gruppen werden vorgeschlagen. Optional auf ein Verzeichnis begrenzen.
 

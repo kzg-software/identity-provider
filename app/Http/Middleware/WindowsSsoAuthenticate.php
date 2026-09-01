@@ -5,6 +5,7 @@ namespace App\Http\Middleware;
 use App\Directory\DirectoryConnectionResolver;
 use App\Directory\DirectoryResolver;
 use App\Directory\DirectorySyncService;
+use App\Directory\GroupMembershipFilter;
 use App\Models\AuditLog;
 use App\Models\SystemSetting;
 use App\Services\SessionTracker;
@@ -91,6 +92,11 @@ class WindowsSsoAuthenticate
             return;
         }
 
+        // Verzeichnis auf Mitglieder bestimmter Gruppen beschränkt?
+        if (! GroupMembershipFilter::allows($directory, $connectionName, $ldapUser)) {
+            return;
+        }
+
         $user = (new DirectorySyncService)->syncSingleUser($directory, $connectionName, $ldapUser);
 
         if (! $user || ! $user->is_active) {
@@ -109,5 +115,4 @@ class WindowsSsoAuthenticate
 
         app(SessionTracker::class)->record($user, $request, 'windows_sso');
     }
-
 }

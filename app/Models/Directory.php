@@ -11,7 +11,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
     'name', 'type', 'domain', 'realm', 'netbios_domain', 'domain_controller',
     'ldap_server', 'ldap_port', 'use_ldaps', 'base_dn', 'user_dn', 'group_dn',
     'bind_user', 'bind_password_encrypted', 'upn_suffix', 'kerberos_realm',
-    'priority', 'is_active', 'config', 'stale_user_handling',
+    'priority', 'is_active', 'config', 'stale_user_handling', 'login_group_filter',
 ])]
 class Directory extends Model
 {
@@ -95,6 +95,31 @@ class Directory extends Model
         return in_array($this->stale_user_handling, ['disable', 'delete'], true)
             ? $this->stale_user_handling
             : 'keep';
+    }
+
+    /**
+     * Gruppen (DN oder CN, eine je Zeile), auf deren Mitglieder die
+     * Synchronisierung und Anmeldung beschränkt ist. Leer = keine
+     * Einschränkung. Getrennt wird nur an Zeilenumbrüchen und Semikola,
+     * nicht an Kommas (die kommen in DNs vor).
+     *
+     * @return array<int, string>
+     */
+    public function loginGroupFilters(): array
+    {
+        $raw = (string) $this->login_group_filter;
+
+        return collect(preg_split('/[\r\n;]+/', $raw))
+            ->map(fn ($v) => trim((string) $v))
+            ->filter()
+            ->unique()
+            ->values()
+            ->all();
+    }
+
+    public function hasLoginGroupFilter(): bool
+    {
+        return $this->loginGroupFilters() !== [];
     }
 
     public function users(): HasMany

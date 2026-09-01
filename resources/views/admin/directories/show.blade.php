@@ -61,6 +61,12 @@
                     'Gruppen' => $directory->last_sync_group_count,
                     'Fehlende Benutzer' => ['keep' => 'behalten', 'disable' => 'sperren', 'delete' => 'löschen'][$directory->stalePolicy()],
                 ];
+                if ($directory->hasLoginGroupFilter()) {
+                    $syncRows['Nur Gruppen'] = implode(', ', array_map(
+                        fn ($g) => \Illuminate\Support\Str::afterLast(\Illuminate\Support\Str::before($g, ','), '='),
+                        $directory->loginGroupFilters()
+                    ));
+                }
                 if ($directory->last_sync_removed_count) {
                     $syncRows['Zuletzt entfernt'] = $directory->last_sync_removed_count;
                 }

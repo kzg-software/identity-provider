@@ -132,7 +132,9 @@
             <div class="flex items-center gap-1.5 mb-1">
                 <span class="text-sm font-medium text-gray-700">Group DN</span>
                 <x-field-info example="OU=Gruppen,DC=firma,DC=local">
-                    Teilbaum, in dem nach Gruppen gesucht wird. Leer lassen, dann gilt die Base DN.
+                    Teilbaum, in dem nach <em>Gruppenobjekten</em> gesucht wird (für die Gruppenliste und
+                    das Rollen-Mapping). <strong>Kein</strong> Mitgliedschaftsfilter für Benutzer &ndash;
+                    dafür ist das Feld „Anmeldung auf Gruppen beschränken" unten. Leer = Base DN.
                 </x-field-info>
             </div>
             <x-input type="text" name="group_dn" value="{{ old('group_dn', $d?->group_dn) }}" placeholder="OU=Gruppen,DC=firma,DC=local" />
@@ -186,11 +188,24 @@
 
     <div class="border-t border-gray-200 pt-4">
         <div class="flex items-center gap-1.5 mb-1">
+            <span class="text-sm font-medium text-gray-700">Anmeldung auf Gruppen beschränken</span>
+            <x-field-info example="CN=IDP-Login,OU=Gruppen,DC=firma,DC=local">
+                Eine Gruppe pro Zeile (voller DN oder nur der CN). Ist etwas eingetragen, werden nur Benutzer
+                synchronisiert und angemeldet, die &ndash; auch über verschachtelte Gruppen &ndash; Mitglied
+                mindestens einer dieser Gruppen sind. Leer = alle Benutzer im User DN.
+            </x-field-info>
+        </div>
+        <x-textarea name="login_group_filter" rows="2" class="font-mono text-xs"
+                    placeholder="CN=IDP-Login,OU=Gruppen,DC=firma,DC=local">{{ old('login_group_filter', $d?->login_group_filter) }}</x-textarea>
+    </div>
+
+    <div class="border-t border-gray-200 pt-4">
+        <div class="flex items-center gap-1.5 mb-1">
             <span class="text-sm font-medium text-gray-700">Benutzer, die nicht mehr gefunden werden</span>
             <x-field-info>
                 Verhalten bei einer vollen Synchronisierung für Benutzer, die nicht mehr im Suchbereich
-                (User DN bzw. Group DN) liegen, etwa weil sie in eine andere OU verschoben oder im
-                Verzeichnis gelöscht wurden. "Sperren" setzt sie inaktiv, "Löschen" entfernt sie samt
+                liegen: aus dem User DN verschoben, im Verzeichnis gelöscht oder (bei gesetztem Gruppen-Filter)
+                nicht mehr Mitglied. „Sperren" setzt sie inaktiv, „Löschen" entfernt sie samt
                 Gruppen-Zuordnung. Liefert die Suche gar nichts, wird nichts angetastet.
             </x-field-info>
         </div>

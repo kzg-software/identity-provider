@@ -11,6 +11,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use LdapRecord\Models\ActiveDirectory\Group as LdapGroup;
 use LdapRecord\Models\ActiveDirectory\User as LdapUser;
+use LdapRecord\Models\Model;
 use Throwable;
 
 /**
@@ -128,9 +129,16 @@ class DirectorySyncService
      */
     private function syncUsers(DirectoryModel $directory, string $connectionName): array
     {
-        $users = LdapUser::on($connectionName)
-            ->in($directory->userSearchDn() ?? DirectoryConnectionResolver::resolveBaseDn($directory, $connectionName))
-            ->get();
+        $query = LdapUser::on($connectionName)
+            ->in($directory->userSearchDn() ?? DirectoryConnectionResolver::resolveBaseDn($directory, $connectionName));
+
+        // Auf Mitglieder bestimmter Gruppen beschränken (falls konfiguriert).
+        $query = GroupMembershipFilter::constrain(
+            $query,
+            GroupMembershipFilter::groupDns($directory, $connectionName)
+        );
+
+        $users = $query->paginate(500);
 
         $seen = [];
 
@@ -336,7 +344,7 @@ class DirectorySyncService
 
     /**
      * @return array<int> IDs of directory_groups the user (directly or via
-     *                     nested membership) belongs to.
+     *                    nested membership) belongs to.
      */
     private function syncUserGroupMemberships(DirectoryModel $directory, string $connectionName, LdapUser $ldapUser, DirectoryUser $directoryUser): array
     {
@@ -377,7 +385,7 @@ class DirectorySyncService
         return $groupIds;
     }
 
-    private function extraAttributes(\LdapRecord\Models\Model $model): array
+    private function extraAttributes(Model $model): array
     {
         $known = [
             'samaccountname', 'userprincipalname', 'givenname', 'sn', 'displayname', 'cn',

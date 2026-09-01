@@ -6,6 +6,7 @@ use App\Auth\NtlmHandshake;
 use App\Directory\DirectoryConnectionResolver;
 use App\Directory\DirectoryResolver;
 use App\Directory\DirectorySyncService;
+use App\Directory\GroupMembershipFilter;
 use App\Http\Controllers\Controller;
 use App\Models\AuditLog;
 use App\Models\SystemSetting;
@@ -130,6 +131,12 @@ class NegotiateController extends Controller
                 ->first();
 
             if (! $ldapUser) {
+                RateLimiter::hit($throttleKey, 60);
+
+                return response()->json(['error' => 'user_not_found'], 401);
+            }
+
+            if (! GroupMembershipFilter::allows($directory, $connectionName, $ldapUser)) {
                 RateLimiter::hit($throttleKey, 60);
 
                 return response()->json(['error' => 'user_not_found'], 401);

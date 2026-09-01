@@ -116,11 +116,25 @@
             <div class="flex items-center gap-1.5 mb-1">
                 <span class="text-sm font-medium text-gray-700">Group DN</span>
                 <x-field-info example="OU=Gruppen,DC=firma,DC=local">
-                    Teilbaum, in dem nach Gruppen gesucht wird. Leer lassen, dann gilt die Base DN.
+                    Teilbaum, in dem nach <em>Gruppenobjekten</em> gesucht wird. <strong>Kein</strong>
+                    Mitgliedschaftsfilter &ndash; dafür ist das Feld unten. Leer lassen, dann gilt die Base DN.
                 </x-field-info>
             </div>
             <x-input type="text" name="group_dn" value="{{ old('group_dn') }}" placeholder="OU=Gruppen,DC=firma,DC=local" />
         </div>
+    </div>
+
+    <div>
+        <div class="flex items-center gap-1.5 mb-1">
+            <span class="text-sm font-medium text-gray-700">Anmeldung auf Gruppen beschränken</span>
+            <x-field-info example="CN=IDP-Login,OU=Gruppen,DC=firma,DC=local">
+                Eine Gruppe pro Zeile (voller DN oder nur der CN). Ist etwas eingetragen, werden nur
+                Benutzer synchronisiert und angemeldet, die &ndash; auch verschachtelt &ndash; Mitglied
+                mindestens einer dieser Gruppen sind. Leer = alle Benutzer im User DN.
+            </x-field-info>
+        </div>
+        <x-textarea name="login_group_filter" rows="2" class="font-mono text-xs"
+                    placeholder="CN=IDP-Login,OU=Gruppen,DC=firma,DC=local">{{ old('login_group_filter') }}</x-textarea>
     </div>
 
     <div class="grid grid-cols-2 gap-4">

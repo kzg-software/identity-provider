@@ -50,9 +50,9 @@ class DirectoryAuthService
 
     /**
      * @return array{ok: bool, user?: User, message?: string}|null Null means
-     *         "this directory has no such user / bind failed for another
-     *         reason unrelated to the entered password" — caller should try
-     *         the next directory rather than stop.
+     *                                                             "this directory has no such user / bind failed for another
+     *                                                             reason unrelated to the entered password" — caller should try
+     *                                                             the next directory rather than stop.
      */
     private function attemptAgainstDirectory(DirectoryModel $directory, string $samAccountName, string $rawUsername, string $password): ?array
     {
@@ -66,6 +66,13 @@ class DirectoryAuthService
             ->first();
 
         if (! $ldapUser) {
+            return null;
+        }
+
+        // Nicht für die Anmeldung freigegeben (Gruppen-Filter des Verzeichnisses).
+        // Wie "unbekannter Benutzer" behandeln, damit ein weiteres Verzeichnis
+        // noch greifen kann und keine Info über die Gruppenzugehörigkeit leakt.
+        if (! GroupMembershipFilter::allows($directory, $connectionName, $ldapUser)) {
             return null;
         }
 
@@ -91,5 +98,4 @@ class DirectoryAuthService
 
         return ['ok' => true, 'user' => $user];
     }
-
 }
