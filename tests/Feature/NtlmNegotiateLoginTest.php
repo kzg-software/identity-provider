@@ -86,6 +86,33 @@ class NtlmNegotiateLoginTest extends TestCase
         $response->assertHeader('WWW-Authenticate', 'NTLM');
     }
 
+    public function test_negotiate_endpoint_is_disabled_when_windows_sso_is_turned_off(): void
+    {
+        $directory = $this->makeDirectory();
+        $name = DirectoryConnectionResolver::connectionName($directory);
+        $this->emulate($directory);
+
+        $user = new LdapUser([
+            'cn' => 'Jane Doe',
+            'samaccountname' => 'jdoe',
+            'userprincipalname' => 'jdoe@test.local',
+            'mail' => 'jdoe@test.local',
+            'objectguid' => (string) Str::uuid(),
+        ]);
+        $user->setConnection($name);
+        $user->save();
+
+        SystemSetting::set('windows_sso_enabled', '0');
+
+        $response = $this->get(route('auth.negotiate'), [
+            'Authorization' => 'NTLM '.$this->buildType3('jdoe', 'RL'),
+        ]);
+
+        $response->assertStatus(403);
+        $this->assertGuest();
+        $this->assertDatabaseMissing('users', ['sam_account_name' => 'jdoe']);
+    }
+
     public function test_type1_message_returns_type2_challenge(): void
     {
         SystemSetting::set('installed', '1');

@@ -37,6 +37,30 @@ class DirectoryPhase2Test extends TestCase
         $this->assertGuest();
     }
 
+    public function test_admin_can_switch_off_automatic_windows_login(): void
+    {
+        $admin = $this->admin();
+
+        // Standard: an. Die Anmeldeseite versucht die automatische Anmeldung.
+        $this->assertTrue(SystemSetting::windowsSsoEnabled());
+        $this->get(route('login'))->assertSee('auth/negotiate', false);
+
+        $this->actingAs($admin)->put(route('admin.settings.update'), [
+            'system_name' => 'Auth',
+            'base_url' => 'https://auth.example.com',
+            'timezone' => 'Europe/Berlin',
+            'locale' => 'de',
+            'session_lifetime' => 120,
+            // windows_sso_enabled nicht mitgeschickt -> aus (wie eine leere Checkbox)
+        ])->assertSessionHasNoErrors();
+
+        $this->assertFalse(SystemSetting::windowsSsoEnabled());
+
+        // Als Gast zeigt die Anmeldeseite jetzt keinen Auto-Login-Versuch mehr.
+        auth()->logout();
+        $this->get(route('login'))->assertDontSee('auth/negotiate', false);
+    }
+
     public function test_bind_password_is_stored_encrypted(): void
     {
         $directory = Directory::create([

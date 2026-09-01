@@ -26,4 +26,32 @@ class SystemSetting extends Model
     {
         return static::get('installed') === '1';
     }
+
+    /**
+     * Boolean-Einstellung. Fehlt der Schlüssel (oder ist die Tabelle noch
+     * nicht da), gilt $default.
+     */
+    public static function bool(string $key, bool $default = false): bool
+    {
+        try {
+            $value = static::get($key);
+        } catch (\Throwable) {
+            return $default;
+        }
+
+        if ($value === null || $value === '') {
+            return $default;
+        }
+
+        return in_array((string) $value, ['1', 'true', 'on', 'yes'], true);
+    }
+
+    /**
+     * Ist die automatische Anmeldung per Windows (Kerberos/SPNEGO bzw. der
+     * eingebaute NTLM-Endpunkt) aktiv? Standard: an.
+     */
+    public static function windowsSsoEnabled(): bool
+    {
+        return static::bool('windows_sso_enabled', true);
+    }
 }

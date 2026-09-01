@@ -16,6 +16,7 @@ class SettingController extends Controller
         'system_name', 'base_url', 'timezone', 'locale', 'session_lifetime',
         'maintenance_mode', 'maintenance_message', 'maintenance_allow',
         'accent_color', 'login_title_mode', 'login_title_text',
+        'windows_sso_enabled',
     ];
 
     public function edit(): View
@@ -46,6 +47,7 @@ class SettingController extends Controller
         ]);
 
         $data['maintenance_mode'] = $request->boolean('maintenance_mode') ? '1' : '0';
+        $data['windows_sso_enabled'] = $request->boolean('windows_sso_enabled') ? '1' : '0';
         $data['accent_color'] = \App\Support\AccentPalette::normalize($data['accent_color'] ?? null) ?? '';
         $data['login_title_mode'] = $data['login_title_mode'] ?? 'default';
 

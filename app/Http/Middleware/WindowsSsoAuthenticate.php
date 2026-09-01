@@ -6,6 +6,7 @@ use App\Directory\DirectoryConnectionResolver;
 use App\Directory\DirectoryResolver;
 use App\Directory\DirectorySyncService;
 use App\Models\AuditLog;
+use App\Models\SystemSetting;
 use App\Services\SessionTracker;
 use Closure;
 use Illuminate\Http\Request;
@@ -49,6 +50,12 @@ class WindowsSsoAuthenticate
             ?? $request->server('PHP_AUTH_USER');
 
         if (! $remoteUser) {
+            return $next($request);
+        }
+
+        // In den Systemeinstellungen abschaltbar: dann erscheint für alle die
+        // normale Anmeldeseite, auch wenn der Webserver eine Identität liefert.
+        if (! SystemSetting::windowsSsoEnabled()) {
             return $next($request);
         }
 

@@ -8,6 +8,7 @@ use App\Directory\DirectoryResolver;
 use App\Directory\DirectorySyncService;
 use App\Http\Controllers\Controller;
 use App\Models\AuditLog;
+use App\Models\SystemSetting;
 use App\Services\SessionTracker;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -39,6 +40,10 @@ class NegotiateController extends Controller
     {
         if (Auth::check()) {
             return response()->json(['success' => true, 'redirect' => $this->intendedUrl($request)]);
+        }
+
+        if (! SystemSetting::windowsSsoEnabled()) {
+            return response()->json(['error' => 'disabled'], 403);
         }
 
         if ($request->cookie('auth_manual') === '1') {

@@ -19,7 +19,7 @@
     <x-button type="submit" class="w-full">Anmelden</x-button>
 </form>
 
-@if (! request()->boolean('manual') && ! $errors->any())
+@if (! request()->boolean('manual') && ! $errors->any() && \App\Models\SystemSetting::windowsSsoEnabled())
 <script>
     (function () {
         var notice = document.getElementById('autoLoginNotice');

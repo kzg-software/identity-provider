@@ -69,6 +69,17 @@
                 </div>
             </div>
 
+            <div class="border-t border-gray-200 pt-4 space-y-2">
+                <h4 class="text-sm font-semibold text-gray-900">Windows-Anmeldung (Single Sign-On)</h4>
+                <p class="text-xs text-gray-500 -mt-1">Ist sie aktiv, werden Benutzer automatisch über ihr Windows-Konto angemeldet, sobald der Webserver die Identität liefert. Ist sie aus, erscheint für alle die normale Anmeldeseite, auch wenn der Webserver Windows-Authentifizierung macht. Lokale Konten sind davon nicht betroffen.</p>
+
+                <label class="flex items-start gap-3 cursor-pointer pt-1">
+                    <input type="hidden" name="windows_sso_enabled" value="0">
+                    <x-checkbox name="windows_sso_enabled" value="1" class="mt-0.5" :checked="old('windows_sso_enabled', $settings['windows_sso_enabled'] ?? '1') !== '0'" />
+                    <span class="text-sm font-medium text-gray-900">Automatische Windows-Anmeldung aktiv</span>
+                </label>
+            </div>
+
             <div class="border-t border-gray-200 pt-4 space-y-4">
                 <h4 class="text-sm font-semibold text-gray-900">Wartungsmodus (gesamtes System)</h4>
                 <p class="text-xs text-gray-500 -mt-2">Ist er aktiv, sieht jeder eine Wartungsseite. Lokale Administratoren und die unten freigegebenen Benutzer kommen weiterhin rein; die Anmeldeseite bleibt für alle erreichbar.</p>
