@@ -17,11 +17,12 @@ $adminItems = collect([
     ['route' => 'admin.saml-certificates.index', 'match' => 'admin.saml-certificates.*', 'label' => 'SAML-Zertifikate', 'icon' => 'lock-closed'],
     ['route' => 'admin.settings.edit', 'match' => 'admin.settings.*', 'label' => 'Systemeinstellungen', 'icon' => 'cog'],
     ['route' => 'admin.status.index', 'match' => 'admin.status.*', 'label' => 'Systemstatus', 'icon' => 'heart-pulse'],
+    ['route' => 'admin.updates.index', 'match' => 'admin.updates.*', 'label' => 'Aktualisierungen', 'icon' => 'sparkles'],
     ['route' => 'admin.audit-log.index', 'match' => 'admin.audit-log.*', 'label' => 'Audit-Log', 'icon' => 'journal'],
     ['route' => 'admin.sessions.index', 'match' => 'admin.sessions.*', 'label' => 'Alle Sessions', 'icon' => 'monitor'],
 ]);
 @endphp
-<div x-data="{ mobileOpen: false }" class="min-h-screen bg-gray-100">
+<div x-data="{ mobileOpen: false }" class="min-h-screen bg-gray-100 flex flex-col">
     {{-- Header --}}
     <header class="bg-white border-b border-gray-200">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -108,6 +109,7 @@ $adminItems = collect([
         </div>
     @endif
 
+    <div class="flex-1">
     @if ($isAdmin)
         {{-- Administration: Seitenleiste + Hauptbereich, gemeinsam im Container --}}
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
@@ -138,5 +140,8 @@ $adminItems = collect([
             @yield('admin-content')
         </main>
     @endif
+    </div>
+
+    <x-app-footer />
 </div>
 @endsection

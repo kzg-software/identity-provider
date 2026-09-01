@@ -165,6 +165,13 @@ git clone --depth 1 --branch "${GIT_REF}" "${GIT_URL}" "${RELEASE_DIR}"
 chown -R "${APP_USER}:${APP_USER}" "${RELEASE_DIR}"
 sudo -u "${APP_USER}" git config --global --add safe.directory "${RELEASE_DIR}"
 
+# ── Versionskennung festhalten (Footer + Update-Prüfung) ───────────────────
+VERSION_STR="$(git -C "${RELEASE_DIR}" describe --tags --exact-match 2>/dev/null \
+    || git -C "${RELEASE_DIR}" describe --tags 2>/dev/null \
+    || echo "${GIT_REF}")"
+echo "${VERSION_STR}" > "${RELEASE_DIR}/VERSION"
+chown "${APP_USER}:${APP_USER}" "${RELEASE_DIR}/VERSION"
+
 # ── .env erzeugen (liegt in shared/, wird in jede Release symlinkt) ─────────
 ENV_FILE="${APP_ROOT}/shared/.env"
 if [[ ! -f "${ENV_FILE}" ]]; then

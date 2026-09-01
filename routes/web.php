@@ -8,6 +8,7 @@ use App\Http\Controllers\Admin\ImpersonateController;
 use App\Http\Controllers\Admin\OidcKeyController;
 use App\Http\Controllers\Admin\SettingController;
 use App\Http\Controllers\Admin\SystemStatusController;
+use App\Http\Controllers\Admin\SystemUpdateController;
 use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\Auth\NegotiateController;
@@ -124,6 +125,9 @@ Route::middleware('auth')->group(function () {
         Route::post('directories/{directory}/sync', [DirectoryController::class, 'sync'])->name('directories.sync');
 
         Route::get('status', [SystemStatusController::class, 'index'])->name('status.index');
+
+        Route::get('updates', [SystemUpdateController::class, 'index'])->name('updates.index');
+        Route::post('updates/check', [SystemUpdateController::class, 'check'])->name('updates.check');
 
         Route::get('group-role-mappings', [GroupRoleMappingController::class, 'index'])->name('group-role-mappings.index');
         Route::post('group-role-mappings', [GroupRoleMappingController::class, 'store'])->name('group-role-mappings.store');

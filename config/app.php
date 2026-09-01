@@ -17,6 +17,20 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Application Version
+    |--------------------------------------------------------------------------
+    |
+    | Der aktuelle Release-Stand der Anwendung. Wird im Footer angezeigt und
+    | für die Update-Prüfung herangezogen. Das Docker-Image setzt APP_VERSION
+    | beim Build auf den Git-Tag; die deploy/*.sh-Skripte schreiben zusätzlich
+    | eine VERSION-Datei ins Release-Verzeichnis. Fehlt beides, gilt "dev".
+    |
+    */
+
+    'version' => env('APP_VERSION'),
+
+    /*
+    |--------------------------------------------------------------------------
     | Application Environment
     |--------------------------------------------------------------------------
     |

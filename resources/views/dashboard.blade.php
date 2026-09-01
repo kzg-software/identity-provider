@@ -3,6 +3,36 @@
 @section('admin-content')
 <h1 class="text-2xl font-semibold text-gray-900 mb-6">Dashboard</h1>
 
+{{-- Neue Version verfügbar (pro Admin/Browser ausblendbar, erscheint bei neuem Release wieder) --}}
+@php $update = \App\Services\UpdateChecker::status(); @endphp
+@if ($update['update_available'])
+    <div class="mb-6"
+         x-data="{
+            key: 'dashboard_update_dismissed',
+            tag: @js($update['latest']),
+            dismissed: false,
+            init() { try { this.dismissed = localStorage.getItem(this.key) === this.tag; } catch (e) {} },
+            dismiss() { this.dismissed = true; try { localStorage.setItem(this.key, this.tag); } catch (e) {} },
+         }"
+         x-show="! dismissed" x-cloak>
+        <div class="flex items-stretch gap-2">
+            <a href="{{ route('admin.updates.index') }}"
+               class="flex flex-1 items-center justify-between gap-4 rounded-lg border border-laravel-300 bg-laravel-50 px-4 py-3 text-sm transition hover:bg-laravel-100">
+                <span class="flex items-center gap-2 text-laravel-700">
+                    <x-icon name="sparkles" class="h-4 w-4 text-laravel-600" />
+                    <span class="font-medium">Neue Version {{ $update['latest'] }} verfügbar</span>
+                    <span class="text-laravel-600">— installiert: {{ $update['current'] }}</span>
+                </span>
+                <span class="shrink-0 text-xs text-laravel-600">Changelog &amp; Update &rarr;</span>
+            </a>
+            <button type="button" @click="dismiss()" title="Hinweis ausblenden"
+                    class="flex shrink-0 items-center rounded-lg border border-gray-200 px-2 text-gray-400 transition hover:bg-gray-50 hover:text-gray-600">
+                <svg class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor"><path d="M6.28 5.22a.75.75 0 0 0-1.06 1.06L8.94 10l-3.72 3.72a.75.75 0 1 0 1.06 1.06L10 11.06l3.72 3.72a.75.75 0 1 0 1.06-1.06L11.06 10l3.72-3.72a.75.75 0 0 0-1.06-1.06L10 8.94 6.28 5.22Z"/></svg>
+            </button>
+        </div>
+    </div>
+@endif
+
 {{-- KPIs --}}
 <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
     @php

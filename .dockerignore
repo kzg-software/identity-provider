@@ -21,6 +21,9 @@ database/*.sqlite-journal
 .env.*
 !.env.example
 
+# Version kommt beim Build über ARG/ENV APP_VERSION, nicht über eine Datei
+VERSION
+
 # Deployment-/Doku-Kram wird im Image nicht benötigt
 deploy
 docs

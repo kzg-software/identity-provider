@@ -39,6 +39,11 @@ RUN composer dump-autoload --no-dev --optimize --no-scripts --no-interaction --i
 ########################################################################
 FROM php:8.4-fpm-bookworm AS runtime
 
+# Release-Stand (wird von der CI auf den Git-Tag gesetzt, z. B. "v1.4.2";
+# bei allen anderen Builds "dev"). Wird im Footer angezeigt und für die
+# Update-Prüfung verwendet.
+ARG APP_VERSION=dev
+
 # --- PHP-Extensions zuverlässig via Extension-Installer ---------------
 ADD --chmod=0755 https://github.com/mlocati/docker-php-extension-installer/releases/latest/download/install-php-extensions /usr/local/bin/
 RUN install-php-extensions \
@@ -85,7 +90,8 @@ RUN mkdir -p \
     && rm -f .env
 
 ENV CONTAINER_ROLE=app \
-    AUTO_MIGRATE=false
+    AUTO_MIGRATE=false \
+    APP_VERSION=${APP_VERSION}
 
 EXPOSE 8080
 

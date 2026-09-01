@@ -622,6 +622,38 @@ Container-Registry ist in Gitea aktiviert. `.env` →
 
 ---
 
+## Version & Update-Prüfung
+
+Der aktuelle Release-Stand wird im **Footer** jeder Seite angezeigt (verlinkt
+auf die passende Release-Seite im Repo) und in der **Administration →
+Aktualisierungen** ausgewertet.
+
+**Woher kommt die Versionsnummer?**
+
+| Betrieb | Quelle |
+|---|---|
+| Docker | Build-Arg `APP_VERSION` → das CI-Image setzt es auf den Git-Tag (`v1.4.2`), Dev-Builds auf `dev` |
+| Git-Deployment | `deploy/install.sh` / `deploy/update.sh` schreiben eine Datei `VERSION` (aus `git describe --tags`) |
+| sonst | `dev` |
+
+**Update-Prüfung:** Zweimal täglich (Scheduler-Job `updates:check`) sowie beim
+Öffnen der Admin-Seiten prüft das System die GitHub-Releases-API auf ein
+neueres Release. Ergebnis und Changelog landen im Cache; bei einer neueren
+Version erscheint ein Hinweis auf dem Dashboard und im Footer. Kein Scheduler
+nötig – die Prüfung wird sonst nach dem Ausliefern der Antwort nachgeholt. Die
+Prüfung ist fest eingebaut und lässt sich nicht abschalten.
+
+| Variable | Default | Zweck |
+|---|---|---|
+| `UPDATE_REPOSITORY` | `kzg-software/identity-provider` | `owner/repo` für die Prüfung |
+| `UPDATE_REPOSITORY_URL` | `https://github.com/kzg-software/identity-provider` | Footer-/Changelog-Links |
+| `UPDATE_GITHUB_TOKEN` | – | Nur bei privatem Repo oder gegen Rate-Limits (`Contents: read`) |
+
+Manuell prüfen: `php artisan updates:check --force` (bzw.
+`docker compose exec app php artisan updates:check --force`).
+
+---
+
 ## Fehlersuche
 
 | Symptom | Ursache / Lösung |

@@ -12,6 +12,7 @@ use App\Models\User;
 use App\Models\UserSession;
 use App\Services\AccessPolicyEvaluator;
 use App\Services\ExpiryWarningService;
+use App\Services\UpdateChecker;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\View\View;
 use Throwable;
@@ -54,6 +55,13 @@ class DashboardController extends Controller
             ->latest('created_at')
             ->limit(8)
             ->get();
+
+        // Update-Prüfung im Hintergrund auffrischen, wenn das letzte Ergebnis
+        // veraltet ist (läuft nach dem Ausliefern der Antwort, kein Queue-Worker
+        // nötig). Der Scheduler-Job "updates:check" bleibt der Regelfall.
+        if (UpdateChecker::enabled() && UpdateChecker::isStale()) {
+            dispatch(fn () => UpdateChecker::refresh())->afterResponse();
+        }
 
         $warnings = ExpiryWarningService::warnings();
 

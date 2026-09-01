@@ -22,6 +22,7 @@
 /storage/*.key
 /storage/pail
 /vendor
+/VERSION
 _ide_helper.php
 Homestead.json
 Homestead.yaml
