@@ -116,6 +116,21 @@ class DirectoryPhase2Test extends TestCase
             ->assertRedirect();
     }
 
+    public function test_directory_create_and_edit_forms_render_with_field_help(): void
+    {
+        $admin = $this->admin();
+        $directory = Directory::create(['name' => 'AD', 'type' => 'active_directory', 'base_dn' => 'DC=test,DC=local']);
+
+        $this->actingAs($admin)->get(route('admin.directories.create'))
+            ->assertOk()
+            ->assertSee('Erklärung zu diesem Feld', false)
+            ->assertSee('Für die Verbindung nötig');
+
+        $this->actingAs($admin)->get(route('admin.directories.edit', $directory))
+            ->assertOk()
+            ->assertSee('Erklärung zu diesem Feld', false);
+    }
+
     public function test_group_role_mapping_can_be_created_and_deleted(): void
     {
         $admin = $this->admin();

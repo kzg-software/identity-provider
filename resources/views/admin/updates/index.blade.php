@@ -1,5 +1,31 @@
 @extends('layouts.admin')
 
+@push('styles')
+<style>
+    .changelog-body { color: #374151; }
+    .changelog-body h1, .changelog-body h2, .changelog-body h3 { font-weight: 600; color: #111827; margin: 1rem 0 .5rem; }
+    .changelog-body h1 { font-size: 1rem; }
+    .changelog-body h2, .changelog-body h3 { font-size: .875rem; }
+    .changelog-body p { margin: .5rem 0; }
+    .changelog-body ul, .changelog-body ol { margin: .5rem 0; padding-left: 1.25rem; }
+    .changelog-body ul { list-style: disc; }
+    .changelog-body ol { list-style: decimal; }
+    .changelog-body li { margin: .125rem 0; }
+    .changelog-body a { color: #2563eb; text-decoration: underline; }
+    .changelog-body code { background: #f3f4f6; border-radius: .25rem; padding: .0625rem .25rem; font-size: .8125rem; }
+    .changelog-body pre { background: #f3f4f6; border: 1px solid #e5e7eb; border-radius: .375rem; padding: .75rem; margin: .5rem 0; overflow-x: auto; }
+    .changelog-body pre code { background: transparent; padding: 0; }
+    .changelog-body hr { border: 0; border-top: 1px solid #e5e7eb; margin: 1rem 0; }
+
+    html.dark .changelog-body { color: #cfd4dd; }
+    html.dark .changelog-body h1, html.dark .changelog-body h2, html.dark .changelog-body h3 { color: #e7e9ee; }
+    html.dark .changelog-body a { color: #93c5fd; }
+    html.dark .changelog-body code { background: #2f3540; color: #e7e9ee; }
+    html.dark .changelog-body pre { background: #0d0f13; border-color: #333a45; color: #e7e9ee; }
+    html.dark .changelog-body hr { border-top-color: #333a45; }
+</style>
+@endpush
+
 @section('admin-content')
 
 <div class="flex items-center justify-between gap-4 flex-wrap mb-6">
@@ -84,16 +110,7 @@
             @endif
 
             @if ($changelogHtml)
-                <div class="max-w-none text-sm text-gray-700
-                            [&_a]:text-laravel-600 [&_a]:underline
-                            [&_h1]:mt-4 [&_h1]:mb-2 [&_h1]:text-base [&_h1]:font-semibold
-                            [&_h2]:mt-4 [&_h2]:mb-2 [&_h2]:text-sm [&_h2]:font-semibold
-                            [&_h3]:mt-3 [&_h3]:mb-1 [&_h3]:text-sm [&_h3]:font-semibold
-                            [&_ul]:my-2 [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:my-2 [&_ol]:list-decimal [&_ol]:pl-5 [&_li]:my-0.5
-                            [&_p]:my-2
-                            [&_code]:rounded [&_code]:bg-gray-100 [&_code]:px-1 [&_code]:text-xs
-                            [&_pre]:my-2 [&_pre]:overflow-x-auto [&_pre]:rounded [&_pre]:bg-gray-100 [&_pre]:p-3
-                            [&_hr]:my-4 [&_hr]:border-gray-200">
+                <div class="changelog-body text-sm leading-relaxed">
                     {!! $changelogHtml !!}
                 </div>
             @elseif ($status['latest'])
