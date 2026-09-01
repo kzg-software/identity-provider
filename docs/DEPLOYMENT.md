@@ -12,7 +12,7 @@ unterstützt. Wähle nach Umgebung und Vorlieben.
 ## Was für alle Wege gilt
 
 * PHP 8.3 oder neuer, entwickelt und getestet mit 8.4. Extensions: `openssl`, `pdo`, `pdo_mysql` oder `pdo_sqlite`, `ldap`, `xml` und `dom`, `curl`, `mbstring`, `intl`, `sodium`, `gd`, `zip`, `bcmath`, `opcache`.
-* Kein Node, npm oder Vite. Das Frontend läuft über Blade und CDN.
+* Kein Node, npm oder Vite. Das Frontend läuft über Blade; Tailwind, Alpine.js und die Schrift liegen lokal in `public/vendor/` (keine externen CDN).
 * Die App terminiert kein TLS. Davor gehört ein Reverse Proxy mit gültigem Zertifikat (nginx, Apache, Traefik, IIS-ARR, Caddy). SAML, OIDC und Kerberos brauchen HTTPS.
 * Nach der Infrastruktur läuft der fachliche Web-Installer im Browser (`/install`): Datenbank bestätigen, Systemname, lokales Administrator-Konto, optional Active Directory. Danach sperrt er sich selbst (`system_settings.installed = 1`).
 * Der Scheduler muss laufen (`php artisan schedule:run` jede Minute). Er betreibt AD-Sync, den Status-Heartbeat und die Update-Prüfung.

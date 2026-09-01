@@ -28,7 +28,7 @@ php artisan serve
 ```
 
 Kein Node, kein Build-Schritt. Das Frontend läuft über Blade mit Tailwind und
-Alpine.js über CDN.
+Alpine.js, lokal aus `public/vendor/` ausgeliefert (keine externen CDN).
 
 ## Tests
 

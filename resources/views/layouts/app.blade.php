@@ -36,7 +36,7 @@
         })();
     </script>
 
-    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="{{ asset('vendor/tailwindcss/tailwindcss-3.4.16.js') }}"></script>
     <script>
         tailwind.config = {
             darkMode: 'class',
@@ -60,9 +60,8 @@
             },
         }
     </script>
-    <link rel="preconnect" href="https://fonts.bunny.net">
-    <link href="https://fonts.bunny.net/css?family=figtree:400,500,600,700&display=swap" rel="stylesheet">
-    <script src="https://cdn.jsdelivr.net/npm/alpinejs@3.14.1/dist/cdn.min.js" defer></script>
+    <link href="{{ asset('vendor/fonts/figtree.css') }}" rel="stylesheet">
+    <script src="{{ asset('vendor/alpinejs/alpinejs-3.14.1.min.js') }}" defer></script>
     <style>
         [x-cloak] { display: none !important; }
 

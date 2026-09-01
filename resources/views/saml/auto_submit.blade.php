@@ -4,12 +4,40 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Weiterleitung …</title>
-    <script src="https://cdn.tailwindcss.com"></script>
+    {{--
+        Bewusst kein Tailwind/CDN: diese Auto-POST-Seite blinkt nur kurz auf
+        und lädt eine externe Ressource würde sie unnötig verzögern.
+    --}}
+    <style>
+        :root { color-scheme: light dark; }
+        body {
+            margin: 0; min-height: 100vh;
+            display: flex; align-items: center; justify-content: center;
+            background: #f3f4f6;
+            font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+        }
+        .box { text-align: center; }
+        .spinner {
+            width: 2rem; height: 2rem; margin: 0 auto .75rem;
+            border: 3px solid rgba(0, 0, 0, .12); border-top-color: #ff2d20;
+            border-radius: 9999px; animation: spin .7s linear infinite;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        p { font-size: .875rem; color: #6b7280; }
+        button {
+            margin-top: .5rem; padding: .5rem 1rem; border: 0; border-radius: .375rem;
+            background: #ff2d20; color: #fff; font-size: .875rem; font-weight: 600; cursor: pointer;
+        }
+        @media (prefers-color-scheme: dark) {
+            body { background: #171a21; }
+            p { color: #98a0ac; }
+        }
+    </style>
 </head>
-<body onload="document.forms[0].submit();" class="min-h-screen flex items-center justify-center bg-gray-100 font-sans">
-    <div class="text-center">
-        <svg class="animate-spin h-8 w-8 text-[#FF2D20] mx-auto mb-3" viewBox="0 0 24 24" fill="none"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path></svg>
-        <p class="text-sm text-gray-500">Weiterleitung wird durchgeführt &hellip;</p>
+<body onload="document.forms[0].submit();">
+    <div class="box">
+        <div class="spinner" aria-hidden="true"></div>
+        <p>Weiterleitung wird durchgeführt &hellip;</p>
     </div>
     <form method="POST" action="{{ $acsUrl }}">
         <input type="hidden" name="{{ $paramName ?? 'SAMLResponse' }}" value="{{ $samlResponse }}">
@@ -17,8 +45,8 @@
             <input type="hidden" name="RelayState" value="{{ $relayState }}">
         @endif
         <noscript>
-            <p class="text-sm text-gray-600 mt-2">JavaScript ist deaktiviert. Bitte klicken Sie auf den Button, um fortzufahren.</p>
-            <button type="submit" class="mt-2 px-4 py-2 rounded-md bg-[#FF2D20] text-white text-sm font-semibold">Weiter</button>
+            <p>JavaScript ist deaktiviert. Bitte klicken Sie auf den Button, um fortzufahren.</p>
+            <button type="submit">Weiter</button>
         </noscript>
     </form>
 </body>

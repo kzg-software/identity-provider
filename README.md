@@ -6,7 +6,7 @@ nach außen als OAuth 2.0 / OpenID Connect Provider und als SAML 2.0 Identity
 Provider auftritt.
 
 Kein Node, kein npm, kein Build-Schritt. Das Frontend besteht aus
-Blade-Templates mit Tailwind und Alpine.js über CDN.
+Blade-Templates mit Tailwind und Alpine.js, die lokal aus `public/vendor/` ausgeliefert werden (keine externen CDN).
 
 ## Was drin ist
 
