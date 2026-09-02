@@ -10,7 +10,7 @@
 # Ohne separate DB (SQLite, ein Container-Set):
 #   docker compose -f docker-compose.sqlite.yml up -d
 
-name: auth-system
+name: ${COMPOSE_PROJECT_NAME:-auth-system}
 
 x-app: &app
   # Registry-Weg: APP_IMAGE in .env setzen (z.B. ghcr.io/kzg-software/identity-provider:latest).

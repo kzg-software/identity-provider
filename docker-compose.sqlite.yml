@@ -7,7 +7,7 @@
 #
 # Gut für Test/kleine Installationen. Für größere Umgebungen -> docker-compose.yml (MariaDB).
 
-name: auth-system
+name: ${COMPOSE_PROJECT_NAME:-auth-system}
 
 x-app: &app
   build:

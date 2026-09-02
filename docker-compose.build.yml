@@ -5,7 +5,7 @@
 # Danach reicht wieder "docker compose ... up -d" (Image ist als
 # auth-system:local getaggt).
 
-name: auth-system
+name: ${COMPOSE_PROJECT_NAME:-auth-system}
 
 x-build: &build
   build:
