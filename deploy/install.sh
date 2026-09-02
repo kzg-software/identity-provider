@@ -274,11 +274,12 @@ pm.min_spare_servers = 1
 pm.max_spare_servers = 4
 php_admin_value[opcache.validate_timestamps] = 0
 php_admin_value[opcache.enable] = 1
-; Uploads (Logo, Favicon, Login-Hintergrund) - die PHP-Defaults (2M/8M) sind
-; zu klein; muss <= nginx client_max_body_size (20m) bleiben.
-php_admin_value[upload_max_filesize] = 20M
-php_admin_value[post_max_size] = 24M
-php_admin_value[memory_limit] = 256M
+; Uploads: Logo/Favicon/Login-Hintergrund brauchen mehr als die PHP-Defaults
+; (2M/8M), das Einspielen einer Datensicherung (Administration -> Daten-
+; sicherung) kann deutlich groesser sein. Muss <= nginx client_max_body_size.
+php_admin_value[upload_max_filesize] = 512M
+php_admin_value[post_max_size] = 520M
+php_admin_value[memory_limit] = 512M
 EOF
 
 systemctl restart "php${PHP_VERSION}-fpm"
@@ -317,7 +318,8 @@ server {
     root ${APP_ROOT}/current/public;
     index index.php;
 
-    client_max_body_size 20m;
+    # Grosszuegig, damit auch das Einspielen einer Datensicherung durchpasst.
+    client_max_body_size 512m;
 
     location / {
         try_files \$uri \$uri/ /index.php?\$query_string;
