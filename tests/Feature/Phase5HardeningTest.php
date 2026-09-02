@@ -216,6 +216,67 @@ class Phase5HardeningTest extends TestCase
         ])->assertSessionHasErrors('timezone');
     }
 
+    public function test_brand_icon_settings_are_saved(): void
+    {
+        $this->installed();
+        $admin = $this->localUser(admin: true, username: 'admin');
+
+        $this->actingAs($admin)->put(route('admin.settings.update'), [
+            'system_name' => 'Auth',
+            'base_url' => 'https://auth.example.test',
+            'timezone' => 'Europe/Berlin',
+            'locale' => 'de',
+            'session_lifetime' => 120,
+            'brand_icon_mode' => 'hidden',
+            'brand_icon_shape' => 'circle',
+        ])->assertSessionHasNoErrors();
+
+        $this->assertSame('hidden', SystemSetting::get('brand_icon_mode'));
+        $this->assertSame('circle', SystemSetting::get('brand_icon_shape'));
+    }
+
+    public function test_settings_page_renders_for_admin(): void
+    {
+        $this->installed();
+        $admin = $this->localUser(admin: true, username: 'admin');
+
+        $this->actingAs($admin)->get(route('admin.settings.edit'))
+            ->assertOk()
+            ->assertSee('Symbol (Icon)')
+            ->assertSee('name="brand_icon_shape"', escape: false);
+    }
+
+    public function test_brand_mark_component_honours_mode_and_shape(): void
+    {
+        $shared = ['systemName' => 'Kinzig', 'systemLogoUrl' => null];
+
+        $hidden = view('components.brand-mark', ['context' => 'login', 'brandIcon' => ['mode' => 'hidden', 'shape' => 'rounded']] + $shared)->render();
+        $this->assertStringNotContainsString('M12 2 3 6v6', $hidden);
+
+        $circle = view('components.brand-mark', ['context' => 'header', 'brandIcon' => ['mode' => 'default', 'shape' => 'circle']] + $shared)->render();
+        $this->assertStringContainsString('rounded-full', $circle);
+        $this->assertStringContainsString('M12 2 3 6v6', $circle);
+
+        $initial = view('components.brand-mark', ['context' => 'header', 'brandIcon' => ['mode' => 'initial', 'shape' => 'square']] + $shared)->render();
+        $this->assertStringContainsString('rounded-none', $initial);
+        $this->assertStringContainsString('K', $initial);
+    }
+
+    public function test_brand_icon_shape_rejects_unknown_value(): void
+    {
+        $this->installed();
+        $admin = $this->localUser(admin: true, username: 'admin');
+
+        $this->actingAs($admin)->put(route('admin.settings.update'), [
+            'system_name' => 'Auth',
+            'base_url' => 'https://auth.example.test',
+            'timezone' => 'Europe/Berlin',
+            'locale' => 'de',
+            'session_lifetime' => 120,
+            'brand_icon_shape' => 'triangle',
+        ])->assertSessionHasErrors('brand_icon_shape');
+    }
+
     public function test_admin_can_impersonate_and_return(): void
     {
         $this->installed();

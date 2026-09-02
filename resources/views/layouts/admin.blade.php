@@ -40,13 +40,9 @@
                     @endif
 
                     <a href="{{ $isConsole ? route('admin.dashboard') : route('dashboard') }}" class="flex items-center gap-2 shrink-0 font-semibold text-gray-800">
-                        @if (! empty($systemLogoUrl))
-                            <img src="{{ $systemLogoUrl }}" alt="{{ $systemName }}" class="h-8 max-w-[10rem] object-contain">
-                        @else
-                            <span class="flex items-center justify-center h-8 w-8 rounded-md bg-laravel-600 text-white">
-                                <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2 3 6v6c0 5.25 3.75 9.75 9 11 5.25-1.25 9-5.75 9-11V6l-9-4Z"/></svg>
-                            </span>
-                            {{ $systemName }}
+                        <x-brand-mark context="header" />
+                        @if (empty($systemLogoUrl))
+                            <span>{{ $systemName }}</span>
                         @endif
                     </a>
 

@@ -33,6 +33,10 @@ class AppServiceProvider extends ServiceProvider
         View::share('systemFaviconUrl', $this->resolveBrandingUrl('favicon_path'));
         View::share('loginBackgroundUrl', $this->resolveBrandingUrl('login_background_path'));
         View::share('loginTitle', $this->resolveLoginTitle());
+        View::share('brandIcon', [
+            'mode' => $this->resolveSetting('brand_icon_mode') ?: 'default',
+            'shape' => $this->resolveSetting('brand_icon_shape') ?: 'rounded',
+        ]);
         View::share('accentPalette', AccentPalette::from($this->resolveSetting('accent_color')));
 
         // Same story for the timezone: Administration -> Systemeinstellungen

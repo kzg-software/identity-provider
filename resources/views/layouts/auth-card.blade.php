@@ -11,13 +11,7 @@
 
     <div class="relative z-10 flex-1 w-full flex flex-col items-center justify-center px-4 py-10">
         <div class="mb-6 flex flex-col items-center">
-            @if (! empty($systemLogoUrl))
-                <img src="{{ $systemLogoUrl }}" alt="{{ $systemName }}" class="max-h-14 mb-3">
-            @else
-                <div class="flex items-center justify-center h-14 w-14 rounded-full bg-laravel-600 text-white mb-3">
-                    <svg class="h-8 w-8" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2 3 6v6c0 5.25 3.75 9.75 9 11 5.25-1.25 9-5.75 9-11V6l-9-4Z"/></svg>
-                </div>
-            @endif
+            <x-brand-mark context="login" />
             @if (! empty($loginTitle))
                 <span class="text-xl font-semibold {{ $hasLoginBg ? 'text-white drop-shadow' : 'text-gray-800' }}">{{ $loginTitle }}</span>
             @endif
