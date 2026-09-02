@@ -7,15 +7,63 @@ use App\Models\AuditLog;
 use App\Models\Directory;
 use App\Models\SystemSetting;
 use App\Models\User;
+use App\Services\Backup\BackupException;
+use App\Services\Backup\RestoreService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
 
 class InstallController extends Controller
 {
+    /** Startseite: neu einrichten oder aus einer Sicherung wiederherstellen. */
+    public function welcome(): View
+    {
+        return view('install.welcome');
+    }
+
+    /** Formular zum Wiederherstellen aus einer Sicherungsdatei. */
+    public function restore(): View
+    {
+        return view('install.restore');
+    }
+
+    public function restoreStore(Request $request): RedirectResponse
+    {
+        \App\Support\UploadLimits::guard($request, 'backup');
+
+        $request->validate([
+            'backup' => ['required', 'file', 'max:1048576'],
+            'password' => ['required', 'string'],
+        ], [
+            'backup.required' => 'Bitte die Sicherungsdatei auswählen.',
+            'backup.max' => 'Die Sicherungsdatei ist größer als 1 GB und kann so nicht hochgeladen werden.',
+            'password.required' => 'Bitte das Passwort der Sicherungsdatei eingeben.',
+        ]);
+
+        @set_time_limit(0);
+
+        try {
+            $manifest = app(RestoreService::class)->restore(
+                $request->file('backup')->getRealPath(),
+                $request->string('password')->value(),
+            );
+        } catch (BackupException $e) {
+            throw ValidationException::withMessages(['backup' => $e->getMessage()]);
+        }
+
+        AuditLog::record('system.restored_from_backup', null, [
+            'created_at' => $manifest['created_at'] ?? null,
+            'app_version' => $manifest['app_version'] ?? null,
+        ]);
+
+        return redirect()->route('login')->with('status',
+            'Die Sicherung wurde eingespielt. Bitte melden Sie sich mit den Zugangsdaten aus der Sicherung an.');
+    }
+
     /** Schritt 1: Systemprüfung */
     public function requirements(): View
     {
@@ -165,6 +213,12 @@ class InstallController extends Controller
 
     private function updateEnvFile(array $values): void
     {
+        // In der Testumgebung nicht die echte .env des Projekts anfassen.
+        // Die Installer-Tests prüfen nur Weiterleitungen und die Datenbank.
+        if (app()->environment('testing')) {
+            return;
+        }
+
         $path = base_path('.env');
         $content = file_exists($path) ? file_get_contents($path) : '';
 

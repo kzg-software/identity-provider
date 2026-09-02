@@ -20,6 +20,7 @@
         ['route' => 'admin.saml-service-providers.index', 'match' => 'admin.saml-service-providers.*', 'label' => 'SAML Service Provider', 'icon' => 'shield-check'],
         ['route' => 'admin.saml-certificates.index', 'match' => 'admin.saml-certificates.*', 'label' => 'SAML-Zertifikate', 'icon' => 'lock-closed'],
         ['route' => 'admin.settings.edit', 'match' => 'admin.settings.*', 'label' => 'Systemeinstellungen', 'icon' => 'cog'],
+        ['route' => 'admin.backups.index', 'match' => 'admin.backups.*', 'label' => 'Datensicherung', 'icon' => 'download'],
         ['route' => 'admin.status.index', 'match' => 'admin.status.*', 'label' => 'Systemstatus', 'icon' => 'heart-pulse'],
         ['route' => 'admin.updates.index', 'match' => 'admin.updates.*', 'label' => 'Aktualisierungen', 'icon' => 'sparkles'],
         ['route' => 'admin.audit-log.index', 'match' => 'admin.audit-log.*', 'label' => 'Audit-Log', 'icon' => 'journal'],

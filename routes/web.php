@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Admin\ApplicationController;
 use App\Http\Controllers\Admin\AuditLogController;
+use App\Http\Controllers\Admin\BackupController;
 use App\Http\Controllers\Admin\DirectoryController;
 use App\Http\Controllers\Admin\GroupRoleMappingController;
 use App\Http\Controllers\Admin\ImpersonateController;
@@ -46,7 +47,11 @@ Route::prefix('oauth')->name('oauth.')->group(function () {
 });
 
 Route::prefix('install')->name('install.')->group(function () {
-    Route::get('/', [InstallController::class, 'requirements'])->name('index');
+    Route::get('/', [InstallController::class, 'welcome'])->name('index');
+
+    Route::get('restore', [InstallController::class, 'restore'])->name('restore');
+    Route::post('restore', [InstallController::class, 'restoreStore'])->name('restore.store');
+
     Route::get('requirements', [InstallController::class, 'requirements'])->name('requirements');
     Route::post('requirements', [InstallController::class, 'requirementsContinue'])->name('requirements.continue');
 
@@ -164,6 +169,10 @@ Route::middleware('auth')->group(function () {
 
         Route::get('saml-certificates', [SamlCertificateController::class, 'index'])->name('saml-certificates.index');
         Route::post('saml-certificates/rotate', [SamlCertificateController::class, 'rotate'])->name('saml-certificates.rotate');
+
+        Route::get('backups', [BackupController::class, 'index'])->name('backups.index');
+        Route::post('backups/download', [BackupController::class, 'download'])->name('backups.download');
+        Route::post('backups/restore', [BackupController::class, 'restore'])->name('backups.restore');
 
         Route::get('audit-log', [AuditLogController::class, 'index'])->name('audit-log.index');
 
