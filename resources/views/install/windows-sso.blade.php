@@ -1,14 +1,14 @@
 @extends('layouts.install')
 
 @section('install-content')
-<h2 class="text-base font-semibold text-gray-900 mb-4">Schritt 6: Windows SSO (Integrated Windows Authentication)</h2>
-
+<h2 class="text-base font-semibold text-gray-900 mb-1">Windows SSO (optional)</h2>
 <p class="text-sm text-gray-500 mb-4">
-    Der Kerberos/SPNEGO-Handshake selbst findet auf Webserver-Ebene statt. Der Webserver validiert das vom Browser
-    gesendete Kerberos-Ticket und reicht die authentifizierte Windows-Identität als Server-Variable
-    <code class="bg-gray-100 px-1 rounded">REMOTE_USER</code> (z.B. <code class="bg-gray-100 px-1 rounded">DOMAIN\jkinzig</code>) an die Anwendung durch. Laravel übernimmt ab dort:
-    Identität parsen, Benutzer im passenden Verzeichnis (siehe Schritt 5) suchen bzw. synchronisieren und anmelden.
-    Ohne gesetztes <code class="bg-gray-100 px-1 rounded">REMOTE_USER</code> erfolgt <strong>kein</strong> automatischer Login — es erscheint die normale Login-Seite.
+    Damit angemeldete Windows-Benutzer ohne erneute Passworteingabe ins Portal kommen. Die eigentliche Prüfung
+    des Windows-Tickets übernimmt der Webserver (IIS, Apache oder ein vorgeschalteter Proxy). Er gibt den erkannten
+    Benutzernamen in der Variable <code class="bg-gray-100 px-1 rounded">REMOTE_USER</code> weiter
+    (zum Beispiel <code class="bg-gray-100 px-1 rounded">DOMAIN\jkinzig</code>). Das System sucht diesen Benutzer dann im
+    Verzeichnis aus dem vorherigen Schritt und meldet ihn an. Ist die Variable nicht gesetzt, erscheint einfach die
+    normale Anmeldeseite. Die folgenden Angaben können auch leer bleiben und später ergänzt werden.
 </p>
 
 <div x-data="{ open: 'iis' }" class="border border-gray-200 rounded-md divide-y divide-gray-200 mb-4">
@@ -23,7 +23,7 @@
                 <li>In den Site-Authentifizierungseinstellungen: Anonyme Authentifizierung deaktivieren, Windows-Authentifizierung aktivieren.</li>
                 <li>Provider-Reihenfolge: <code class="bg-gray-100 px-1 rounded">Negotiate</code> vor <code class="bg-gray-100 px-1 rounded">NTLM</code> stellen (Kerberos wird bevorzugt).</li>
                 <li>SPN für den Anwendungspool-Dienstkonto registrieren: <code class="bg-gray-100 px-1 rounded">setspn -S HTTP/auth.domain.local DOMAIN\svc-auth</code></li>
-                <li>PHP läuft z.B. via FastCGI hinter IIS — <code class="bg-gray-100 px-1 rounded">REMOTE_USER</code> wird von IIS automatisch gesetzt und muss lediglich an FastCGI durchgereicht werden (Standardverhalten).</li>
+                <li>PHP läuft üblicherweise per FastCGI hinter IIS. <code class="bg-gray-100 px-1 rounded">REMOTE_USER</code> wird von IIS automatisch gesetzt und nur an FastCGI durchgereicht (Standardverhalten).</li>
             </ol>
         </div>
     </div>
@@ -54,20 +54,20 @@
         <div x-show="open === 'nginx'" x-cloak class="px-4 pb-4 text-sm text-gray-600 space-y-2">
             <p>Nginx hat kein natives SPNEGO-Modul. Zwei gängige Ansätze:</p>
             <ul class="list-disc pl-5 space-y-1">
-                <li>Reverse-Proxy auf einen vorgelagerten Apache (mod_auth_gssapi) oder IIS, der <code class="bg-gray-100 px-1 rounded">REMOTE_USER</code> als
-                    Header (z.B. <code class="bg-gray-100 px-1 rounded">X-Remote-User</code>) an Nginx/PHP-FPM weiterreicht.</li>
-                <li>Drittanbieter-Modul <code class="bg-gray-100 px-1 rounded">nginx-http-auth-spnego</code> (separater Build) einsetzen, das ebenfalls
-                    <code class="bg-gray-100 px-1 rounded">REMOTE_USER</code>/<code class="bg-gray-100 px-1 rounded">fastcgi_param</code> setzt.</li>
+                <li>Einen Apache (mod_auth_gssapi) oder IIS davorschalten, der <code class="bg-gray-100 px-1 rounded">REMOTE_USER</code> als
+                    Header (zum Beispiel <code class="bg-gray-100 px-1 rounded">X-Remote-User</code>) an Nginx und PHP-FPM weitergibt.</li>
+                <li>Das Zusatzmodul <code class="bg-gray-100 px-1 rounded">nginx-http-auth-spnego</code> (eigener Build) einsetzen, das ebenfalls
+                    <code class="bg-gray-100 px-1 rounded">REMOTE_USER</code> als <code class="bg-gray-100 px-1 rounded">fastcgi_param</code> setzt.</li>
             </ul>
         </div>
     </div>
 </div>
 
 <p class="text-sm text-gray-500 mb-4">
-    Benötigte Werte, unabhängig vom Webserver: <strong>Service Principal Name (SPN)</strong> (z.B. <code class="bg-gray-100 px-1 rounded">HTTP/auth.domain.local</code>),
-    <strong>Kerberos-Realm</strong> (z.B. <code class="bg-gray-100 px-1 rounded">DOMAIN.LOCAL</code>), <strong>Hostname</strong> des Auth-Servers,
-    <strong>Keytab-Datei</strong> (Apache/Linux) bzw. registrierter SPN auf dem Dienstkonto (IIS), sowie der
-    <strong>HTTP Principal</strong>, unter dem der Dienst im AD registriert ist.
+    Diese Werte werden unabhängig vom Webserver gebraucht: <strong>Service Principal Name (SPN)</strong>, zum Beispiel <code class="bg-gray-100 px-1 rounded">HTTP/auth.domain.local</code>,
+    <strong>Kerberos-Realm</strong>, zum Beispiel <code class="bg-gray-100 px-1 rounded">DOMAIN.LOCAL</code>, der <strong>Hostname</strong> dieses Servers,
+    eine <strong>Keytab-Datei</strong> (bei Apache und Linux) oder ein am Dienstkonto registrierter SPN (bei IIS), sowie der
+    <strong>HTTP Principal</strong>, unter dem der Dienst im Active Directory eingetragen ist.
 </p>
 
 <form method="POST" action="{{ route('install.windows-sso.store') }}" class="space-y-4">

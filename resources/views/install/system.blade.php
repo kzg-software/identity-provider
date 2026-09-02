@@ -1,7 +1,8 @@
 @extends('layouts.install')
 
 @section('install-content')
-<h2 class="text-base font-semibold text-gray-900 mb-4">Schritt 3: System</h2>
+<h2 class="text-base font-semibold text-gray-900 mb-1">System</h2>
+<p class="text-sm text-gray-500 mb-5">Name, Adresse und Aussehen des Portals. Alles hier lässt sich später in der Administration ändern.</p>
 
 <form method="POST" action="{{ route('install.system.store') }}" enctype="multipart/form-data" class="space-y-4">
     @csrf
@@ -28,8 +29,9 @@
     </div>
 
     <div>
-        <x-input-label value="Session-Dauer (Minuten)" />
+        <x-input-label value="Automatische Abmeldung nach (Minuten)" />
         <x-input type="number" name="session_lifetime" value="{{ old('session_lifetime', 120) }}" required />
+        <p class="mt-1 text-xs text-gray-500">Wie lange ein Benutzer ohne Aktivität angemeldet bleibt.</p>
     </div>
 
     <div class="grid grid-cols-2 gap-4">
@@ -44,7 +46,8 @@
     </div>
 
     <hr class="border-gray-200">
-    <h3 class="text-sm font-semibold text-gray-700">E-Mail-Konfiguration (optional)</h3>
+    <h3 class="text-sm font-semibold text-gray-700">E-Mail-Versand (optional)</h3>
+    <p class="text-xs text-gray-500">Nötig, damit das System Benachrichtigungen verschicken kann. Kann leer bleiben und später nachgetragen werden.</p>
     <div class="grid grid-cols-2 gap-4">
         <div>
             <x-input-label value="SMTP-Host" />

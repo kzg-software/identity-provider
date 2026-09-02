@@ -1,8 +1,8 @@
 @extends('layouts.install')
 
 @section('install-content')
-<h2 class="text-base font-semibold text-gray-900 mb-1">Schritt 4: Lokaler Administrator</h2>
-<p class="text-sm text-gray-500 mb-4">Dieser Benutzer wird als lokales Konto (<code class="bg-gray-100 px-1 rounded">local</code>) angelegt und dient als Break-Glass-Administrator.</p>
+<h2 class="text-base font-semibold text-gray-900 mb-1">Administrator</h2>
+<p class="text-sm text-gray-500 mb-4">Ein lokales Konto mit vollen Rechten. Es funktioniert unabhängig von Active Directory und dient als Zugang, wenn die AD-Anmeldung einmal nicht erreichbar ist. Bitte das Passwort sicher aufbewahren.</p>
 
 <form method="POST" action="{{ route('install.admin.store') }}" class="space-y-4">
     @csrf

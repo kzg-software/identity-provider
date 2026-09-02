@@ -1,12 +1,13 @@
 @extends('layouts.install')
 
 @section('install-content')
-<h2 class="text-base font-semibold text-gray-900 mb-1">Schritt 5: Active Directory (optional)</h2>
+<h2 class="text-base font-semibold text-gray-900 mb-1">Active Directory (optional)</h2>
 <p class="text-sm text-gray-500 mb-4">
-    Verbindungsdaten für ein Active Directory oder LDAP-Verzeichnis. Der ganze Schritt lässt sich überspringen
-    und später unter <em>Administration → Verzeichnisse</em> nachholen. Jedes Feld hat ein
+    Verbindung zu einem Active Directory oder LDAP-Verzeichnis, damit sich Benutzer mit ihrem Windows-Konto anmelden können.
+    Dieser Schritt ist freiwillig. Sie können ihn überspringen und später unter <em>Administration, Verzeichnisse</em> nachholen.
+    Das
     <span class="inline-flex h-4 w-4 items-center justify-center rounded-full border border-gray-300 text-[10px] font-semibold text-gray-500">i</span>
-    mit Erklärung, Beispiel und Angabe, ob es nötig ist.
+    neben jedem Feld erklärt es und nennt ein Beispiel.
 </p>
 
 <form method="POST" action="{{ route('install.directory.store') }}" class="space-y-4">
@@ -116,8 +117,8 @@
             <div class="flex items-center gap-1.5 mb-1">
                 <span class="text-sm font-medium text-gray-700">Group DN</span>
                 <x-field-info example="OU=Gruppen,DC=firma,DC=local">
-                    Teilbaum, in dem nach <em>Gruppenobjekten</em> gesucht wird. <strong>Kein</strong>
-                    Mitgliedschaftsfilter &ndash; dafür ist das Feld unten. Leer lassen, dann gilt die Base DN.
+                    Teilbaum, in dem nach <em>Gruppenobjekten</em> gesucht wird. Das ist <strong>kein</strong>
+                    Mitgliedschaftsfilter, dafür ist das Feld unten gedacht. Leer lassen, dann gilt die Base DN.
                 </x-field-info>
             </div>
             <x-input type="text" name="group_dn" value="{{ old('group_dn') }}" placeholder="OU=Gruppen,DC=firma,DC=local" />
@@ -128,9 +129,9 @@
         <div class="flex items-center gap-1.5 mb-1">
             <span class="text-sm font-medium text-gray-700">Anmeldung auf Gruppen beschränken</span>
             <x-field-info example="CN=IDP-Login,OU=Gruppen,DC=firma,DC=local">
-                Eine Gruppe pro Zeile (voller DN oder nur der CN). Ist etwas eingetragen, werden nur
-                Benutzer synchronisiert und angemeldet, die &ndash; auch verschachtelt &ndash; Mitglied
-                mindestens einer dieser Gruppen sind. Leer = alle Benutzer im User DN.
+                Eine Gruppe pro Zeile (voller DN oder nur der CN). Ist hier etwas eingetragen, werden nur
+                Benutzer synchronisiert und angemeldet, die Mitglied mindestens einer dieser Gruppen sind,
+                auch über verschachtelte Gruppen. Bleibt das Feld leer, gelten alle Benutzer im User DN.
             </x-field-info>
         </div>
         <x-textarea name="login_group_filter" rows="2" class="font-mono text-xs"
