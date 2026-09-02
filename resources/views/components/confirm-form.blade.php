@@ -1,12 +1,29 @@
-@props(['action', 'method' => 'DELETE', 'title' => 'Bitte bestätigen', 'message' => 'Bist du sicher?', 'label' => 'Löschen', 'variant' => 'danger', 'size' => 'sm', 'icon' => 'trash'])
+@props([
+    'action',
+    'method' => 'DELETE',
+    'title' => 'Bitte bestätigen',
+    'message' => 'Bist du sicher?',
+    'label' => 'Löschen',
+    'variant' => 'danger',
+    'size' => 'sm',
+    'icon' => 'trash',
+    'iconOnly' => false,
+])
 
 <div x-data="{ open: false }" class="inline">
-    <x-button type="button" variant="{{ $variant }}" size="{{ $size }}" @click="open = true" {{ $attributes }}>
-        @if ($icon)
-            <x-icon :name="$icon" class="h-4 w-4" />
-        @endif
-        {{ $label }}
-    </x-button>
+    @if ($iconOnly)
+        <x-button type="button" variant="secondary" size="{{ $size }}" @click="open = true"
+                  title="{{ $label }}" aria-label="{{ $label }}" {{ $attributes }}>
+            <x-icon :name="$icon ?: 'trash'" class="h-4 w-4" />
+        </x-button>
+    @else
+        <x-button type="button" variant="{{ $variant }}" size="{{ $size }}" @click="open = true" {{ $attributes }}>
+            @if ($icon)
+                <x-icon :name="$icon" class="h-4 w-4" />
+            @endif
+            {{ $label }}
+        </x-button>
+    @endif
 
     <div x-show="open" x-cloak style="display:none" class="fixed inset-0 z-50 flex items-center justify-center p-4" @keydown.escape.window="open = false">
         <div class="fixed inset-0 bg-gray-900/50" @click="open = false"></div>

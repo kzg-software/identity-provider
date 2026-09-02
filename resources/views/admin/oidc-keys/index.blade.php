@@ -1,35 +1,30 @@
 @extends('layouts.admin')
 
 @section('admin-content')
-<div class="flex justify-between items-center mb-2">
-    <h1 class="text-2xl font-semibold text-gray-900">OIDC-Signaturschlüssel</h1>
-    <form method="POST" action="{{ route('admin.oidc-keys.rotate') }}" x-data @submit="if (!confirm('Neuen Schlüssel erzeugen und aktivieren? Alte Tokens bleiben bis zum Ablauf über JWKS prüfbar.')) $event.preventDefault()">
-        @csrf
-        <x-button type="submit">Schlüssel rotieren</x-button>
-    </form>
-</div>
+<x-page-header
+    title="OIDC-Schlüssel"
+    description="Mit diesen Schlüsseln signiert das System die ID-Tokens für OpenID Connect. Der öffentliche Teil steht unter der JWKS-URL, private Schlüssel werden verschlüsselt gespeichert.">
+    <x-slot:actions>
+        <x-confirm-form :action="route('admin.oidc-keys.rotate')" method="POST"
+                        variant="primary" icon="arrow-path" size="sm"
+                        title="Schlüssel rotieren"
+                        message="Ein neuer Signaturschlüssel wird erzeugt und sofort aktiv. Bereits ausgestellte Tokens bleiben bis zum Ablauf über die JWKS-URL prüfbar."
+                        label="Schlüssel rotieren" />
+    </x-slot:actions>
+</x-page-header>
 
-<p class="text-sm text-gray-500 mb-6">Veröffentlicht unter <code class="bg-gray-100 px-1 rounded">{{ url('/.well-known/jwks.json') }}</code>. Private Keys werden verschlüsselt gespeichert und nie ausgegeben.</p>
+<x-card class="mb-4" :padding="true">
+    <x-dl mono :rows="['JWKS-URL' => url('/.well-known/jwks.json')]" />
+</x-card>
 
-<x-table>
-    <thead class="bg-gray-50">
-        <tr>
-            <th class="px-4 py-2 text-left font-medium text-gray-500">Kid</th>
-            <th class="px-4 py-2 text-left font-medium text-gray-500">Algorithmus</th>
-            <th class="px-4 py-2 text-left font-medium text-gray-500">Bits</th>
-            <th class="px-4 py-2 text-left font-medium text-gray-500">Fingerprint</th>
-            <th class="px-4 py-2 text-left font-medium text-gray-500">Erstellt</th>
-            <th class="px-4 py-2 text-left font-medium text-gray-500">Läuft ab</th>
-            <th class="px-4 py-2 text-left font-medium text-gray-500">Status</th>
-        </tr>
-    </thead>
+<x-table :heads="['Kid', 'Algorithmus', 'Bits', 'Fingerprint', 'Erstellt', 'Läuft ab', 'Status']">
     <tbody class="divide-y divide-gray-100">
-        @foreach ($keys as $entry)
-            <tr>
-                <td class="px-4 py-2"><code class="text-xs bg-gray-100 px-1 py-0.5 rounded">{{ $entry['model']->kid }}</code></td>
+        @forelse ($keys as $entry)
+            <tr class="hover:bg-gray-50">
+                <td class="px-4 py-2"><code class="rounded bg-gray-100 px-1 py-0.5 text-xs">{{ $entry['model']->kid }}</code></td>
                 <td class="px-4 py-2 text-gray-600">{{ $entry['model']->algorithm }}</td>
                 <td class="px-4 py-2 text-gray-600">{{ $entry['bits'] }}</td>
-                <td class="px-4 py-2"><code class="text-xs bg-gray-100 px-1 py-0.5 rounded">{{ $entry['fingerprint'] }}</code></td>
+                <td class="px-4 py-2"><code class="rounded bg-gray-100 px-1 py-0.5 text-xs">{{ $entry['fingerprint'] }}</code></td>
                 <td class="px-4 py-2 text-gray-500">{{ $entry['model']->created_at->format('d.m.Y H:i') }}</td>
                 <td class="px-4 py-2 text-gray-500">
                     {{ $entry['expires_at']->format('d.m.Y') }}
@@ -45,7 +40,11 @@
                     @endif
                 </td>
             </tr>
-        @endforeach
+        @empty
+            <x-empty-state cell :colspan="7" icon="key" title="Noch kein Schlüssel">
+                Beim ersten OpenID-Connect-Login wird automatisch einer erzeugt. Du kannst auch jetzt schon einen anlegen.
+            </x-empty-state>
+        @endforelse
     </tbody>
 </x-table>
 @endsection

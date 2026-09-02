@@ -130,7 +130,7 @@ class InstallerFlowTest extends TestCase
 
         $this->assertAuthenticatedAs($user);
 
-        $this->get(route('admin.dashboard'))->assertOk()->assertSee('Dashboard');
+        $this->get(route('admin.dashboard'))->assertOk()->assertSee('Übersicht');
         $this->get(route('dashboard'))->assertOk()->assertViewIs('dashboard-user');
         $this->get(route('admin.users.index'))->assertOk();
         $this->get(route('admin.settings.edit'))->assertOk();

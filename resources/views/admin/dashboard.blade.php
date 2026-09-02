@@ -1,7 +1,10 @@
 @extends('layouts.admin')
 
 @section('admin-content')
-<h1 class="text-2xl font-semibold text-gray-900 mb-6">Dashboard</h1>
+<x-page-header
+    title="Übersicht"
+    description="Der schnelle Blick auf dein System: Kennzahlen, offene Punkte und die letzten Anmeldungen." />
+
 
 {{-- Neue Version verfügbar (pro Admin/Browser ausblendbar, erscheint bei neuem Release wieder) --}}
 @php $update = \App\Services\UpdateChecker::status(); @endphp
@@ -21,7 +24,7 @@
                 <span class="flex items-center gap-2 text-laravel-700">
                     <x-icon name="sparkles" class="h-4 w-4 text-laravel-600" />
                     <span class="font-medium">Neue Version {{ $update['latest'] }} verfügbar</span>
-                    <span class="text-laravel-600">— installiert: {{ $update['current'] }}</span>
+                    <span class="text-laravel-600">installiert: {{ $update['current'] }}</span>
                 </span>
                 <span class="shrink-0 text-xs text-laravel-600">Changelog &amp; Update &rarr;</span>
             </a>
@@ -78,7 +81,7 @@
             </h2>
             <button type="button" x-show="hiddenCount > 0" x-cloak @click="reset()"
                     class="text-xs text-gray-500 hover:text-gray-700">
-                <span x-text="hiddenCount"></span> ausgeblendet — wieder einblenden
+                <span x-text="hiddenCount"></span> ausgeblendet, wieder einblenden
             </button>
         </div>
         <div class="space-y-2">
@@ -92,7 +95,7 @@
                         <span class="flex items-center gap-2 {{ $isFail ? 'text-red-800' : 'text-amber-800' }}">
                             <x-icon name="warning" class="h-4 w-4 {{ $isFail ? 'text-red-500' : 'text-amber-500' }}" />
                             <span class="font-medium">{{ $warning['label'] }}</span>
-                            <span class="{{ $isFail ? 'text-red-600' : 'text-amber-600' }}">— {{ $warning['detail'] }}</span>
+                            <span class="{{ $isFail ? 'text-red-600' : 'text-amber-600' }}">{{ $warning['detail'] }}</span>
                         </span>
                         <span class="text-xs {{ $isFail ? 'text-red-500' : 'text-amber-500' }} shrink-0">Ansehen &rarr;</span>
                     </a>

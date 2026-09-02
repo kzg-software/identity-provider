@@ -30,7 +30,14 @@ class SamlCertificateController extends Controller
 
     public function rotate(Request $request): RedirectResponse
     {
-        $cert = $this->certificates->rotate();
+        try {
+            $cert = $this->certificates->rotate();
+        } catch (\Throwable $e) {
+            report($e);
+
+            return back()->with('error', 'Das Signaturzertifikat konnte nicht erzeugt werden. '
+                .'Auf diesem Server fehlt vermutlich eine gültige OpenSSL-Konfiguration ('.$e->getMessage().').');
+        }
 
         AuditLog::record('saml.certificate_rotated', $request->user(), ['fingerprint' => $cert->fingerprint]);
 

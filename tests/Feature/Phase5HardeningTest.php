@@ -242,7 +242,8 @@ class Phase5HardeningTest extends TestCase
 
         $this->actingAs($admin)->get(route('admin.settings.edit'))
             ->assertOk()
-            ->assertSee('Symbol (Icon)')
+            ->assertSee('Erscheinungsbild')
+            ->assertSee('name="brand_icon_mode"', escape: false)
             ->assertSee('name="brand_icon_shape"', escape: false);
     }
 

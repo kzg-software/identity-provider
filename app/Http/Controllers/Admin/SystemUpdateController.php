@@ -29,17 +29,18 @@ class SystemUpdateController extends Controller
             ]);
         }
 
-        [$badgeColor, $badgeText] = match (true) {
-            (bool) $status['error'] => ['red', 'Prüfung fehlgeschlagen'],
-            $status['update_available'] => ['amber', 'Update verfügbar'],
-            $status['latest'] !== null => ['green', 'Aktuell'],
-            default => ['gray', 'Noch nicht geprüft'],
+        // Ein einziger Zustand steuert die Darstellung der Seite.
+        $state = match (true) {
+            (bool) $status['error'] => 'error',
+            ! $status['current_is_release'] => 'dev',
+            $status['update_available'] => 'update',
+            $status['latest'] !== null => 'current',
+            default => 'unchecked',
         };
 
         return view('admin.updates.index', [
             'status' => $status,
-            'badgeColor' => $badgeColor,
-            'badgeText' => $badgeText,
+            'state' => $state,
             'changelogHtml' => $changelogHtml,
             'repositoryUrl' => UpdateChecker::repositoryUrl(),
             'currentReleaseUrl' => UpdateChecker::releaseUrl($status['current']),
@@ -53,6 +54,12 @@ class SystemUpdateController extends Controller
 
         if ($status['error']) {
             return back()->with('error', 'Prüfung fehlgeschlagen: '.$status['error']);
+        }
+
+        if (! $status['current_is_release']) {
+            return back()->with('status', $status['latest']
+                ? 'Prüfung abgeschlossen. Neueste veröffentlichte Version: '.$status['latest'].' (installiert: Entwicklungsversion).'
+                : 'Prüfung abgeschlossen.');
         }
 
         return back()->with('status', $status['update_available']

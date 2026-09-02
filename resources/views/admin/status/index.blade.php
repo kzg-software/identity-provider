@@ -1,25 +1,34 @@
 @extends('layouts.admin')
 
 @section('admin-content')
-<h1 class="text-2xl font-semibold text-gray-900 mb-6">Systemstatus</h1>
+@php
+    $counts = collect($checks)->countBy('status');
+    $failed = $counts['fail'] ?? 0;
+    $warned = $counts['warn'] ?? 0;
+@endphp
 
-<x-table>
-    <thead class="bg-gray-50">
-        <tr>
-            <th class="px-4 py-2 text-left font-medium text-gray-500">Prüfung</th>
-            <th class="px-4 py-2 text-left font-medium text-gray-500">Status</th>
-            <th class="px-4 py-2 text-left font-medium text-gray-500">Detail</th>
-        </tr>
-    </thead>
+<x-page-header
+    title="Systemstatus"
+    description="Automatische Prüfungen von Konfiguration, Schlüsseln, Verzeichnissen und Hintergrundjobs. Nach jeder Änderung ein guter erster Blick." />
+
+@if ($failed > 0)
+    <x-alert type="danger">{{ $failed }} {{ $failed === 1 ? 'Prüfung meldet' : 'Prüfungen melden' }} einen Fehler. Details stehen in der Tabelle.</x-alert>
+@elseif ($warned > 0)
+    <x-alert type="warning">{{ $warned }} {{ $warned === 1 ? 'Prüfung hat' : 'Prüfungen haben' }} einen Hinweis. Alles Wichtige läuft.</x-alert>
+@else
+    <x-alert type="success">Alle Prüfungen sind grün.</x-alert>
+@endif
+
+<x-table :heads="['Prüfung', 'Status', 'Detail']">
     <tbody class="divide-y divide-gray-100">
         @foreach ($checks as $check)
-            <tr>
+            <tr class="hover:bg-gray-50">
                 <td class="px-4 py-2 text-gray-900">{{ $check['label'] }}</td>
                 <td class="px-4 py-2">
                     @if ($check['status'] === 'ok')
                         <x-badge color="green">OK</x-badge>
                     @elseif ($check['status'] === 'warn')
-                        <x-badge color="amber">Warnung</x-badge>
+                        <x-badge color="amber">Hinweis</x-badge>
                     @else
                         <x-badge color="red">Fehler</x-badge>
                     @endif

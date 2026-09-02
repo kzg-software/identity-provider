@@ -1,18 +1,14 @@
 @extends('layouts.admin')
 
 @section('admin-content')
-<h1 class="text-2xl font-semibold text-gray-900 mb-2">Gruppen-zu-Rollen-Mapping</h1>
-<p class="text-sm text-gray-500 mb-6">
-    Ordnet Verzeichnis-Gruppen internen Rollen zu. Der Gruppenname wird
-    gross-/kleinschreibungsunabhängig gegen die Gruppen des Benutzers geprüft.
-    Bekannte Gruppen aus der letzten Synchronisierung werden vorgeschlagen, es
-    lässt sich aber jeder Name eintragen.
-</p>
+<x-page-header
+    title="Rollen-Mapping"
+    description="Ordne Verzeichnis-Gruppen internen Rollen zu. Wer in einer zugeordneten Gruppe ist, bekommt die Rolle automatisch. Die Rolle admin macht zum Administrator." />
 
 <x-card title="Neues Mapping" class="mb-6">
-    <form method="POST" action="{{ route('admin.group-role-mappings.store') }}" class="flex flex-wrap gap-3 items-end">
+    <form method="POST" action="{{ route('admin.group-role-mappings.store') }}" class="flex flex-wrap items-end gap-3">
         @csrf
-        <div class="flex-1 min-w-[16rem]">
+        <div class="min-w-[16rem] flex-1">
             <x-input-label value="Gruppe" />
             <x-input type="text" name="group" list="known-ad-groups" required
                      value="{{ old('group') }}" placeholder="z. B. IDP-Login oder GG_App_Admins" />
@@ -39,31 +35,21 @@
             <x-input-label value="Claims (JSON, optional)" />
             <x-input type="text" name="claims" value="{{ old('claims') }}" placeholder='{"roles":["admin"]}' class="!w-56" />
         </div>
-        <x-button type="submit">Hinzufügen</x-button>
+        <x-button type="submit"><x-icon name="plus" class="h-4 w-4" />Hinzufügen</x-button>
     </form>
-    @if ($groups->isEmpty())
-        <p class="text-sm text-gray-500 mt-3">
-            Noch keine Gruppen synchronisiert &ndash; Vorschläge fehlen daher. Der Name lässt sich trotzdem
-            direkt eintragen, oder zuerst eine Verzeichnis-Synchronisierung ausführen.
-        </p>
-    @else
-        <p class="text-sm text-gray-400 mt-3">{{ $groups->count() }} bekannte Gruppen als Vorschlag.</p>
-    @endif
+    <p class="mt-3 text-xs text-gray-500">
+        @if ($groups->isEmpty())
+            Noch keine Gruppen synchronisiert, deshalb fehlen Vorschläge. Du kannst den Namen trotzdem direkt eintragen oder zuerst ein Verzeichnis synchronisieren.
+        @else
+            {{ $groups->count() }} bekannte Gruppen stehen als Vorschlag bereit. Der Name wird ohne Rücksicht auf Groß- und Kleinschreibung geprüft.
+        @endif
+    </p>
 </x-card>
 
-<x-table>
-    <thead class="bg-gray-50">
-        <tr>
-            <th class="px-4 py-2 text-left font-medium text-gray-500">Verzeichnis</th>
-            <th class="px-4 py-2 text-left font-medium text-gray-500">Gruppe</th>
-            <th class="px-4 py-2 text-left font-medium text-gray-500">Rolle</th>
-            <th class="px-4 py-2 text-left font-medium text-gray-500">Claims</th>
-            <th class="px-4 py-2"></th>
-        </tr>
-    </thead>
+<x-table :heads="['Verzeichnis', 'Gruppe', 'Rolle', 'Claims', '']">
     <tbody class="divide-y divide-gray-100">
         @forelse ($mappings as $mapping)
-            <tr>
+            <tr class="hover:bg-gray-50">
                 <td class="px-4 py-2 text-gray-600">{{ $mapping->directoryLabel() }}</td>
                 <td class="px-4 py-2 text-gray-900">
                     {{ $mapping->groupLabel() }}
@@ -78,7 +64,9 @@
                 </td>
             </tr>
         @empty
-            <tr><td colspan="5" class="px-4 py-3 text-gray-400">Keine Mappings konfiguriert.</td></tr>
+            <x-empty-state cell :colspan="5" icon="signpost" title="Noch kein Mapping">
+                Ohne Mapping bekommt niemand aus dem Verzeichnis automatisch eine Rolle. Lege oben das erste an.
+            </x-empty-state>
         @endforelse
     </tbody>
 </x-table>

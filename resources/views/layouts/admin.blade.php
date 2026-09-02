@@ -10,22 +10,32 @@
         ['route' => 'profile.sessions', 'match' => 'profile.sessions*', 'label' => 'Meine Sitzungen', 'icon' => 'monitor'],
     ]);
 
-    $adminNav = collect([
-        ['route' => 'admin.dashboard', 'match' => 'admin.dashboard', 'label' => 'Übersicht', 'icon' => 'grid'],
-        ['route' => 'admin.users.index', 'match' => 'admin.users.*', 'label' => 'Benutzer', 'icon' => 'users'],
-        ['route' => 'admin.directories.index', 'match' => 'admin.directories.*', 'label' => 'Verzeichnisse', 'icon' => 'server'],
-        ['route' => 'admin.group-role-mappings.index', 'match' => 'admin.group-role-mappings.*', 'label' => 'Rollen-Mapping', 'icon' => 'signpost'],
-        ['route' => 'admin.applications.index', 'match' => 'admin.applications.*', 'label' => 'Anwendungen', 'icon' => 'building'],
-        ['route' => 'admin.oidc-keys.index', 'match' => 'admin.oidc-keys.*', 'label' => 'OIDC-Schlüssel', 'icon' => 'key'],
-        ['route' => 'admin.saml-service-providers.index', 'match' => 'admin.saml-service-providers.*', 'label' => 'SAML Service Provider', 'icon' => 'shield-check'],
-        ['route' => 'admin.saml-certificates.index', 'match' => 'admin.saml-certificates.*', 'label' => 'SAML-Zertifikate', 'icon' => 'lock-closed'],
-        ['route' => 'admin.settings.edit', 'match' => 'admin.settings.*', 'label' => 'Systemeinstellungen', 'icon' => 'cog'],
-        ['route' => 'admin.backups.index', 'match' => 'admin.backups.*', 'label' => 'Datensicherung', 'icon' => 'download'],
-        ['route' => 'admin.status.index', 'match' => 'admin.status.*', 'label' => 'Systemstatus', 'icon' => 'heart-pulse'],
-        ['route' => 'admin.updates.index', 'match' => 'admin.updates.*', 'label' => 'Aktualisierungen', 'icon' => 'sparkles'],
-        ['route' => 'admin.audit-log.index', 'match' => 'admin.audit-log.*', 'label' => 'Audit-Log', 'icon' => 'journal'],
-        ['route' => 'admin.sessions.index', 'match' => 'admin.sessions.*', 'label' => 'Alle Sessions', 'icon' => 'monitor'],
-    ]);
+    $adminNav = [
+        ['label' => null, 'items' => [
+            ['route' => 'admin.dashboard', 'match' => 'admin.dashboard', 'label' => 'Übersicht', 'icon' => 'grid'],
+        ]],
+        ['label' => 'Benutzer & Zugriff', 'items' => [
+            ['route' => 'admin.users.index', 'match' => 'admin.users.*', 'label' => 'Benutzer', 'icon' => 'users'],
+            ['route' => 'admin.directories.index', 'match' => 'admin.directories.*', 'label' => 'Verzeichnisse', 'icon' => 'server'],
+            ['route' => 'admin.group-role-mappings.index', 'match' => 'admin.group-role-mappings.*', 'label' => 'Rollen-Mapping', 'icon' => 'signpost'],
+        ]],
+        ['label' => 'Anwendungen', 'items' => [
+            ['route' => 'admin.applications.index', 'match' => 'admin.applications.*', 'label' => 'Anwendungen', 'icon' => 'building'],
+            ['route' => 'admin.saml-service-providers.index', 'match' => 'admin.saml-service-providers.*', 'label' => 'SAML Service Provider', 'icon' => 'shield-check'],
+        ]],
+        ['label' => 'Schlüssel & Zertifikate', 'items' => [
+            ['route' => 'admin.oidc-keys.index', 'match' => 'admin.oidc-keys.*', 'label' => 'OIDC-Schlüssel', 'icon' => 'key'],
+            ['route' => 'admin.saml-certificates.index', 'match' => 'admin.saml-certificates.*', 'label' => 'SAML-Zertifikate', 'icon' => 'lock-closed'],
+        ]],
+        ['label' => 'System', 'items' => [
+            ['route' => 'admin.settings.edit', 'match' => 'admin.settings.*', 'label' => 'Systemeinstellungen', 'icon' => 'cog'],
+            ['route' => 'admin.backups.index', 'match' => 'admin.backups.*', 'label' => 'Datensicherung', 'icon' => 'download'],
+            ['route' => 'admin.status.index', 'match' => 'admin.status.*', 'label' => 'Systemstatus', 'icon' => 'heart-pulse'],
+            ['route' => 'admin.updates.index', 'match' => 'admin.updates.*', 'label' => 'Aktualisierungen', 'icon' => 'sparkles'],
+            ['route' => 'admin.audit-log.index', 'match' => 'admin.audit-log.*', 'label' => 'Audit-Log', 'icon' => 'journal'],
+            ['route' => 'admin.sessions.index', 'match' => 'admin.sessions.*', 'label' => 'Alle Sitzungen', 'icon' => 'monitor'],
+        ]],
+    ];
 @endphp
 <div x-data="{ mobileOpen: false }" class="min-h-screen bg-gray-100 flex flex-col">
     {{-- Header --}}
@@ -130,14 +140,14 @@
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
             <div x-show="mobileOpen" x-transition style="display:none" class="lg:hidden mb-4">
                 <div class="rounded-lg border border-gray-200 bg-white p-2" @click="mobileOpen = false">
-                    @include('layouts.partials.admin-nav', ['items' => $adminNav])
+                    @include('layouts.partials.admin-nav', ['groups' => $adminNav])
                 </div>
             </div>
 
             <div class="flex gap-6 lg:gap-8 items-start">
                 <aside class="hidden lg:block w-56 shrink-0">
                     <div class="sticky top-6 max-h-[calc(100vh-3rem)] overflow-y-auto rounded-lg border border-gray-200 bg-white p-2">
-                        @include('layouts.partials.admin-nav', ['items' => $adminNav])
+                        @include('layouts.partials.admin-nav', ['groups' => $adminNav])
                     </div>
                 </aside>
 

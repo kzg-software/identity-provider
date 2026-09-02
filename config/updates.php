@@ -25,7 +25,9 @@ return [
     // nötig). Ein feingranulares Token mit "Contents: read" genügt.
     'token' => env('UPDATE_GITHUB_TOKEN', env('GITHUB_TOKEN')),
 
-    // Wie lange ein Prüfergebnis als "frisch" gilt (Stunden).
-    'ttl_hours' => (int) env('UPDATE_CHECK_TTL_HOURS', 24),
+    // Wie lange ein Prüfergebnis als "frisch" gilt (Stunden). Der Scheduler
+    // prüft alle 2 Stunden; dazwischen frischt ein Seitenaufruf ein älteres
+    // Ergebnis im Hintergrund auf.
+    'ttl_hours' => (int) env('UPDATE_CHECK_TTL_HOURS', 2),
 
 ];

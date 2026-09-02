@@ -36,7 +36,14 @@ class OidcKeyController extends Controller
 
     public function rotate(Request $request): RedirectResponse
     {
-        $key = $this->keys->rotate();
+        try {
+            $key = $this->keys->rotate();
+        } catch (\Throwable $e) {
+            report($e);
+
+            return back()->with('error', 'Der Signaturschlüssel konnte nicht erzeugt werden. '
+                .'Auf diesem Server fehlt vermutlich eine gültige OpenSSL-Konfiguration ('.$e->getMessage().').');
+        }
 
         AuditLog::record('oidc.key_rotated', $request->user(), ['kid' => $key->kid]);
 
