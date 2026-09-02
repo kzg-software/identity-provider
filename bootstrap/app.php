@@ -59,6 +59,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->validateCsrfTokens(except: [
             'oauth/token',
             'oauth/revoke',
+            'oauth/logout',
             'saml/sso',
             'saml/slo',
         ]);

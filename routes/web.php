@@ -21,6 +21,7 @@ use App\Http\Controllers\InstallController;
 use App\Http\Controllers\Oidc\AuthorizationController;
 use App\Http\Controllers\Oidc\DiscoveryController;
 use App\Http\Controllers\Oidc\JwksController;
+use App\Http\Controllers\Oidc\LogoutController;
 use App\Http\Controllers\Oidc\TokenController;
 use App\Http\Controllers\Oidc\UserInfoController;
 use App\Http\Controllers\Profile\SessionController as ProfileSessionController;
@@ -44,6 +45,7 @@ Route::prefix('oauth')->name('oauth.')->group(function () {
     Route::post('token', [TokenController::class, 'issue'])->middleware('throttle:30,1')->name('token');
     Route::post('revoke', [TokenController::class, 'revoke'])->middleware('throttle:30,1')->name('revoke');
     Route::match(['get', 'post'], 'userinfo', UserInfoController::class)->middleware('oauth_token')->name('userinfo');
+    Route::match(['get', 'post'], 'logout', LogoutController::class)->name('logout');
 });
 
 Route::prefix('install')->name('install.')->group(function () {

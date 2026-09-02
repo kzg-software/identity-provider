@@ -301,6 +301,41 @@ class OidcProviderTest extends TestCase
         ]))->assertStatus(403);
     }
 
+    public function test_end_session_endpoint_logs_out_and_redirects_to_registered_uri(): void
+    {
+        [, $client] = $this->createApp();
+        OauthRedirectUri::create([
+            'oauth_client_id' => $client->id,
+            'uri' => 'https://client.example.test/after-logout',
+            'type' => 'logout',
+        ]);
+
+        $this->loginUser();
+        $this->assertAuthenticated();
+
+        $this->get(route('oauth.logout', [
+            'client_id' => $client->client_id,
+            'post_logout_redirect_uri' => 'https://client.example.test/after-logout',
+            'state' => 'xyz',
+        ]))->assertRedirect('https://client.example.test/after-logout?state=xyz');
+
+        $this->assertGuest();
+    }
+
+    public function test_end_session_endpoint_ignores_unregistered_post_logout_redirect_uri(): void
+    {
+        [, $client] = $this->createApp();
+
+        $this->loginUser();
+
+        $this->get(route('oauth.logout', [
+            'client_id' => $client->client_id,
+            'post_logout_redirect_uri' => 'https://evil.example.test/steal',
+        ]))->assertRedirect(route('login', ['manual' => 1]));
+
+        $this->assertGuest();
+    }
+
     private function verifyIdToken(string $jwt): object
     {
         $jwks = $this->getJson('/.well-known/jwks.json')->json('keys');
