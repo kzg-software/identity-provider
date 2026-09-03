@@ -104,6 +104,10 @@ Route::middleware('auth')->group(function () {
         Route::get('users', [UserController::class, 'index'])->name('users.index');
         Route::get('users/create', [UserController::class, 'create'])->name('users.create');
         Route::post('users', [UserController::class, 'store'])->name('users.store');
+        Route::get('users/export', [UserController::class, 'export'])->name('users.export');
+        Route::get('users/import', [UserController::class, 'importForm'])->name('users.import');
+        Route::post('users/import', [UserController::class, 'import'])->name('users.import.run');
+        Route::post('users/bulk', [UserController::class, 'bulk'])->name('users.bulk');
         Route::get('users/{user}', [UserController::class, 'show'])->name('users.show');
         Route::post('users/{user}/reset-password', [UserController::class, 'resetPassword'])->name('users.reset-password');
         Route::post('users/{user}/toggle-admin', [UserController::class, 'toggleAdmin'])->name('users.toggle-admin');
