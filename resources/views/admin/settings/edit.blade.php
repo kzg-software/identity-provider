@@ -6,6 +6,7 @@
         ['id' => 'appearance', 'label' => 'Erscheinungsbild', 'icon' => 'paint'],
         ['id' => 'images', 'label' => 'Bilder', 'icon' => 'image'],
         ['id' => 'login', 'label' => 'Anmeldung', 'icon' => 'login'],
+        ['id' => 'security', 'label' => 'Sicherheit', 'icon' => 'shield-check'],
         ['id' => 'audit', 'label' => 'Protokoll', 'icon' => 'journal'],
         ['id' => 'maintenance', 'label' => 'Wartung', 'icon' => 'warning'],
     ];
@@ -90,8 +91,14 @@
                                 <x-input type="text" name="timezone" value="{{ old('timezone', $settings['timezone']) }}" required />
                             </x-setting-row>
 
-                            <x-setting-row label="Sprache" hint="Sprachkürzel für die Oberfläche, z. B. <code>de</code>.">
-                                <x-input type="text" name="locale" value="{{ old('locale', $settings['locale']) }}" required />
+                            <x-setting-row label="Sprache" hint="Sprache der Oberfläche. Es stehen nur Sprachen zur Auswahl, für die Übersetzungen vorliegen.">
+                                @php($locales = \App\Support\Locales::available())
+                                @php($currentLocale = old('locale', $settings['locale'] ?: 'de'))
+                                <x-select name="locale" class="!max-w-xs" required>
+                                    @foreach ($locales as $code => $name)
+                                        <option value="{{ $code }}" @selected($currentLocale === $code)>{{ $name }}</option>
+                                    @endforeach
+                                </x-select>
                             </x-setting-row>
 
                             <x-setting-row label="Automatische Abmeldung" hint="Nach so vielen Minuten ohne Aktivität muss man sich neu anmelden.">
@@ -211,6 +218,66 @@
                                 </span>
                             </span>
                         </label>
+                    </x-card>
+                </div>
+
+                {{-- ===== Sicherheit ===== --}}
+                <div x-show="tab === 'security'" class="space-y-6">
+                    <x-card title="Passwort-Richtlinie"
+                            description="Gilt für lokale Konten: beim Anlegen, beim Zurücksetzen durch einen Administrator und bei der Einrichtung. Verzeichnis-Konten sind nicht betroffen.">
+                        <div class="divide-y divide-gray-100">
+                            <x-setting-row label="Mindestlänge">
+                                <div class="flex items-center gap-2">
+                                    <x-input type="number" name="password_min_length" min="6" max="128" class="!w-24"
+                                             value="{{ old('password_min_length', $settings['password_min_length'] ?: '10') }}" />
+                                    <span class="text-sm text-gray-500">Zeichen</span>
+                                </div>
+                            </x-setting-row>
+                            <x-setting-row label="Zusammensetzung">
+                                <div class="space-y-2">
+                                    <label class="flex cursor-pointer items-center gap-2.5 text-sm text-gray-700">
+                                        <input type="hidden" name="password_require_mixed_case" value="0">
+                                        <x-checkbox name="password_require_mixed_case" value="1" :checked="old('password_require_mixed_case', $settings['password_require_mixed_case']) === '1'" />
+                                        Groß- und Kleinbuchstaben verlangen
+                                    </label>
+                                    <label class="flex cursor-pointer items-center gap-2.5 text-sm text-gray-700">
+                                        <input type="hidden" name="password_require_number" value="0">
+                                        <x-checkbox name="password_require_number" value="1" :checked="old('password_require_number', $settings['password_require_number']) === '1'" />
+                                        Mindestens eine Ziffer verlangen
+                                    </label>
+                                    <label class="flex cursor-pointer items-center gap-2.5 text-sm text-gray-700">
+                                        <input type="hidden" name="password_require_symbol" value="0">
+                                        <x-checkbox name="password_require_symbol" value="1" :checked="old('password_require_symbol', $settings['password_require_symbol']) === '1'" />
+                                        Mindestens ein Sonderzeichen verlangen
+                                    </label>
+                                </div>
+                            </x-setting-row>
+                            <x-setting-row label="Bekannte Datenlecks"
+                                           hint="Prüft neue Passwörter gegen die freie Pwned-Passwords-Datenbank.">
+                                <label class="flex cursor-pointer items-center gap-2.5 text-sm text-gray-700">
+                                    <input type="hidden" name="password_check_pwned" value="0">
+                                    <x-checkbox name="password_check_pwned" value="1" :checked="old('password_check_pwned', $settings['password_check_pwned']) === '1'" />
+                                    Passwörter aus bekannten Datenlecks ablehnen
+                                </label>
+                            </x-setting-row>
+                        </div>
+                    </x-card>
+
+                    <x-card title="Anmelde-Sperre"
+                            description="Schützt die Anmeldeseite gegen automatisiertes Durchprobieren. Zählt pro Benutzername und IP-Adresse.">
+                        <div class="divide-y divide-gray-100">
+                            <x-setting-row label="Fehlversuche bis zur Sperre">
+                                <x-input type="number" name="login_max_attempts" min="3" max="100" class="!w-24"
+                                         value="{{ old('login_max_attempts', $settings['login_max_attempts'] ?: '5') }}" />
+                            </x-setting-row>
+                            <x-setting-row label="Sperrdauer">
+                                <div class="flex items-center gap-2">
+                                    <x-input type="number" name="login_lockout_minutes" min="1" max="1440" class="!w-24"
+                                             value="{{ old('login_lockout_minutes', $settings['login_lockout_minutes'] ?: '1') }}" />
+                                    <span class="text-sm text-gray-500">Minuten</span>
+                                </div>
+                            </x-setting-row>
+                        </div>
                     </x-card>
                 </div>
 

@@ -38,6 +38,7 @@
                 <x-input type="password" name="password_confirmation" required />
             </div>
         </div>
+        <p class="-mt-2 text-xs text-gray-500">{{ \App\Support\SecuritySettings::passwordHint() }}</p>
         <label class="flex cursor-pointer select-none items-center gap-2.5 text-sm text-gray-700">
             <x-checkbox name="is_admin" value="1" :checked="old('is_admin')" />
             Administrator

@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\AuditLog;
 use App\Models\User;
+use App\Support\SecuritySettings;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
@@ -49,7 +50,7 @@ class UserController extends Controller
             'first_name' => 'required|string|max:255',
             'last_name' => 'required|string|max:255',
             'email' => 'required|email|unique:users,email',
-            'password' => 'required|string|min:8|confirmed',
+            'password' => ['required', 'string', 'confirmed', SecuritySettings::passwordRule()],
             'is_admin' => 'boolean',
         ]);
 
@@ -147,7 +148,9 @@ class UserController extends Controller
             abort(403, 'Nur lokale Benutzer haben ein Passwort.');
         }
 
-        $data = $request->validate(['password' => 'required|string|min:8|confirmed']);
+        $data = $request->validate([
+            'password' => ['required', 'string', 'confirmed', SecuritySettings::passwordRule()],
+        ]);
         $user->update(['password' => Hash::make($data['password'])]);
 
         AuditLog::record('admin.password_reset', $request->user(), ['target_user_id' => $user->id]);

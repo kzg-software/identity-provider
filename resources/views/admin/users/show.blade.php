@@ -63,6 +63,7 @@
                     @csrf
                     <x-input type="password" name="password" placeholder="Neues Passwort" required />
                     <x-input type="password" name="password_confirmation" placeholder="Passwort wiederholen" required />
+                    <p class="text-xs text-gray-500">{{ \App\Support\SecuritySettings::passwordHint() }}</p>
                     <x-button type="submit" size="sm">Zurücksetzen</x-button>
                 </form>
             </x-card>

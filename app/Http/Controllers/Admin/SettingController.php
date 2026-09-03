@@ -6,10 +6,12 @@ use App\Http\Controllers\Controller;
 use App\Models\AuditLog;
 use App\Models\SystemSetting;
 use App\Support\AccentPalette;
+use App\Support\Locales;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
 
@@ -23,6 +25,9 @@ class SettingController extends Controller
         'windows_sso_enabled',
         'audit_log_retention_days',
         'audit_forward_enabled', 'audit_forward_host', 'audit_forward_port', 'audit_forward_protocol',
+        'password_min_length', 'password_require_mixed_case', 'password_require_number',
+        'password_require_symbol', 'password_check_pwned',
+        'login_max_attempts', 'login_lockout_minutes',
     ];
 
     public function edit(): View
@@ -41,7 +46,7 @@ class SettingController extends Controller
             'system_name' => 'required|string|max:255',
             'base_url' => 'required|url',
             'timezone' => 'required|timezone',
-            'locale' => 'required|string',
+            'locale' => ['required', 'string', Rule::in(array_keys(Locales::available()))],
             'session_lifetime' => 'required|integer|min:5',
             'maintenance_message' => 'nullable|string|max:2000',
             'maintenance_allow' => 'nullable|string|max:4000',
@@ -54,6 +59,9 @@ class SettingController extends Controller
             'audit_forward_host' => 'nullable|string|max:255',
             'audit_forward_port' => 'nullable|integer|min:1|max:65535',
             'audit_forward_protocol' => 'nullable|in:udp,tcp',
+            'password_min_length' => 'nullable|integer|min:6|max:128',
+            'login_max_attempts' => 'nullable|integer|min:3|max:100',
+            'login_lockout_minutes' => 'nullable|integer|min:1|max:1440',
         ], [
             'accent_color.regex' => 'Die Akzentfarbe muss ein Hex-Farbwert sein, z. B. #2563EB.',
         ]);
@@ -64,6 +72,14 @@ class SettingController extends Controller
         $data['audit_log_retention_days'] = (string) (int) ($data['audit_log_retention_days'] ?? 0);
         $data['audit_forward_port'] = (string) (int) ($data['audit_forward_port'] ?? 514);
         $data['audit_forward_protocol'] = $data['audit_forward_protocol'] ?? 'udp';
+
+        $data['password_min_length'] = (string) (((int) ($data['password_min_length'] ?? 0)) ?: 10);
+        $data['login_max_attempts'] = (string) (((int) ($data['login_max_attempts'] ?? 0)) ?: 5);
+        $data['login_lockout_minutes'] = (string) (((int) ($data['login_lockout_minutes'] ?? 0)) ?: 1);
+
+        foreach (['password_require_mixed_case', 'password_require_number', 'password_require_symbol', 'password_check_pwned'] as $flag) {
+            $data[$flag] = $request->boolean($flag) ? '1' : '0';
+        }
         $data['accent_color'] = AccentPalette::normalize($data['accent_color'] ?? null) ?? '';
         $data['login_title_mode'] = $data['login_title_mode'] ?? 'default';
         $data['brand_icon_mode'] = $data['brand_icon_mode'] ?? 'default';

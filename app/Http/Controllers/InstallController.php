@@ -9,12 +9,15 @@ use App\Models\SystemSetting;
 use App\Models\User;
 use App\Services\Backup\BackupException;
 use App\Services\Backup\RestoreService;
+use App\Support\Locales;
+use App\Support\SecuritySettings;
 use App\Support\UploadLimits;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
 
@@ -253,7 +256,7 @@ class InstallController extends Controller
             'system_name' => 'required|string|max:255',
             'base_url' => 'required|url',
             'timezone' => 'required|timezone',
-            'locale' => 'required|string',
+            'locale' => ['required', 'string', Rule::in(array_keys(Locales::available()))],
             'session_lifetime' => 'required|integer|min:5',
             'logo' => 'nullable|image|mimes:png,jpg,jpeg,gif,webp|max:2048',
             'favicon' => 'nullable|file|mimes:png,jpg,jpeg,gif,webp,ico,bmp|max:1024',
@@ -307,7 +310,7 @@ class InstallController extends Controller
             'first_name' => 'required|string|max:255',
             'last_name' => 'required|string|max:255',
             'email' => 'required|email|unique:users,email',
-            'password' => 'required|string|min:8|confirmed',
+            'password' => ['required', 'string', 'confirmed', SecuritySettings::passwordRule()],
         ]);
 
         User::create([

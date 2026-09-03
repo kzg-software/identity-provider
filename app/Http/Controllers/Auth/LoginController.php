@@ -8,6 +8,7 @@ use App\Models\AuditLog;
 use App\Models\User;
 use App\Models\UserSession;
 use App\Services\SessionTracker;
+use App\Support\SecuritySettings;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -39,7 +40,7 @@ class LoginController extends Controller
 
         $throttleKey = strtolower($credentials['username']).'|'.$request->ip();
 
-        if (RateLimiter::tooManyAttempts($throttleKey, 5)) {
+        if (RateLimiter::tooManyAttempts($throttleKey, SecuritySettings::loginMaxAttempts())) {
             $seconds = RateLimiter::availableIn($throttleKey);
 
             throw ValidationException::withMessages([
@@ -74,7 +75,7 @@ class LoginController extends Controller
             return $this->completeLogin($request, $directoryResult['user'], 'active_directory');
         }
 
-        RateLimiter::hit($throttleKey, 60);
+        RateLimiter::hit($throttleKey, SecuritySettings::loginLockoutSeconds());
 
         AuditLog::record('login.failed', $user ?? ($directoryResult['user'] ?? null), ['username' => $credentials['username']]);
 
@@ -92,7 +93,7 @@ class LoginController extends Controller
 
         $throttleKey = 'ad|'.strtolower($credentials['ad_username']).'|'.$request->ip();
 
-        if (RateLimiter::tooManyAttempts($throttleKey, 5)) {
+        if (RateLimiter::tooManyAttempts($throttleKey, SecuritySettings::loginMaxAttempts())) {
             $seconds = RateLimiter::availableIn($throttleKey);
 
             throw ValidationException::withMessages([
@@ -103,7 +104,7 @@ class LoginController extends Controller
         $result = $service->attempt($credentials['ad_username'], $credentials['ad_password']);
 
         if (! $result['ok']) {
-            RateLimiter::hit($throttleKey, 60);
+            RateLimiter::hit($throttleKey, SecuritySettings::loginLockoutSeconds());
 
             AuditLog::record('login.failed', $result['user'] ?? null, [
                 'username' => $credentials['ad_username'],

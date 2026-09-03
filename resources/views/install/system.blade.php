@@ -24,7 +24,11 @@
         </div>
         <div>
             <x-input-label value="Sprache" />
-            <x-input type="text" name="locale" value="{{ old('locale', 'de') }}" required />
+            <x-select name="locale" required>
+                @foreach (\App\Support\Locales::available() as $code => $name)
+                    <option value="{{ $code }}" @selected(old('locale', 'de') === $code)>{{ $name }}</option>
+                @endforeach
+            </x-select>
         </div>
     </div>
 

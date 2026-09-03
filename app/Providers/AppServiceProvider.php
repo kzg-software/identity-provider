@@ -5,6 +5,7 @@ namespace App\Providers;
 use App\Models\SystemSetting;
 use App\Support\AccentPalette;
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\View;
 use Illuminate\Support\ServiceProvider;
 
@@ -50,6 +51,13 @@ class AppServiceProvider extends ServiceProvider
         $timezone = $this->resolveTimezone();
         config(['app.timezone' => $timezone]);
         date_default_timezone_set($timezone);
+
+        // Sprache aus den Systemeinstellungen (Administration -> Systemeinstellungen),
+        // sonst der Wert aus der Konfiguration.
+        $locale = $this->resolveSetting('locale');
+        if ($locale) {
+            app()->setLocale($locale);
+        }
     }
 
     private function resolveSystemName(): string
@@ -130,7 +138,7 @@ class AppServiceProvider extends ServiceProvider
 
             $path = SystemSetting::get($key);
 
-            return $path ? \Illuminate\Support\Facades\Storage::disk('public')->url($path) : null;
+            return $path ? Storage::disk('public')->url($path) : null;
         } catch (\Throwable) {
             return null;
         }
