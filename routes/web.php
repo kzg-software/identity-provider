@@ -177,6 +177,7 @@ Route::middleware('auth')->group(function () {
         Route::post('backups/restore', [BackupController::class, 'restore'])->name('backups.restore');
 
         Route::get('audit-log', [AuditLogController::class, 'index'])->name('audit-log.index');
+        Route::get('audit-log/export', [AuditLogController::class, 'export'])->name('audit-log.export');
 
         Route::get('sessions', [SessionController::class, 'index'])->name('sessions.index');
         Route::delete('sessions/{userSession}', [SessionController::class, 'destroy'])->name('sessions.destroy');

@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Support\AuditForwarder;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -14,6 +15,11 @@ class AuditLog extends Model
     protected function casts(): array
     {
         return ['metadata' => 'array'];
+    }
+
+    protected static function booted(): void
+    {
+        static::created(fn (self $log) => AuditForwarder::forward($log));
     }
 
     public function user(): BelongsTo

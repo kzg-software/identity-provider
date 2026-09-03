@@ -3,7 +3,16 @@
 @section('admin-content')
 <x-page-header
     title="Audit-Log"
-    description="Wer hat wann was gemacht: Anmeldungen, Änderungen an Anwendungen und Benutzern, Zustimmungen. Nur lesbar, nichts lässt sich hier ändern." />
+    description="Wer hat wann was gemacht: Anmeldungen, Änderungen an Anwendungen und Benutzern, Zustimmungen. Nur lesbar, nichts lässt sich hier ändern.">
+    <x-slot:actions>
+        <x-button tag="a" href="{{ route('admin.audit-log.export', array_merge($filters, ['format' => 'csv'])) }}" variant="secondary" size="sm">
+            <x-icon name="download" class="h-4 w-4" />CSV
+        </x-button>
+        <x-button tag="a" href="{{ route('admin.audit-log.export', array_merge($filters, ['format' => 'json'])) }}" variant="secondary" size="sm">
+            <x-icon name="download" class="h-4 w-4" />JSON
+        </x-button>
+    </x-slot:actions>
+</x-page-header>
 
 <x-card title="Filter" class="mb-4">
     <form method="GET" class="flex flex-wrap items-end gap-3">

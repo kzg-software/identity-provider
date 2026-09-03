@@ -21,6 +21,8 @@ class SettingController extends Controller
         'accent_color', 'brand_icon_mode', 'brand_icon_shape',
         'login_title_mode', 'login_title_text',
         'windows_sso_enabled',
+        'audit_log_retention_days',
+        'audit_forward_enabled', 'audit_forward_host', 'audit_forward_port', 'audit_forward_protocol',
     ];
 
     public function edit(): View
@@ -48,12 +50,20 @@ class SettingController extends Controller
             'brand_icon_shape' => 'nullable|in:rounded,circle,square',
             'login_title_mode' => 'nullable|in:default,hidden,custom',
             'login_title_text' => 'nullable|string|max:255',
+            'audit_log_retention_days' => 'nullable|integer|min:0|max:36500',
+            'audit_forward_host' => 'nullable|string|max:255',
+            'audit_forward_port' => 'nullable|integer|min:1|max:65535',
+            'audit_forward_protocol' => 'nullable|in:udp,tcp',
         ], [
             'accent_color.regex' => 'Die Akzentfarbe muss ein Hex-Farbwert sein, z. B. #2563EB.',
         ]);
 
         $data['maintenance_mode'] = $request->boolean('maintenance_mode') ? '1' : '0';
         $data['windows_sso_enabled'] = $request->boolean('windows_sso_enabled') ? '1' : '0';
+        $data['audit_forward_enabled'] = $request->boolean('audit_forward_enabled') ? '1' : '0';
+        $data['audit_log_retention_days'] = (string) (int) ($data['audit_log_retention_days'] ?? 0);
+        $data['audit_forward_port'] = (string) (int) ($data['audit_forward_port'] ?? 514);
+        $data['audit_forward_protocol'] = $data['audit_forward_protocol'] ?? 'udp';
         $data['accent_color'] = AccentPalette::normalize($data['accent_color'] ?? null) ?? '';
         $data['login_title_mode'] = $data['login_title_mode'] ?? 'default';
         $data['brand_icon_mode'] = $data['brand_icon_mode'] ?? 'default';

@@ -12,6 +12,10 @@ Artisan::command('inspire', function () {
 Schedule::command('directory:sync-groups')->everyFifteenMinutes()->withoutOverlapping();
 Schedule::command('directory:sync-users')->daily()->withoutOverlapping();
 
+// Räumt den Audit-Log gemäß der in den Systemeinstellungen gesetzten
+// Aufbewahrungsfrist auf (ohne Frist passiert nichts).
+Schedule::command('audit-log:prune')->dailyAt('03:20')->withoutOverlapping();
+
 // Prüft das GitHub-Repository auf neue Releases (Ergebnis wird in der
 // Administration unter "Aktualisierungen" angezeigt).
 Schedule::command('updates:check --force')->everyTwoHours()->withoutOverlapping();

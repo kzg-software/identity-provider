@@ -6,6 +6,7 @@
         ['id' => 'appearance', 'label' => 'Erscheinungsbild', 'icon' => 'paint'],
         ['id' => 'images', 'label' => 'Bilder', 'icon' => 'image'],
         ['id' => 'login', 'label' => 'Anmeldung', 'icon' => 'login'],
+        ['id' => 'audit', 'label' => 'Protokoll', 'icon' => 'journal'],
         ['id' => 'maintenance', 'label' => 'Wartung', 'icon' => 'warning'],
     ];
 
@@ -210,6 +211,51 @@
                                 </span>
                             </span>
                         </label>
+                    </x-card>
+                </div>
+
+                {{-- ===== Protokoll ===== --}}
+                <div x-show="tab === 'audit'" class="space-y-6">
+                    <x-card title="Aufbewahrung"
+                            description="Ältere Audit-Log-Einträge werden nachts automatisch gelöscht. Die vollständige Historie lässt sich vorher über den Export auf der Audit-Log-Seite sichern.">
+                        <x-setting-row label="Aufbewahrungsfrist" hint="Anzahl Tage, die ein Eintrag behalten wird. 0 = unbegrenzt aufbewahren.">
+                            <div class="flex items-center gap-2">
+                                <x-input type="number" name="audit_log_retention_days" min="0" max="36500"
+                                         value="{{ old('audit_log_retention_days', $settings['audit_log_retention_days'] ?: '0') }}" class="!w-28" />
+                                <span class="text-sm text-gray-500">Tage</span>
+                            </div>
+                        </x-setting-row>
+                    </x-card>
+
+                    <x-card title="Weiterleitung an Syslog / SIEM"
+                            description="Sendet jedes Audit-Ereignis zusätzlich als JSON-Zeile per Syslog an einen externen Empfänger (z. B. Graylog, Splunk, Wazuh, rsyslog). Die lokale Speicherung bleibt unverändert.">
+                        <div class="space-y-4"
+                             x-data="{ on: {{ old('audit_forward_enabled', $settings['audit_forward_enabled'] ?? '0') === '1' ? 'true' : 'false' }} }">
+                            <label class="flex cursor-pointer items-start gap-3">
+                                <input type="hidden" name="audit_forward_enabled" value="0">
+                                <x-checkbox name="audit_forward_enabled" value="1" class="mt-0.5" x-model="on" />
+                                <span class="text-sm font-medium text-gray-900">Weiterleitung aktiv</span>
+                            </label>
+
+                            <div class="divide-y divide-gray-100" x-show="on" x-cloak>
+                                <x-setting-row label="Empfänger (Host)" hint="Hostname oder IP des Syslog-Empfängers.">
+                                    <x-input type="text" name="audit_forward_host"
+                                             value="{{ old('audit_forward_host', $settings['audit_forward_host']) }}"
+                                             placeholder="siem.firma.local" />
+                                </x-setting-row>
+                                <x-setting-row label="Port">
+                                    <x-input type="number" name="audit_forward_port" min="1" max="65535"
+                                             value="{{ old('audit_forward_port', $settings['audit_forward_port'] ?: '514') }}" class="!w-28" />
+                                </x-setting-row>
+                                <x-setting-row label="Protokoll">
+                                    @php($proto = old('audit_forward_protocol', $settings['audit_forward_protocol'] ?: 'udp'))
+                                    <x-select name="audit_forward_protocol" class="!w-40">
+                                        <option value="udp" @selected($proto === 'udp')>UDP</option>
+                                        <option value="tcp" @selected($proto === 'tcp')>TCP</option>
+                                    </x-select>
+                                </x-setting-row>
+                            </div>
+                        </div>
                     </x-card>
                 </div>
 
