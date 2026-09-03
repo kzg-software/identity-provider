@@ -175,6 +175,9 @@ Route::middleware('auth')->group(function () {
         Route::get('backups', [BackupController::class, 'index'])->name('backups.index');
         Route::post('backups/download', [BackupController::class, 'download'])->name('backups.download');
         Route::post('backups/restore', [BackupController::class, 'restore'])->name('backups.restore');
+        Route::put('backups/auto', [BackupController::class, 'updateAuto'])->name('backups.auto.update');
+        Route::post('backups/auto/run', [BackupController::class, 'runAuto'])->name('backups.auto.run');
+        Route::post('backups/auto/test', [BackupController::class, 'testDestination'])->name('backups.auto.test');
 
         Route::get('audit-log', [AuditLogController::class, 'index'])->name('audit-log.index');
         Route::get('audit-log/export', [AuditLogController::class, 'export'])->name('audit-log.export');

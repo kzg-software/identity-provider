@@ -16,6 +16,11 @@ Schedule::command('directory:sync-users')->daily()->withoutOverlapping();
 // Aufbewahrungsfrist auf (ohne Frist passiert nichts).
 Schedule::command('audit-log:prune')->dailyAt('03:20')->withoutOverlapping();
 
+// Automatische Sicherung. Der Befehl entscheidet anhand der
+// Systemeinstellungen (aktiv, Häufigkeit, Uhrzeit, letzter Lauf) selbst,
+// ob gerade eine Sicherung fällig ist.
+Schedule::command('backup:run')->everyThirtyMinutes()->withoutOverlapping()->runInBackground();
+
 // Prüft das GitHub-Repository auf neue Releases (Ergebnis wird in der
 // Administration unter "Aktualisierungen" angezeigt).
 Schedule::command('updates:check --force')->everyTwoHours()->withoutOverlapping();

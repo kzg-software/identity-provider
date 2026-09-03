@@ -128,6 +128,165 @@
     </div>
 </div>
 
+@php
+    $abTarget = old('target', $auto['auto_backup_target'] ?: 'local');
+    $abEnabled = old('enabled', $auto['auto_backup_enabled'] ?? '0') === '1';
+    $lastRun = $auto['auto_backup_last_run'] ?? null;
+    $lastError = $auto['auto_backup_last_error'] ?? null;
+    $lastFile = $auto['auto_backup_last_file'] ?? null;
+@endphp
+
+<x-card class="mt-6" title="Automatische Sicherung"
+        description="Erstellt regelmäßig eine Sicherung und lädt sie an ein Ziel hoch (lokales Verzeichnis, S3, FTP oder SFTP). Alte Sicherungen werden gemäß der Aufbewahrungsregel entfernt.">
+
+    <div class="mb-4 rounded-md border px-4 py-3 text-sm
+                {{ $lastError ? 'border-red-200 bg-red-50 text-red-800' : ($lastRun ? 'border-emerald-200 bg-emerald-50 text-emerald-800' : 'border-gray-200 bg-gray-50 text-gray-600') }}">
+        @if ($lastError)
+            Letzter Lauf {{ \Illuminate\Support\Carbon::parse($lastRun)->diffForHumans() }} fehlgeschlagen: {{ $lastError }}
+        @elseif ($lastRun)
+            Letzte Sicherung {{ \Illuminate\Support\Carbon::parse($lastRun)->diffForHumans() }}@if ($lastFile), Datei {{ $lastFile }}@endif.
+        @else
+            Es wurde noch keine automatische Sicherung ausgeführt.
+        @endif
+    </div>
+
+    <form method="POST" action="{{ route('admin.backups.auto.update') }}" class="space-y-5"
+          x-data="{ target: '{{ $abTarget }}' }">
+        @csrf
+        @method('PUT')
+
+        <label class="flex cursor-pointer items-start gap-3">
+            <input type="hidden" name="enabled" value="0">
+            <x-checkbox name="enabled" value="1" class="mt-0.5" :checked="$abEnabled" />
+            <span class="text-sm font-medium text-gray-900">Automatische Sicherung aktiv</span>
+        </label>
+
+        <div class="grid gap-4 sm:grid-cols-3">
+            <div>
+                <x-input-label value="Häufigkeit" />
+                <x-select name="frequency">
+                    <option value="daily" @selected(old('frequency', $auto['auto_backup_frequency'] ?: 'daily') === 'daily')>Täglich</option>
+                    <option value="weekly" @selected(old('frequency', $auto['auto_backup_frequency']) === 'weekly')>Wöchentlich (montags)</option>
+                </x-select>
+            </div>
+            <div>
+                <x-input-label value="Uhrzeit" />
+                <x-input type="time" name="time" value="{{ old('time', $auto['auto_backup_time'] ?: '03:00') }}" />
+            </div>
+            <div>
+                <x-input-label value="Aufbewahrung" />
+                <div class="flex items-center gap-2">
+                    <x-input type="number" name="keep" min="0" max="365" class="!w-24"
+                             value="{{ old('keep', $auto['auto_backup_keep'] ?: '7') }}" />
+                    <span class="text-sm text-gray-500">Stück (0 = alle)</span>
+                </div>
+            </div>
+        </div>
+
+        <div>
+            <x-input-label value="Passwort für die Sicherungsdateien" />
+            <x-input type="password" name="archive_password" autocomplete="new-password"
+                     placeholder="{{ $hasArchivePassword ? '•••••••• (unverändert)' : 'mindestens 10 Zeichen' }}" />
+            <p class="mt-1 text-xs text-gray-500">Verschlüsselt jede automatische Sicherung. Wird verschlüsselt gespeichert. Getrennt von den Sicherungen notieren, ohne dieses Passwort ist keine Wiederherstellung möglich.</p>
+        </div>
+
+        <div class="border-t border-gray-100 pt-5">
+            <x-input-label value="Ziel" />
+            <x-select name="target" x-model="target" class="!max-w-xs">
+                <option value="local">Lokales Verzeichnis</option>
+                <option value="s3">S3 (AWS oder kompatibel)</option>
+                <option value="ftp">FTP</option>
+                <option value="sftp">SFTP</option>
+            </x-select>
+
+            <div class="mt-4 space-y-4">
+                <div>
+                    <x-input-label>
+                        <span x-show="target === 'local'">Verzeichnis</span>
+                        <span x-show="target === 's3'" x-cloak>Pfad-Präfix im Bucket (optional)</span>
+                        <span x-show="target === 'ftp' || target === 'sftp'" x-cloak>Verzeichnis auf dem Server</span>
+                    </x-input-label>
+                    <x-input type="text" name="dir" value="{{ old('dir', $auto['auto_backup_dir']) }}"
+                             placeholder="z. B. /var/backups/idp oder backups" />
+                    <p class="mt-1 text-xs text-gray-500" x-show="target === 'local'">Absoluter Pfad, oder relativ zu <code class="rounded bg-gray-100 px-1">storage/app/</code>. Leer = <code class="rounded bg-gray-100 px-1">storage/app/private/backups</code>.</p>
+                </div>
+
+                {{-- FTP / SFTP --}}
+                <div x-show="target === 'ftp' || target === 'sftp'" x-cloak class="grid gap-4 sm:grid-cols-2">
+                    <div>
+                        <x-input-label value="Host" />
+                        <x-input type="text" name="host" value="{{ old('host', $auto['auto_backup_host']) }}" placeholder="backup.firma.local" />
+                    </div>
+                    <div>
+                        <x-input-label value="Port" />
+                        <x-input type="number" name="port" class="!w-28" value="{{ old('port', $auto['auto_backup_port']) }}" placeholder="21 / 22" />
+                    </div>
+                    <div>
+                        <x-input-label value="Benutzername" />
+                        <x-input type="text" name="username" value="{{ old('username', $auto['auto_backup_username']) }}" autocomplete="off" />
+                    </div>
+                    <div>
+                        <x-input-label value="Passwort" />
+                        <x-input type="password" name="remote_password" autocomplete="new-password"
+                                 placeholder="{{ $hasRemotePassword ? '•••••••• (unverändert)' : '' }}" />
+                    </div>
+                    <label class="flex items-center gap-2.5 text-sm text-gray-700" x-show="target === 'ftp'">
+                        <input type="hidden" name="ftp_ssl" value="0">
+                        <x-checkbox name="ftp_ssl" value="1" :checked="old('ftp_ssl', $auto['auto_backup_ftp_ssl']) === '1'" />
+                        Explizites TLS (FTPS)
+                    </label>
+                </div>
+
+                {{-- S3 --}}
+                <div x-show="target === 's3'" x-cloak class="grid gap-4 sm:grid-cols-2">
+                    <div>
+                        <x-input-label value="Bucket" />
+                        <x-input type="text" name="s3_bucket" value="{{ old('s3_bucket', $auto['auto_backup_s3_bucket']) }}" />
+                    </div>
+                    <div>
+                        <x-input-label value="Region" />
+                        <x-input type="text" name="s3_region" value="{{ old('s3_region', $auto['auto_backup_s3_region'] ?: 'us-east-1') }}" />
+                    </div>
+                    <div>
+                        <x-input-label value="Access Key" />
+                        <x-input type="text" name="s3_key" value="{{ old('s3_key', $auto['auto_backup_s3_key']) }}" autocomplete="off" />
+                    </div>
+                    <div>
+                        <x-input-label value="Secret Key" />
+                        <x-input type="password" name="s3_secret" autocomplete="new-password"
+                                 placeholder="{{ $hasS3Secret ? '•••••••• (unverändert)' : '' }}" />
+                    </div>
+                    <div class="sm:col-span-2">
+                        <x-input-label value="Endpoint (optional, für S3-kompatible Speicher)" />
+                        <x-input type="text" name="s3_endpoint" value="{{ old('s3_endpoint', $auto['auto_backup_s3_endpoint']) }}" placeholder="https://s3.eu-central-1.wasabisys.com" />
+                    </div>
+                    <label class="flex items-center gap-2.5 text-sm text-gray-700 sm:col-span-2">
+                        <input type="hidden" name="s3_path_style" value="0">
+                        <x-checkbox name="s3_path_style" value="1" :checked="old('s3_path_style', $auto['auto_backup_s3_path_style']) === '1'" />
+                        Path-Style-Endpoint verwenden (MinIO, Ceph, ältere Setups)
+                    </label>
+                </div>
+            </div>
+        </div>
+
+        <div class="border-t border-gray-100 pt-5">
+            <x-button type="submit">Speichern</x-button>
+        </div>
+    </form>
+
+    <div class="mt-4 flex flex-wrap items-center gap-3 border-t border-gray-100 pt-4">
+        <span class="w-full text-xs text-gray-500">Nutzen die zuletzt gespeicherten Einstellungen. Erst speichern, dann testen oder sofort sichern.</span>
+        <form method="POST" action="{{ route('admin.backups.auto.test') }}">
+            @csrf
+            <x-button type="submit" variant="secondary" size="sm">Verbindung testen</x-button>
+        </form>
+        <x-confirm-form :action="route('admin.backups.auto.run')" method="POST" icon="download" variant="secondary" size="sm"
+                        title="Jetzt sichern"
+                        message="Es wird sofort eine Sicherung erstellt und an das gespeicherte Ziel hochgeladen. Das kann je nach Datenmenge etwas dauern."
+                        label="Jetzt sichern" />
+    </div>
+</x-card>
+
 <x-card class="mt-6" title="Gut zu wissen">
     <ul class="list-disc space-y-1 pl-5 text-sm text-gray-600">
         <li>Bewahre das Sicherungs-Passwort getrennt von der Datei auf. Ohne Passwort ist die Sicherung nicht lesbar.</li>
