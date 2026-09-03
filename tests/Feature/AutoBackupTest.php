@@ -159,4 +159,20 @@ class AutoBackupTest extends TestCase
     {
         $this->assertSame(['local', 's3', 'ftp', 'sftp'], BackupDestination::TARGETS);
     }
+
+    public function test_local_root_keeps_absolute_paths_intact(): void
+    {
+        $d = app(BackupDestination::class);
+
+        SystemSetting::set('auto_backup_dir', '/var/backups/idp');
+        $this->assertSame('/var/backups/idp', $d->localRoot());
+
+        SystemSetting::set('auto_backup_dir', 'C:\\srv\\idp-backups');
+        $this->assertSame('C:\\srv\\idp-backups', $d->localRoot());
+
+        SystemSetting::set('auto_backup_dir', 'relativ/hierhin');
+        $root = $d->localRoot();
+        $this->assertStringContainsString('relativ', $root);
+        $this->assertNotSame('relativ/hierhin', $root);
+    }
 }

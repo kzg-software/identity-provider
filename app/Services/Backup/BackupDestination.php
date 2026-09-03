@@ -24,9 +24,16 @@ class BackupDestination
         return in_array($t, self::TARGETS, true) ? $t : 'local';
     }
 
-    public function directory(): string
+    /** Der eingegebene Zielpfad, unverändert (nur aussen getrimmt). */
+    public function rawDir(): string
     {
-        return trim((string) SystemSetting::get('auto_backup_dir', ''), '/');
+        return trim((string) SystemSetting::get('auto_backup_dir', ''));
+    }
+
+    /** Key-Präfix für S3 (ohne führende/abschliessende Schrägstriche). */
+    public function prefix(): string
+    {
+        return trim($this->rawDir(), '/');
     }
 
     public function disk(): Filesystem
@@ -40,6 +47,7 @@ class BackupDestination
     public function diskConfig(): array
     {
         $get = fn (string $key, $default = null) => SystemSetting::get('auto_backup_'.$key, $default);
+        $remoteRoot = rtrim($this->rawDir(), '/\\') ?: '/';
 
         return match ($this->target()) {
             's3' => [
@@ -58,7 +66,7 @@ class BackupDestination
                 'port' => (int) ($get('port') ?: 21),
                 'username' => (string) $get('username'),
                 'password' => Secret::decrypt($get('remote_password')),
-                'root' => $this->directory() ?: '/',
+                'root' => $remoteRoot,
                 'ssl' => (bool) $get('ftp_ssl', false),
                 'timeout' => 30,
                 'throw' => true,
@@ -69,7 +77,7 @@ class BackupDestination
                 'port' => (int) ($get('port') ?: 22),
                 'username' => (string) $get('username'),
                 'password' => Secret::decrypt($get('remote_password')),
-                'root' => $this->directory() ?: '/',
+                'root' => $remoteRoot,
                 'timeout' => 30,
                 'throw' => true,
             ],
@@ -83,39 +91,40 @@ class BackupDestination
 
     public function localRoot(): string
     {
-        $dir = $this->directory();
+        $dir = rtrim($this->rawDir(), '/\\');
 
         if ($dir === '') {
             return storage_path('app/private/backups');
         }
 
-        // Absoluter Pfad wird direkt genutzt, relativer unter storage/app/.
-        return preg_match('#^([a-zA-Z]:[\\\\/]|/)#', $dir) === 1 ? $dir : storage_path('app/'.$dir);
+        // Absoluter Pfad: /foo unter Unix, C:\foo bzw. C:/foo unter Windows.
+        $isAbsolute = str_starts_with($dir, '/') || preg_match('#^[a-zA-Z]:[\\\\/]#', $dir) === 1;
+
+        return $isAbsolute ? $dir : storage_path('app/'.ltrim($dir, '/\\'));
     }
 
     /**
-     * Legt für die S3-, FTP- und SFTP-Ziele ausschliesslich den Dateinamen ab,
-     * fuer local ebenso (root ist bereits das Zielverzeichnis). Bei S3 sitzt
-     * das Praefix im Key.
+     * Ablagepfad relativ zum Datenträger. Bei S3 sitzt das Präfix im Key,
+     * bei den übrigen Zielen ist es bereits die Wurzel des Datenträgers.
      */
     public function path(string $filename): string
     {
-        if ($this->target() === 's3' && $this->directory() !== '') {
-            return $this->directory().'/'.$filename;
+        if ($this->target() === 's3' && $this->prefix() !== '') {
+            return $this->prefix().'/'.$filename;
         }
 
         return $filename;
     }
 
     /**
-     * @return list<array{name: string, last_modified: int|null, size: int|null}>
+     * @return list<array{name: string, path: string, last_modified: int|null, size: int|null}>
      */
     public function existingBackups(): array
     {
         $disk = $this->disk();
-        $prefix = $this->target() === 's3' ? $this->directory() : '';
+        $prefix = $this->target() === 's3' ? $this->prefix() : '';
 
-        $files = collect($disk->files($prefix))
+        return collect($disk->files($prefix))
             ->filter(fn ($f) => str_ends_with($f, '.authbak'))
             ->map(fn ($f) => [
                 'name' => basename($f),
@@ -126,7 +135,5 @@ class BackupDestination
             ->sortByDesc('name')
             ->values()
             ->all();
-
-        return $files;
     }
 }
