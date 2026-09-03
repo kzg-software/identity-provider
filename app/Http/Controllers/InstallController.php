@@ -9,6 +9,7 @@ use App\Models\SystemSetting;
 use App\Models\User;
 use App\Services\Backup\BackupException;
 use App\Services\Backup\RestoreService;
+use App\Support\UploadLimits;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Artisan;
@@ -33,7 +34,7 @@ class InstallController extends Controller
 
     public function restoreStore(Request $request): RedirectResponse
     {
-        \App\Support\UploadLimits::guard($request, 'backup');
+        UploadLimits::guard($request, 'backup');
 
         $request->validate([
             'backup' => ['required', 'file', 'max:1048576'],
@@ -223,8 +224,11 @@ class InstallController extends Controller
         $content = file_exists($path) ? file_get_contents($path) : '';
 
         foreach ($values as $key => $value) {
-            $value = (string) $value;
-            $escaped = str_contains($value, ' ') ? '"'.$value.'"' : $value;
+            // Zeilenumbrueche wuerden zusaetzliche .env-Zeilen einschleusen.
+            $value = str_replace(["\r", "\n"], '', (string) $value);
+            $escaped = (str_contains($value, ' ') || str_contains($value, '"'))
+                ? '"'.addcslashes($value, '"\\').'"'
+                : $value;
             $pattern = "/^{$key}=.*/m";
 
             if (preg_match($pattern, $content)) {
@@ -251,8 +255,8 @@ class InstallController extends Controller
             'timezone' => 'required|timezone',
             'locale' => 'required|string',
             'session_lifetime' => 'required|integer|min:5',
-            'logo' => 'nullable|image|max:2048',
-            'favicon' => 'nullable|file|mimes:png,jpg,jpeg,gif,svg,webp,ico,bmp|max:1024',
+            'logo' => 'nullable|image|mimes:png,jpg,jpeg,gif,webp|max:2048',
+            'favicon' => 'nullable|file|mimes:png,jpg,jpeg,gif,webp,ico,bmp|max:1024',
             'mail_host' => 'nullable|string',
             'mail_port' => 'nullable|numeric',
             'mail_username' => 'nullable|string',

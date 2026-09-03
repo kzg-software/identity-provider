@@ -12,9 +12,7 @@ use Illuminate\View\View;
 
 class SloController extends Controller
 {
-    public function __construct(private readonly SamlIdpService $saml)
-    {
-    }
+    public function __construct(private readonly SamlIdpService $saml) {}
 
     /**
      * GET/POST /saml/slo — SP-initiated Single Logout: ends the local IdP
@@ -39,6 +37,28 @@ class SloController extends Controller
         }
 
         $sp = SamlServiceProvider::query()->where('entity_id', $parsed['issuer'])->first();
+
+        // Verlangt der Service Provider signierte Anfragen, wird auch die
+        // LogoutRequest geprueft. So kann niemand ueber einen gefaelschten
+        // Link fremde Sitzungen beenden.
+        if ($sp && $sp->require_signed_requests) {
+            $signatureOk = $request->isMethod('post') && $this->saml->verifyRequestSignature($xml, $sp);
+
+            if (! $signatureOk) {
+                AuditLog::record('saml.slo.invalid_signature', Auth::user(), ['sp' => $sp->entity_id], $sp->application);
+                abort(400, 'LogoutRequest-Signatur konnte nicht verifiziert werden.');
+            }
+        }
+
+        if (($parsed['id'] ?? '') === '') {
+            abort(400, 'LogoutRequest ohne ID.');
+        }
+
+        try {
+            $this->saml->assertNotReplayed($parsed['id'], 'LogoutRequest');
+        } catch (\Throwable $e) {
+            abort(400, $e->getMessage());
+        }
 
         $user = Auth::user();
         AuditLog::record('saml.slo.request', $user, ['sp' => $sp?->entity_id], $sp?->application);

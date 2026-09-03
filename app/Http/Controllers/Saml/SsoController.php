@@ -7,6 +7,7 @@ use App\Models\AuditLog;
 use App\Models\SamlServiceProvider;
 use App\Saml\SamlIdpService;
 use App\Services\AccessPolicyEvaluator;
+use App\Support\MaintenanceGate;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -14,9 +15,7 @@ use Illuminate\View\View;
 
 class SsoController extends Controller
 {
-    public function __construct(private readonly SamlIdpService $saml)
-    {
-    }
+    public function __construct(private readonly SamlIdpService $saml) {}
 
     /**
      * GET/POST /saml/sso — receives an AuthnRequest (HTTP-Redirect or HTTP-POST binding).
@@ -65,7 +64,20 @@ class SsoController extends Controller
             abort(400, $e->getMessage());
         }
 
-        $acsUrl = $parsed['acs_url'] ?: $sp->acs_url;
+        // Die signierte Assertion darf ausschliesslich an die beim Service
+        // Provider hinterlegte ACS-URL gehen. Eine in der AuthnRequest
+        // angegebene URL wird nur akzeptiert, wenn sie exakt damit
+        // uebereinstimmt - sonst koennte ein gefaelschter (unsignierter)
+        // Request die Assertion an einen fremden Endpunkt umleiten.
+        if ($parsed['acs_url'] !== null && ! hash_equals((string) $sp->acs_url, (string) $parsed['acs_url'])) {
+            AuditLog::record('saml.authn_request.acs_mismatch', null, [
+                'sp' => $sp->entity_id,
+                'requested_acs' => $parsed['acs_url'],
+            ], $sp->application);
+            abort(400, 'Die angeforderte Assertion Consumer Service URL ist für diesen Service Provider nicht hinterlegt.');
+        }
+
+        $acsUrl = $sp->acs_url;
         $relayState = $request->query('RelayState') ?? $request->input('RelayState');
 
         if (! Auth::check()) {
@@ -103,9 +115,9 @@ class SsoController extends Controller
     {
         $user = Auth::user();
 
-        if ($sp->application && \App\Support\MaintenanceGate::applicationBlockedFor($sp->application, $user)) {
+        if ($sp->application && MaintenanceGate::applicationBlockedFor($sp->application, $user)) {
             AuditLog::record('saml.sso.maintenance', $user, ['sp' => $sp->entity_id], $sp->application);
-            abort(503, \App\Support\MaintenanceGate::applicationMessage($sp->application));
+            abort(503, MaintenanceGate::applicationMessage($sp->application));
         }
 
         if (! $this->userMayAccess($sp, $user)) {

@@ -26,7 +26,7 @@ class XmlSecurity
         $key = new XMLSecurityKey(XMLSecurityKey::RSA_SHA256, ['type' => 'private']);
         $key->loadKey($privateKeyPem, false);
 
-        $dsig = new XMLSecurityDSig();
+        $dsig = new XMLSecurityDSig;
         $dsig->setCanonicalMethod(XMLSecurityDSig::EXC_C14N);
         $dsig->addReferenceList(
             [$rootNode],
@@ -53,18 +53,31 @@ class XmlSecurity
      */
     public static function verify(string $xml, string $certificatePem): bool
     {
-        return (bool) Utils::validateSign($xml, $certificatePem);
+        try {
+            return (bool) Utils::validateSign($xml, $certificatePem);
+        } catch (\Throwable) {
+            return false;
+        }
     }
 
     /**
-     * Parse XML safely (no external entities / XXE), returning a DOMDocument.
+     * Parse XML safely (no external entities / XXE, no DTD), returning a DOMDocument.
      */
     public static function loadSafely(string $xml): DOMDocument
     {
-        $dom = new DOMDocument();
+        // SAML-Nachrichten haben nie eine DTD. Eine DOCTYPE-Deklaration ist
+        // daher immer verdaechtig (Entity-Expansion / XXE) und wird abgewiesen,
+        // bevor der Parser sie ueberhaupt sieht.
+        if (preg_match('/<!DOCTYPE/i', $xml)) {
+            throw new \RuntimeException('DOCTYPE-Deklarationen sind in SAML-Nachrichten nicht erlaubt.');
+        }
+
+        $dom = new DOMDocument;
         $dom->resolveExternals = false;
         $dom->substituteEntities = false;
 
+        // Ausdruecklich OHNE LIBXML_NOENT und LIBXML_DTDLOAD: Entities werden
+        // nicht ersetzt, keine externe DTD wird geladen.
         $previous = libxml_use_internal_errors(true);
         $loaded = $dom->loadXML($xml, LIBXML_NONET);
         libxml_clear_errors();
@@ -72,6 +85,10 @@ class XmlSecurity
 
         if (! $loaded) {
             throw new \RuntimeException('Ungültiges SAML-XML.');
+        }
+
+        if ($dom->doctype !== null) {
+            throw new \RuntimeException('DOCTYPE-Deklarationen sind in SAML-Nachrichten nicht erlaubt.');
         }
 
         foreach ($dom->getElementsByTagName('*') as $node) {

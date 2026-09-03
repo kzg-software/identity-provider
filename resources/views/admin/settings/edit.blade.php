@@ -251,7 +251,7 @@
             {{-- ===== Bilder (eigene Formulare, außerhalb des Einstellungsformulars) ===== --}}
             <div x-show="tab === 'images'" class="space-y-6">
                 <x-card title="Banner (Logo)"
-                        description="Ersetzt das Symbol im Kopfbereich und auf der Anmeldeseite. Am besten ein Bild mit durchsichtigem Hintergrund (PNG oder SVG).">
+                        description="Ersetzt das Symbol im Kopfbereich und auf der Anmeldeseite. Am besten ein PNG mit durchsichtigem Hintergrund.">
                     @if ($logoPath)
                         <div class="mb-4 flex items-center gap-4">
                             <img src="{{ $storage->url($logoPath) }}" alt="Aktuelles Banner" class="h-12 max-w-xs rounded-md border border-gray-200 object-contain p-2">
@@ -284,7 +284,7 @@
                         <div class="flex-1">
                             <x-input-label value="Neues Favicon hochladen" />
                             <input type="file" name="favicon" accept="image/*,.ico,image/x-icon,image/vnd.microsoft.icon" required class="block w-full text-sm text-gray-600 file:mr-4 file:rounded-md file:border-0 file:bg-laravel-50 file:px-4 file:py-2 file:text-sm file:font-semibold file:text-laravel-700 hover:file:bg-laravel-100">
-                            <p class="mt-1 text-xs text-gray-400">PNG, SVG, WebP oder ICO.</p>
+                            <p class="mt-1 text-xs text-gray-400">PNG, WebP oder ICO.</p>
                         </div>
                         <x-button type="submit" variant="secondary" size="sm">Hochladen</x-button>
                     </form>

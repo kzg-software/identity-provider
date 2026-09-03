@@ -9,7 +9,6 @@ use App\Models\SamlServiceProvider;
 use App\Models\SystemSetting;
 use App\Models\User;
 use App\Saml\SamlCertificateService;
-use App\Saml\SamlIdpService;
 use App\Saml\XmlSecurity;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Str;
@@ -104,7 +103,7 @@ XML;
         $response->assertHeader('Content-Type', 'application/samlmetadata+xml');
 
         $xml = $response->getContent();
-        $dom = new \DOMDocument();
+        $dom = new \DOMDocument;
         $this->assertTrue($dom->loadXML($xml));
         $this->assertStringContainsString('X509Certificate', $xml);
         $this->assertStringContainsString('SingleSignOnService', $xml);
@@ -185,6 +184,19 @@ XML;
         $this->get('/saml/sso?'.http_build_query(['SAMLRequest' => $encoded]))->assertOk();
 
         // Replaying the exact same AuthnRequest ID must be rejected.
+        $this->get('/saml/sso?'.http_build_query(['SAMLRequest' => $encoded]))->assertStatus(400);
+    }
+
+    public function test_authn_request_with_foreign_acs_url_is_rejected(): void
+    {
+        $sp = $this->createSp();
+        $this->loginUser();
+
+        // Ein (gefaelschter) Request, der die Assertion an einen fremden
+        // Endpunkt schicken will, muss abgewiesen werden.
+        [$id, $xml] = $this->buildAuthnRequestXml($sp->entity_id, 'https://attacker.example/steal');
+        $encoded = base64_encode(gzdeflate($xml));
+
         $this->get('/saml/sso?'.http_build_query(['SAMLRequest' => $encoded]))->assertStatus(400);
     }
 

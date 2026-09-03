@@ -5,9 +5,12 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\AuditLog;
 use App\Models\SystemSetting;
+use App\Support\AccentPalette;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
 
 class SettingController extends Controller
@@ -51,7 +54,7 @@ class SettingController extends Controller
 
         $data['maintenance_mode'] = $request->boolean('maintenance_mode') ? '1' : '0';
         $data['windows_sso_enabled'] = $request->boolean('windows_sso_enabled') ? '1' : '0';
-        $data['accent_color'] = \App\Support\AccentPalette::normalize($data['accent_color'] ?? null) ?? '';
+        $data['accent_color'] = AccentPalette::normalize($data['accent_color'] ?? null) ?? '';
         $data['login_title_mode'] = $data['login_title_mode'] ?? 'default';
         $data['brand_icon_mode'] = $data['brand_icon_mode'] ?? 'default';
         $data['brand_icon_shape'] = $data['brand_icon_shape'] ?? 'rounded';
@@ -69,9 +72,12 @@ class SettingController extends Controller
     {
         $this->guardAgainstOversizedUpload($request, 'logo');
 
-        $request->validate(['logo' => 'required|image|max:5120'], [
+        // Bewusst kein SVG: eine SVG-Datei kann Skript enthalten und wird beim
+        // direkten Aufruf im Browser ausgeführt (Stored XSS auf der eigenen Domain).
+        $request->validate(['logo' => 'required|image|mimes:png,jpg,jpeg,gif,webp|max:5120'], [
             'logo.required' => 'Bitte eine Bilddatei für das Banner auswählen.',
-            'logo.image' => 'Die Datei muss ein Bild sein (PNG, JPG, GIF, SVG oder WebP).',
+            'logo.image' => 'Die Datei muss ein Bild sein (PNG, JPG, GIF oder WebP).',
+            'logo.mimes' => 'Erlaubt sind PNG, JPG, GIF oder WebP.',
             'logo.max' => 'Das Banner darf höchstens 5 MB groß sein.',
         ]);
 
@@ -95,9 +101,9 @@ class SettingController extends Controller
     {
         $this->guardAgainstOversizedUpload($request, 'favicon');
 
-        $request->validate(['favicon' => 'required|file|mimes:png,jpg,jpeg,gif,svg,webp,ico,bmp|max:2048'], [
+        $request->validate(['favicon' => 'required|file|mimes:png,jpg,jpeg,gif,webp,ico,bmp|max:2048'], [
             'favicon.required' => 'Bitte eine Bilddatei für das Favicon auswählen.',
-            'favicon.mimes' => 'Erlaubt sind PNG, JPG, GIF, SVG, WebP, BMP oder ICO.',
+            'favicon.mimes' => 'Erlaubt sind PNG, JPG, GIF, WebP, BMP oder ICO.',
             'favicon.max' => 'Das Favicon darf höchstens 2 MB groß sein.',
         ]);
 
@@ -121,9 +127,10 @@ class SettingController extends Controller
     {
         $this->guardAgainstOversizedUpload($request, 'login_background');
 
-        $request->validate(['login_background' => 'required|image|max:8192'], [
+        $request->validate(['login_background' => 'required|image|mimes:png,jpg,jpeg,gif,webp|max:8192'], [
             'login_background.required' => 'Bitte eine Bilddatei für den Login-Hintergrund auswählen.',
-            'login_background.image' => 'Die Datei muss ein Bild sein (PNG, JPG, GIF, SVG oder WebP).',
+            'login_background.image' => 'Die Datei muss ein Bild sein (PNG, JPG, GIF oder WebP).',
+            'login_background.mimes' => 'Erlaubt sind PNG, JPG, GIF oder WebP.',
             'login_background.max' => 'Der Login-Hintergrund darf höchstens 8 MB groß sein.',
         ]);
 
@@ -166,11 +173,11 @@ class SettingController extends Controller
                 default => 'Der Upload ist fehlgeschlagen ('.$file->getErrorMessage().').',
             };
 
-            throw \Illuminate\Validation\ValidationException::withMessages([$field => $reason]);
+            throw ValidationException::withMessages([$field => $reason]);
         }
 
         if (! $file && $request->server('CONTENT_LENGTH') > $this->postMaxSizeInBytes()) {
-            throw \Illuminate\Validation\ValidationException::withMessages([
+            throw ValidationException::withMessages([
                 $field => 'Die Datei ist zu groß für diesen Server. Bitte eine kleinere Bilddatei verwenden.',
             ]);
         }
@@ -195,7 +202,7 @@ class SettingController extends Controller
         };
     }
 
-    private function replaceBrandingFile(string $settingKey, \Illuminate\Http\UploadedFile $file): void
+    private function replaceBrandingFile(string $settingKey, UploadedFile $file): void
     {
         $existing = SystemSetting::get($settingKey);
         if ($existing) {

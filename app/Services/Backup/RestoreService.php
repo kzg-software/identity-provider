@@ -93,6 +93,17 @@ class RestoreService
             throw new BackupException('Die entschlüsselte Sicherung konnte nicht entpackt werden.');
         }
 
+        // Zip-Slip: kein Eintrag darf mit "/" beginnen oder ".." enthalten und
+        // so aus dem Zielverzeichnis ausbrechen.
+        for ($i = 0; $i < $zip->numFiles; $i++) {
+            $name = str_replace('\\', '/', (string) $zip->getNameIndex($i));
+
+            if (str_starts_with($name, '/') || $name === '..' || str_contains($name, '../')) {
+                $zip->close();
+                throw new BackupException('Die Sicherung enthält einen ungültigen Dateipfad und wird nicht eingespielt.');
+            }
+        }
+
         File::ensureDirectoryExists($payloadDir);
         $zip->extractTo($payloadDir);
         $zip->close();
