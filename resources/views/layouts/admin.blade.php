@@ -7,8 +7,13 @@
 
     $portalNav = collect([
         ['route' => 'dashboard', 'match' => 'dashboard', 'label' => 'Meine Anwendungen', 'icon' => 'grid'],
-        ['route' => 'profile.sessions', 'match' => 'profile.sessions*', 'label' => 'Meine Sitzungen', 'icon' => 'monitor'],
     ]);
+
+    // Persönliche Einstellungen – im Profilmenü (dort, wo auch "Abmelden" liegt).
+    $profileNav = [
+        ['route' => 'profile.security', 'match' => 'profile.security*', 'label' => 'Sicherheit', 'icon' => 'shield-check'],
+        ['route' => 'profile.sessions', 'match' => 'profile.sessions*', 'label' => 'Meine Sitzungen', 'icon' => 'monitor'],
+    ];
 
     $adminNav = [
         ['label' => null, 'items' => [
@@ -95,6 +100,12 @@
                             <div class="px-4 py-2 text-xs text-gray-400 border-b border-gray-100">
                                 Angemeldet als <span class="font-medium text-gray-600">{{ auth()->user()->display_name ?? auth()->user()->username }}</span>
                             </div>
+                            @foreach ($profileNav as $item)
+                                <a href="{{ route($item['route']) }}" class="flex items-center gap-2 px-4 py-2 text-sm hover:bg-gray-100 {{ request()->routeIs($item['match']) ? 'text-laravel-700 font-medium' : 'text-gray-700' }}">
+                                    <x-icon :name="$item['icon']" class="h-4 w-4 text-gray-400" />{{ $item['label'] }}
+                                </a>
+                            @endforeach
+                            <div class="border-t border-gray-100"></div>
                             @if ($isAdmin)
                                 <a href="{{ $isConsole ? route('dashboard') : route('admin.dashboard') }}" class="sm:hidden flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
                                     <x-icon :name="$isConsole ? 'grid' : 'cog'" class="h-4 w-4 text-gray-400" />{{ $isConsole ? 'Zum Portal' : 'Administration' }}

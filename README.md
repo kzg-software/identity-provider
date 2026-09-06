@@ -25,7 +25,8 @@ ausgeliefert werden. Keine externen CDN.
 
 ## Was das System kann
 
-* Lokale Benutzerkonten, optional mit Zwei Faktor Anmeldung (TOTP plus Recovery Codes)
+* Lokale Benutzerkonten, optional mit Zwei Faktor Anmeldung: Passkeys (WebAuthn / FIDO2) und TOTP, jeweils plus Recovery Codes
+* Passwortlose Anmeldung mit Passkeys, für lokale und (abschaltbar) für Active Directory Konten
 * Active Directory und LDAP, mehrere Verzeichnisse gleichzeitig, verschachtelte Gruppen werden rekursiv aufgelöst
 * Windows SSO über Kerberos. Den Handshake macht der Webserver, die App verarbeitet die durchgereichte Identität
 * OAuth 2.0 und OpenID Connect: Authorization Code mit PKCE, Client Credentials, Refresh Token, Discovery, JWKS, UserInfo, Token Revocation
@@ -245,7 +246,7 @@ Ablaufwarnung. Signierte AuthnRequests müssen über das POST Binding kommen.
 
 ## Sicherheit und Betrieb
 
-* Zwei Faktor Anmeldung (TOTP und Recovery Codes) für lokale Konten unter **Profil, Zwei Faktor**
+* Zwei Faktor Anmeldung unter **Profil, Sicherheit**: Passkeys (WebAuthn / FIDO2) und TOTP, als zweiter Faktor oder passwortlos, plus Wiederherstellungscodes. Die passwortlose Anmeldung ist pro Kontotyp in den Systemeinstellungen schaltbar (AD standardmäßig aus). Passkeys brauchen HTTPS und einen stabilen Hostnamen; weicht die Relying Party ID vom Host in `APP_URL` ab, über `WEBAUTHN_RP_ID` setzen
 * Eigene Sitzungen unter **Profil, Meine Sitzungen**, alle Sitzungen unter **Administration, Alle Sessions**, jeweils einsehbar und widerrufbar
 * Audit Log unter **Administration, Audit Log**: Anmeldungen, Token Ereignisse, Zustimmungen, SAML, Admin Aktionen, Datensicherungen
 * Systemstatus unter **Administration, Systemstatus**: Datenbank, Cache, Dateisystem, Queue, Scheduler, AD Verbindungen, Ablauf von OIDC Schlüsseln und SAML Zertifikaten

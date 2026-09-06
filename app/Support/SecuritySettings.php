@@ -3,6 +3,7 @@
 namespace App\Support;
 
 use App\Models\SystemSetting;
+use App\Models\User;
 use Illuminate\Validation\Rules\Password;
 
 /**
@@ -73,6 +74,36 @@ class SecuritySettings
         }
 
         return $hint;
+    }
+
+    /**
+     * Ist die passwortlose Anmeldung mit Passkeys für lokale Konten aktiv?
+     * Standard: an.
+     */
+    public static function passwordlessLocalEnabled(): bool
+    {
+        return SystemSetting::bool('passkey_passwordless_local_enabled', true);
+    }
+
+    /**
+     * Ist die passwortlose Anmeldung mit Passkeys für Active-Directory-Konten
+     * aktiv? Standard: aus – sie umgeht sonst das AD-Passwort.
+     */
+    public static function passwordlessAdEnabled(): bool
+    {
+        return SystemSetting::bool('passkey_passwordless_ad_enabled', false);
+    }
+
+    public static function passwordlessAnyEnabled(): bool
+    {
+        return self::passwordlessLocalEnabled() || self::passwordlessAdEnabled();
+    }
+
+    public static function passwordlessEnabledFor(User $user): bool
+    {
+        return $user->isLocal()
+            ? self::passwordlessLocalEnabled()
+            : self::passwordlessAdEnabled();
     }
 
     public static function loginMaxAttempts(): int

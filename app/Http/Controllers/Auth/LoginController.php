@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Auth;
 
+use App\Auth\LoginCompletion;
 use App\Directory\DirectoryAuthService;
 use App\Http\Controllers\Controller;
 use App\Models\AuditLog;
@@ -23,6 +24,8 @@ class LoginController extends Controller
     {
         return view('auth.login');
     }
+
+    public function __construct(private LoginCompletion $completion) {}
 
     /**
      * Einheitlicher Login-Endpoint: Benutzername/Passwort werden zuerst gegen ein
@@ -54,15 +57,18 @@ class LoginController extends Controller
             ->where('auth_source', 'local')
             ->first();
 
-        $localOk = $user && $user->is_active && Auth::guard('web')->attempt([
+        // Nur die Zugangsdaten prüfen, NICHT anmelden – die eigentliche
+        // Anmeldung übernimmt LoginCompletion (ggf. erst nach der
+        // Zwei-Faktor-Challenge).
+        $localOk = $user && $user->is_active && Auth::guard('web')->validate([
             'id' => $user->id,
             'password' => $credentials['password'],
-        ], false);
+        ]);
 
         if ($localOk) {
             RateLimiter::clear($throttleKey);
 
-            return $this->completeLogin($request, $user, 'local');
+            return $this->completion->handle($request, $user, 'local');
         }
 
         // Kein passendes lokales Konto — dieselben Zugangsdaten gegen Active
@@ -72,7 +78,7 @@ class LoginController extends Controller
         if ($directoryResult['ok']) {
             RateLimiter::clear($throttleKey);
 
-            return $this->completeLogin($request, $directoryResult['user'], 'active_directory');
+            return $this->completion->handle($request, $directoryResult['user'], 'active_directory');
         }
 
         RateLimiter::hit($throttleKey, SecuritySettings::loginLockoutSeconds());
@@ -118,34 +124,7 @@ class LoginController extends Controller
 
         RateLimiter::clear($throttleKey);
 
-        return $this->completeLogin($request, $result['user'], 'active_directory');
-    }
-
-    public function completeLogin(Request $request, User $user, string $method): RedirectResponse
-    {
-        $request->session()->regenerate();
-
-        Auth::guard('web')->login($user);
-
-        $user->forceFill([
-            'last_login_at' => now(),
-            'last_login_method' => $method,
-        ])->save();
-
-        AuditLog::record('login.success', $user, ['method' => $method]);
-
-        app(SessionTracker::class)->record($user, $request, $method);
-
-        Cookie::queue(Cookie::forget('auth_manual'));
-
-        if ($request->session()->has('saml.pending')) {
-            return redirect()->route('saml.sso.resume');
-        }
-
-        // Administratoren landen in der Systemverwaltung, alle anderen im Portal.
-        $home = $user->is_admin ? route('admin.dashboard') : route('dashboard');
-
-        return redirect()->intended($home);
+        return $this->completion->handle($request, $result['user'], 'active_directory');
     }
 
     public function logout(Request $request, SessionTracker $tracker): RedirectResponse

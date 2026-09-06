@@ -94,6 +94,41 @@
                 @endforelse
             </ul>
         </x-card>
+
+        <x-card title="Zwei-Faktor-Authentisierung"
+                description="Zur Kontowiederherstellung, wenn der Benutzer den Zugang zu seinen Faktoren verloren hat.">
+            <x-dl :rows="[
+                'Authenticator-App' => $user->twoFactor?->hasTotp() ? 'aktiv' : 'nicht eingerichtet',
+                'Wiederherstellungscodes' => (string) count($user->twoFactor?->recoveryCodes() ?? []).' übrig',
+            ]" />
+
+            @if ($user->webauthnCredentials->isNotEmpty())
+                <ul class="mt-3 divide-y divide-gray-100 border-t border-gray-100">
+                    @foreach ($user->webauthnCredentials as $credential)
+                        <li class="flex items-center justify-between gap-3 py-2 text-sm">
+                            <span class="text-gray-700 truncate">
+                                <x-icon name="key" class="inline h-4 w-4 text-gray-400" /> {{ $credential->name }}
+                            </span>
+                            <x-confirm-form :action="route('admin.users.webauthn.destroy', [$user, $credential])"
+                                            message="Passkey {{ $credential->name }} entfernen?"
+                                            label="Entfernen" size="sm" icon="trash" />
+                        </li>
+                    @endforeach
+                </ul>
+            @else
+                <p class="mt-3 text-sm text-gray-400">Keine Passkeys hinterlegt.</p>
+            @endif
+
+            @if ($user->twoFactor?->hasTotp() || $user->webauthnCredentials->isNotEmpty())
+                <div class="mt-4 border-t border-gray-100 pt-4">
+                    <x-confirm-form :action="route('admin.users.two-factor.reset', $user)"
+                                    method="POST"
+                                    title="Zwei-Faktor zurücksetzen"
+                                    message="Entfernt Authenticator-App, alle Passkeys und Wiederherstellungscodes von {{ $user->name }}. Der Benutzer muss die Zwei-Faktor-Authentisierung danach neu einrichten."
+                                    label="Zwei-Faktor zurücksetzen" variant="danger" size="sm" icon="arrow-path" />
+                </div>
+            @endif
+        </x-card>
     </div>
 </div>
 

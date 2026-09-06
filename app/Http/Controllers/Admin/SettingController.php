@@ -28,6 +28,7 @@ class SettingController extends Controller
         'password_min_length', 'password_require_mixed_case', 'password_require_number',
         'password_require_symbol', 'password_check_pwned',
         'login_max_attempts', 'login_lockout_minutes',
+        'passkey_passwordless_local_enabled', 'passkey_passwordless_ad_enabled',
     ];
 
     public function edit(): View
@@ -77,7 +78,10 @@ class SettingController extends Controller
         $data['login_max_attempts'] = (string) (((int) ($data['login_max_attempts'] ?? 0)) ?: 5);
         $data['login_lockout_minutes'] = (string) (((int) ($data['login_lockout_minutes'] ?? 0)) ?: 1);
 
-        foreach (['password_require_mixed_case', 'password_require_number', 'password_require_symbol', 'password_check_pwned'] as $flag) {
+        foreach ([
+            'password_require_mixed_case', 'password_require_number', 'password_require_symbol', 'password_check_pwned',
+            'passkey_passwordless_local_enabled', 'passkey_passwordless_ad_enabled',
+        ] as $flag) {
             $data[$flag] = $request->boolean($flag) ? '1' : '0';
         }
         $data['accent_color'] = AccentPalette::normalize($data['accent_color'] ?? null) ?? '';

@@ -71,6 +71,41 @@ class User extends Authenticatable
         return $this->hasOne(LocalAccount::class);
     }
 
+    public function twoFactor(): HasOne
+    {
+        return $this->hasOne(TwoFactorCredential::class);
+    }
+
+    public function webauthnCredentials(): HasMany
+    {
+        return $this->hasMany(WebauthnCredential::class);
+    }
+
+    /**
+     * Hat das Konto einen zweiten Faktor eingerichtet – entweder eine
+     * bestätigte Authenticator-App (TOTP) oder mindestens einen Passkey?
+     */
+    public function hasTwoFactorEnabled(): bool
+    {
+        return (bool) $this->twoFactor?->hasTotp()
+            || $this->webauthnCredentials()->exists();
+    }
+
+    /**
+     * Stabile, zufällige WebAuthn-Kennung des Nutzers. Wird beim ersten Aufruf
+     * erzeugt und gespeichert, danach nie wieder geändert.
+     */
+    public function webauthnUserHandle(): string
+    {
+        if (! $this->webauthn_user_handle) {
+            $this->forceFill([
+                'webauthn_user_handle' => rtrim(strtr(base64_encode(random_bytes(32)), '+/', '-_'), '='),
+            ])->save();
+        }
+
+        return $this->webauthn_user_handle;
+    }
+
     public function sessions(): HasMany
     {
         return $this->hasMany(UserSession::class);

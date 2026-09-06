@@ -16,6 +16,8 @@ use App\Http\Controllers\Admin\SystemUpdateController;
 use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\Auth\NegotiateController;
+use App\Http\Controllers\Auth\PasskeyLoginController;
+use App\Http\Controllers\Auth\TwoFactorChallengeController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\InstallController;
 use App\Http\Controllers\Oidc\AuthorizationController;
@@ -24,6 +26,7 @@ use App\Http\Controllers\Oidc\JwksController;
 use App\Http\Controllers\Oidc\LogoutController;
 use App\Http\Controllers\Oidc\TokenController;
 use App\Http\Controllers\Oidc\UserInfoController;
+use App\Http\Controllers\Profile\SecurityController;
 use App\Http\Controllers\Profile\SessionController as ProfileSessionController;
 use App\Http\Controllers\Saml\MetadataController;
 use App\Http\Controllers\Saml\SloController;
@@ -84,6 +87,24 @@ Route::middleware('guest')->group(function () {
     Route::get('login', [LoginController::class, 'show'])->name('login');
     Route::post('login', [LoginController::class, 'login'])->name('login.attempt');
     Route::post('login/directory', [LoginController::class, 'loginDirectory'])->name('login.directory');
+
+    // Passwortlose Anmeldung mit einem Passkey
+    Route::post('login/passkey/options', [PasskeyLoginController::class, 'options'])
+        ->middleware('throttle:30,1')->name('login.passkey.options');
+    Route::post('login/passkey', [PasskeyLoginController::class, 'verify'])
+        ->middleware('throttle:30,1')->name('login.passkey.verify');
+
+    // Zwei-Faktor-Challenge nach bestandener Passwortprüfung
+    Route::get('two-factor-challenge', [TwoFactorChallengeController::class, 'show'])->name('two-factor.challenge');
+    Route::post('two-factor-challenge/cancel', [TwoFactorChallengeController::class, 'cancel'])->name('two-factor.cancel');
+    Route::post('two-factor-challenge/webauthn/options', [TwoFactorChallengeController::class, 'webauthnOptions'])
+        ->middleware('throttle:30,1')->name('two-factor.webauthn.options');
+    Route::post('two-factor-challenge/webauthn', [TwoFactorChallengeController::class, 'verifyWebauthn'])
+        ->middleware('throttle:30,1')->name('two-factor.webauthn');
+    Route::post('two-factor-challenge/totp', [TwoFactorChallengeController::class, 'verifyTotp'])
+        ->middleware('throttle:30,1')->name('two-factor.totp');
+    Route::post('two-factor-challenge/recovery', [TwoFactorChallengeController::class, 'verifyRecovery'])
+        ->middleware('throttle:30,1')->name('two-factor.recovery');
 });
 
 Route::middleware('auth')->group(function () {
@@ -98,6 +119,15 @@ Route::middleware('auth')->group(function () {
     Route::delete('profile/sessions/{userSession}', [ProfileSessionController::class, 'destroy'])->name('profile.sessions.destroy');
     Route::post('profile/sessions/destroy-others', [ProfileSessionController::class, 'destroyOthers'])->name('profile.sessions.destroy-others');
 
+    Route::get('profile/security', [SecurityController::class, 'edit'])->name('profile.security');
+    Route::post('profile/security/passkeys/options', [SecurityController::class, 'passkeyOptions'])->name('profile.security.passkeys.options');
+    Route::post('profile/security/passkeys', [SecurityController::class, 'storePasskey'])->name('profile.security.passkeys.store');
+    Route::delete('profile/security/passkeys/{credential}', [SecurityController::class, 'destroyPasskey'])->name('profile.security.passkeys.destroy');
+    Route::get('profile/security/authenticator', [SecurityController::class, 'totpSetup'])->name('profile.security.totp.setup');
+    Route::post('profile/security/authenticator', [SecurityController::class, 'storeTotp'])->name('profile.security.totp.store');
+    Route::delete('profile/security/authenticator', [SecurityController::class, 'destroyTotp'])->name('profile.security.totp.destroy');
+    Route::post('profile/security/recovery-codes', [SecurityController::class, 'regenerateRecoveryCodes'])->name('profile.security.recovery-codes');
+
     Route::prefix('admin')->name('admin.')->middleware('admin')->group(function () {
         Route::get('/', [App\Http\Controllers\Admin\DashboardController::class, 'index'])->name('dashboard');
 
@@ -110,6 +140,8 @@ Route::middleware('auth')->group(function () {
         Route::post('users/bulk', [UserController::class, 'bulk'])->name('users.bulk');
         Route::get('users/{user}', [UserController::class, 'show'])->name('users.show');
         Route::post('users/{user}/reset-password', [UserController::class, 'resetPassword'])->name('users.reset-password');
+        Route::post('users/{user}/two-factor/reset', [UserController::class, 'resetTwoFactor'])->name('users.two-factor.reset');
+        Route::delete('users/{user}/webauthn/{credential}', [UserController::class, 'removeWebauthn'])->name('users.webauthn.destroy');
         Route::post('users/{user}/toggle-admin', [UserController::class, 'toggleAdmin'])->name('users.toggle-admin');
         Route::post('users/{user}/impersonate', [ImpersonateController::class, 'start'])->name('users.impersonate');
         Route::delete('users/{user}', [UserController::class, 'destroy'])->name('users.destroy');

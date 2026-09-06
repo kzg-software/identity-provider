@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\AuditLog;
 use App\Models\User;
+use App\Models\WebauthnCredential;
 use App\Support\SecuritySettings;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -35,9 +36,38 @@ class UserController extends Controller
 
     public function show(User $user): View
     {
-        $user->load('directory', 'sessions', 'oauthConsents.client');
+        $user->load('directory', 'sessions', 'oauthConsents.client', 'twoFactor', 'webauthnCredentials');
 
         return view('admin.users.show', compact('user'));
+    }
+
+    /**
+     * Setzt die Zwei-Faktor-Authentisierung eines Kontos zurück (zur
+     * Kontowiederherstellung). Entfernt TOTP, Passkeys und
+     * Wiederherstellungscodes.
+     */
+    public function resetTwoFactor(Request $request, User $user): RedirectResponse
+    {
+        $user->webauthnCredentials()->delete();
+        $user->twoFactor()->delete();
+
+        AuditLog::record('admin.two_factor_reset', $request->user(), ['target_user_id' => $user->id]);
+
+        return back()->with('status', 'Zwei-Faktor-Authentisierung wurde zurückgesetzt.');
+    }
+
+    public function removeWebauthn(Request $request, User $user, WebauthnCredential $credential): RedirectResponse
+    {
+        abort_unless($credential->user_id === $user->id, 404);
+
+        $credential->delete();
+
+        AuditLog::record('admin.webauthn_removed', $request->user(), [
+            'target_user_id' => $user->id,
+            'credential_id' => $credential->id,
+        ]);
+
+        return back()->with('status', 'Passkey wurde entfernt.');
     }
 
     public function create(): View

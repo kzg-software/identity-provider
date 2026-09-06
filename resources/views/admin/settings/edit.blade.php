@@ -279,6 +279,30 @@
                             </x-setting-row>
                         </div>
                     </x-card>
+
+                    <x-card title="Passkeys (WebAuthn / FIDO2)"
+                            description="Passkeys richtet jeder Benutzer selbst unter Profil, Sicherheit ein – als zweiter Faktor und, wenn hier erlaubt, für die passwortlose Anmeldung.">
+                        <div class="divide-y divide-gray-100">
+                            <x-setting-row label="Passwortlose Anmeldung (lokale Konten)"
+                                           hint="Erlaubt lokalen Konten, sich allein mit einem Passkey anzumelden.">
+                                <label class="flex cursor-pointer items-center gap-2.5 text-sm text-gray-700">
+                                    <input type="hidden" name="passkey_passwordless_local_enabled" value="0">
+                                    <x-checkbox name="passkey_passwordless_local_enabled" value="1"
+                                                :checked="old('passkey_passwordless_local_enabled', $settings['passkey_passwordless_local_enabled']) !== '0'" />
+                                    Passwortlose Anmeldung mit Passkey erlauben
+                                </label>
+                            </x-setting-row>
+                            <x-setting-row label="Passwortlose Anmeldung (Active-Directory-Konten)"
+                                           hint="Vorsicht: Damit umgeht ein AD-Konto sein Active-Directory-Passwort. Standard: aus.">
+                                <label class="flex cursor-pointer items-center gap-2.5 text-sm text-gray-700">
+                                    <input type="hidden" name="passkey_passwordless_ad_enabled" value="0">
+                                    <x-checkbox name="passkey_passwordless_ad_enabled" value="1"
+                                                :checked="old('passkey_passwordless_ad_enabled', $settings['passkey_passwordless_ad_enabled']) === '1'" />
+                                    Passwortlose Anmeldung mit Passkey für AD-Konten erlauben
+                                </label>
+                            </x-setting-row>
+                        </div>
+                    </x-card>
                 </div>
 
                 {{-- ===== Protokoll ===== --}}
