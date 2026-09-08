@@ -114,6 +114,9 @@
         /* Akzentflaechen etwas entsaettigen, damit sie nicht leuchten */
         html.dark .bg-laravel-50 { background-color: rgba({{ $accentPalette['rgb'] }}, 0.13); }
         html.dark .bg-laravel-100 { background-color: rgba({{ $accentPalette['rgb'] }}, 0.20); }
+        html.dark .hover\:bg-laravel-50:hover { background-color: rgba({{ $accentPalette['rgb'] }}, 0.13); }
+        html.dark .border-laravel-500, html.dark .hover\:border-laravel-500:hover { border-color: rgba({{ $accentPalette['rgb'] }}, 0.55); }
+        html.dark .ring-laravel-500 { --tw-ring-color: rgba({{ $accentPalette['rgb'] }}, 0.55); }
         html.dark .bg-red-50 { background-color: rgba(239, 68, 68, 0.12); }
         html.dark .bg-red-100 { background-color: rgba(239, 68, 68, 0.18); }
         html.dark .hover\:bg-red-100:hover { background-color: rgba(239, 68, 68, 0.2); }

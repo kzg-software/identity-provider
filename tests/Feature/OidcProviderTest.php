@@ -32,8 +32,10 @@ class OidcProviderTest extends TestCase
             'is_active' => true,
         ], $overrides));
 
+        $provider = $this->linkProvider($application, 'oidc', 'Demo App');
+
         $client = OauthClient::create([
-            'application_id' => $application->id,
+            'provider_id' => $provider->id,
             'name' => 'Demo App',
             'client_id' => (string) Str::uuid(),
             'client_secret' => 'demo-secret',
@@ -387,7 +389,7 @@ class OidcProviderTest extends TestCase
 
     private function derInteger(string $value): string
     {
-        if (ord($value[0]) > 0x7f) {
+        if (ord($value[0]) > 0x7F) {
             $value = "\x00".$value;
         }
 

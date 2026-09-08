@@ -37,6 +37,7 @@ class DashboardController extends Controller
     {
         return Application::query()
             ->where('is_active', true)
+            ->where('visibility', Application::VISIBILITY_PORTAL)
             ->orderBy('name')
             ->get()
             ->filter(fn (Application $application) => AccessPolicyEvaluator::mayAccess($application, $user))

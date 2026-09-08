@@ -7,11 +7,13 @@ use App\Models\Application;
 use App\Models\AuditLog;
 use App\Models\OauthClient;
 use App\Models\OauthConsent;
+use App\Models\OauthScope;
 use App\Oidc\Entities\UserEntity;
 use App\Oidc\NonceContext;
 use App\Oidc\Psr7Bridge;
 use App\Oidc\Repositories\AuthCodeRepository;
 use App\Services\AccessPolicyEvaluator;
+use App\Support\MaintenanceGate;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -25,8 +27,7 @@ class AuthorizationController extends Controller
     public function __construct(
         private readonly AuthorizationServer $server,
         private readonly AuthCodeRepository $authCodeRepository,
-    ) {
-    }
+    ) {}
 
     /**
      * GET /oauth/authorize
@@ -47,7 +48,7 @@ class AuthorizationController extends Controller
             return $this->renderOAuthError($exception);
         }
 
-        $client = OauthClient::query()->where('client_id', $authRequest->getClient()->getIdentifier())->with('application')->first();
+        $client = OauthClient::query()->where('client_id', $authRequest->getClient()->getIdentifier())->with('provider.application')->first();
         $application = $client?->application;
 
         if (! $application || ! $application->is_active) {
@@ -62,9 +63,9 @@ class AuthorizationController extends Controller
 
         $user = Auth::user();
 
-        if (\App\Support\MaintenanceGate::applicationBlockedFor($application, $user)) {
+        if (MaintenanceGate::applicationBlockedFor($application, $user)) {
             AuditLog::record('oauth.authorize.maintenance', $user, ['application' => $application->name], $application);
-            abort(503, \App\Support\MaintenanceGate::applicationMessage($application));
+            abort(503, MaintenanceGate::applicationMessage($application));
         }
 
         if (! $this->userMayAccess($application, $user)) {
@@ -73,6 +74,13 @@ class AuthorizationController extends Controller
         }
 
         $requestedScopes = array_map(fn ($s) => $s->getIdentifier(), $authRequest->getScopes());
+
+        // Only scopes the client is actually allowed to receive are shown / consented to.
+        if (is_array($client->allowed_scopes) && $client->allowed_scopes !== []) {
+            $allowed = [...$client->allowed_scopes, 'openid'];
+            $requestedScopes = array_values(array_intersect($requestedScopes, $allowed));
+        }
+
         $nonce = $request->query('nonce');
 
         $authRequest->setUser(new UserEntity((string) $user->id));
@@ -89,7 +97,7 @@ class AuthorizationController extends Controller
         return view('oidc.consent', [
             'application' => $application,
             'client' => $client,
-            'scopes' => \App\Models\OauthScope::query()->whereIn('key', $requestedScopes)->get(),
+            'scopes' => OauthScope::query()->whereIn('key', $requestedScopes)->get(),
         ]);
     }
 
@@ -112,7 +120,7 @@ class AuthorizationController extends Controller
             abort(400, 'Die Autorisierungsanfrage ist abgelaufen. Bitte erneut starten.');
         }
 
-        $client = OauthClient::query()->where('client_id', $authRequest->getClient()->getIdentifier())->with('application')->first();
+        $client = OauthClient::query()->where('client_id', $authRequest->getClient()->getIdentifier())->with('provider.application')->first();
         $user = Auth::user();
         $scopes = array_map(fn ($s) => $s->getIdentifier(), $authRequest->getScopes());
 

@@ -9,9 +9,7 @@ use Illuminate\Http\Response;
 
 class MetadataController extends Controller
 {
-    public function __construct(private readonly SamlIdpService $saml)
-    {
-    }
+    public function __construct(private readonly SamlIdpService $saml) {}
 
     /**
      * GET /saml/metadata — global IdP metadata.
@@ -26,7 +24,7 @@ class MetadataController extends Controller
      */
     public function forApplication(Application $application): Response
     {
-        $sp = $application->samlServiceProviders()->first();
+        $sp = $application->samlServiceProvider();
 
         return $this->xmlResponse($this->saml->idpMetadataXml($sp));
     }

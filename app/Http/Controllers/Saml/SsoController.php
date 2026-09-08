@@ -147,6 +147,6 @@ class SsoController extends Controller
 
     private function userMayAccess(SamlServiceProvider $sp, $user): bool
     {
-        return AccessPolicyEvaluator::mayAccessApplication($sp->application_id, $user);
+        return AccessPolicyEvaluator::mayAccessApplication($sp->application?->id, $user);
     }
 }

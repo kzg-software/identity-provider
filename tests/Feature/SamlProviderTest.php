@@ -29,8 +29,10 @@ class SamlProviderTest extends TestCase
             'is_active' => true,
         ]);
 
+        $provider = $this->linkProvider($application, 'saml', 'Demo SAML SP');
+
         $sp = SamlServiceProvider::create(array_merge([
-            'application_id' => $application->id,
+            'provider_id' => $provider->id,
             'name' => 'Demo SAML SP',
             'entity_id' => 'https://sp.example.test/metadata',
             'acs_url' => 'https://sp.example.test/saml/acs',
@@ -219,7 +221,7 @@ XML;
         $user = $this->loginUser();
 
         AccessPolicy::create([
-            'application_id' => $sp->application_id,
+            'application_id' => $sp->application->id,
             'effect' => 'deny',
             'subject_type' => 'user',
             'subject_value' => $user->username,
@@ -238,7 +240,7 @@ XML;
         $user = $this->loginUser();
 
         AccessPolicy::create([
-            'application_id' => $sp->application_id,
+            'application_id' => $sp->application->id,
             'effect' => 'allow',
             'subject_type' => 'group',
             'subject_value' => 'IT',

@@ -18,9 +18,7 @@ use Illuminate\Support\Str;
  */
 class SamlIdpService
 {
-    public function __construct(private readonly SamlCertificateService $certificates)
-    {
-    }
+    public function __construct(private readonly SamlCertificateService $certificates) {}
 
     public function entityId(): string
     {
@@ -125,7 +123,7 @@ class SamlIdpService
         $assertionId = '_'.Str::uuid();
         $issueInstant = now()->toIso8601ZuluString();
         $notOnOrAfter = now()->addMinutes(5)->toIso8601ZuluString();
-        $sessionNotOnOrAfter = now()->addHours($sp->application?->oauthClients->first()?->access_token_lifetime ?? 8 * 3600)->toIso8601ZuluString();
+        $sessionNotOnOrAfter = now()->addSeconds($sp->sessionLifetimeSeconds())->toIso8601ZuluString();
         $nameId = $this->resolveNameId($sp, $user);
         $issuer = $this->entityId();
 

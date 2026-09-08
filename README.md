@@ -195,8 +195,11 @@ siehe Kommentar in `app/Http/Controllers/Auth/NegotiateController.php`.
 | UserInfo | `GET` oder `POST /oauth/userinfo` |
 | Revocation | `POST /oauth/revoke` |
 
-Clients werden unter `/admin/applications` angelegt: Redirect URIs, Scopes,
-Grant Types, Token Laufzeiten, PKCE Pflicht. Das Client Secret ist nur direkt
+Eine Anwendung wird unter `/admin/applications` angelegt (Portal-Kachel,
+Sichtbarkeit, Zugriffsregeln); die technische Konfiguration liegt als OIDC-Provider
+unter `/admin/providers`: Redirect URIs, Scopes, Grant/Response Types, Token
+Laufzeiten, PKCE Pflicht, Signaturalgorithmus. Der Assistent beim Anlegen einer
+Anwendung kann den Provider gleich mit erzeugen. Das Client Secret ist nur direkt
 nach dem Anlegen im Klartext sichtbar. Die Signaturschlüssel werden unter
 `/admin/oidc-keys` rotiert.
 
@@ -223,9 +226,10 @@ Ablauf für einen Client mit Authorization Code und PKCE:
 
 ## SAML 2.0
 
-Das System ist ein SAML 2.0 Identity Provider. Service Provider werden unter
-`/admin/saml-service-providers` eingetragen: Entity ID, ACS URL, SLO URL,
-NameID Format, Signaturanforderungen, Attribut Mapping.
+Das System ist ein SAML 2.0 Identity Provider. Service Provider werden als
+Provider vom Typ SAML unter `/admin/providers` eingetragen (und einer Anwendung
+zugeordnet): Entity ID, ACS URL, SLO URL, NameID Format, Signaturanforderungen,
+Attribut Mapping.
 
 | Zweck | Route |
 |---|---|

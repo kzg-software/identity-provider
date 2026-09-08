@@ -181,7 +181,7 @@
                         ['route' => 'admin.applications.create', 'label' => 'Anwendung anlegen', 'icon' => 'plus'],
                         ['route' => 'admin.users.index', 'label' => 'Benutzer verwalten', 'icon' => 'users'],
                         ['route' => 'admin.directories.index', 'label' => 'Verzeichnis hinzufügen', 'icon' => 'server'],
-                        ['route' => 'admin.saml-service-providers.index', 'label' => 'SAML Service Provider', 'icon' => 'shield-check'],
+                        ['route' => 'admin.providers.index', 'label' => 'Provider verwalten', 'icon' => 'key'],
                         ['route' => 'admin.settings.edit', 'label' => 'Systemeinstellungen', 'icon' => 'cog'],
                         ['route' => 'admin.status.index', 'label' => 'Systemstatus prüfen', 'icon' => 'heart-pulse'],
                     ];

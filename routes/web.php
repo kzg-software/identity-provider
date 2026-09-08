@@ -7,8 +7,8 @@ use App\Http\Controllers\Admin\DirectoryController;
 use App\Http\Controllers\Admin\GroupRoleMappingController;
 use App\Http\Controllers\Admin\ImpersonateController;
 use App\Http\Controllers\Admin\OidcKeyController;
+use App\Http\Controllers\Admin\ProviderController;
 use App\Http\Controllers\Admin\SamlCertificateController;
-use App\Http\Controllers\Admin\SamlServiceProviderController;
 use App\Http\Controllers\Admin\SessionController;
 use App\Http\Controllers\Admin\SettingController;
 use App\Http\Controllers\Admin\SystemStatusController;
@@ -186,24 +186,25 @@ Route::middleware('auth')->group(function () {
         Route::get('applications/{application}', [ApplicationController::class, 'show'])->name('applications.show');
         Route::put('applications/{application}', [ApplicationController::class, 'update'])->name('applications.update');
         Route::delete('applications/{application}', [ApplicationController::class, 'destroy'])->name('applications.destroy');
-        Route::put('applications/{application}/clients/{client}', [ApplicationController::class, 'updateClient'])->name('applications.clients.update');
-        Route::post('applications/{application}/clients/{client}/regenerate-secret', [ApplicationController::class, 'regenerateSecret'])->name('applications.clients.regenerate-secret');
+        Route::post('applications/{application}/provider', [ApplicationController::class, 'attachProvider'])->name('applications.provider.attach');
+        Route::delete('applications/{application}/provider', [ApplicationController::class, 'detachProvider'])->name('applications.provider.detach');
         Route::post('applications/{application}/policies', [ApplicationController::class, 'storePolicy'])->name('applications.policies.store');
         Route::delete('applications/{application}/policies/{policy}', [ApplicationController::class, 'destroyPolicy'])->name('applications.policies.destroy');
 
+        Route::get('providers', [ProviderController::class, 'index'])->name('providers.index');
+        Route::get('providers/create', [ProviderController::class, 'create'])->name('providers.create');
+        Route::post('providers', [ProviderController::class, 'store'])->name('providers.store');
+        Route::get('providers/{provider}', [ProviderController::class, 'show'])->name('providers.show');
+        Route::put('providers/{provider}', [ProviderController::class, 'update'])->name('providers.update');
+        Route::delete('providers/{provider}', [ProviderController::class, 'destroy'])->name('providers.destroy');
+        Route::post('providers/{provider}/regenerate-secret', [ProviderController::class, 'regenerateSecret'])->name('providers.regenerate-secret');
+        Route::post('providers/{provider}/mappings', [ProviderController::class, 'storeMapping'])->name('providers.mappings.store');
+        Route::delete('providers/{provider}/mappings/{mapping}', [ProviderController::class, 'destroyMapping'])->name('providers.mappings.destroy');
+
+        Route::permanentRedirect('saml-service-providers', 'admin/providers');
+
         Route::get('oidc-keys', [OidcKeyController::class, 'index'])->name('oidc-keys.index');
         Route::post('oidc-keys/rotate', [OidcKeyController::class, 'rotate'])->name('oidc-keys.rotate');
-
-        Route::get('saml-service-providers', [SamlServiceProviderController::class, 'index'])->name('saml-service-providers.index');
-        Route::get('saml-service-providers/create', [SamlServiceProviderController::class, 'create'])->name('saml-service-providers.create');
-        Route::post('saml-service-providers', [SamlServiceProviderController::class, 'store'])->name('saml-service-providers.store');
-        Route::get('saml-service-providers/{samlServiceProvider}', [SamlServiceProviderController::class, 'show'])->name('saml-service-providers.show');
-        Route::put('saml-service-providers/{samlServiceProvider}', [SamlServiceProviderController::class, 'update'])->name('saml-service-providers.update');
-        Route::delete('saml-service-providers/{samlServiceProvider}', [SamlServiceProviderController::class, 'destroy'])->name('saml-service-providers.destroy');
-        Route::post('saml-service-providers/{samlServiceProvider}/mappings', [SamlServiceProviderController::class, 'storeMapping'])->name('saml-service-providers.mappings.store');
-        Route::delete('saml-service-providers/{samlServiceProvider}/mappings/{mapping}', [SamlServiceProviderController::class, 'destroyMapping'])->name('saml-service-providers.mappings.destroy');
-        Route::post('saml-service-providers/{samlServiceProvider}/policies', [SamlServiceProviderController::class, 'storePolicy'])->name('saml-service-providers.policies.store');
-        Route::delete('saml-service-providers/{samlServiceProvider}/policies/{policy}', [SamlServiceProviderController::class, 'destroyPolicy'])->name('saml-service-providers.policies.destroy');
 
         Route::get('saml-certificates', [SamlCertificateController::class, 'index'])->name('saml-certificates.index');
         Route::post('saml-certificates/rotate', [SamlCertificateController::class, 'rotate'])->name('saml-certificates.rotate');

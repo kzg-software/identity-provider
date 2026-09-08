@@ -36,6 +36,13 @@ class ScopeRepository implements ScopeRepositoryInterface
         // Restrict to scopes explicitly defined in the system; unknown scopes are dropped.
         $validKeys = OauthScope::query()->pluck('key')->all();
 
+        // Per-client allow list: null/empty means "no restriction" (backwards compatible).
+        // "openid" stays allowed regardless so OIDC logins keep working.
+        $allowed = $client->allowed_scopes;
+        if (is_array($allowed) && $allowed !== []) {
+            $validKeys = array_values(array_intersect($validKeys, [...$allowed, 'openid']));
+        }
+
         return array_values(array_filter($scopes, fn (ScopeEntityInterface $s) => in_array($s->getIdentifier(), $validKeys, true)));
     }
 }

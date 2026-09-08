@@ -26,7 +26,7 @@
         ]],
         ['label' => 'Anwendungen', 'items' => [
             ['route' => 'admin.applications.index', 'match' => 'admin.applications.*', 'label' => 'Anwendungen', 'icon' => 'building'],
-            ['route' => 'admin.saml-service-providers.index', 'match' => 'admin.saml-service-providers.*', 'label' => 'SAML Service Provider', 'icon' => 'shield-check'],
+            ['route' => 'admin.providers.index', 'match' => 'admin.providers.*', 'label' => 'Provider', 'icon' => 'key'],
         ]],
         ['label' => 'Schlüssel & Zertifikate', 'items' => [
             ['route' => 'admin.oidc-keys.index', 'match' => 'admin.oidc-keys.*', 'label' => 'OIDC-Schlüssel', 'icon' => 'key'],
