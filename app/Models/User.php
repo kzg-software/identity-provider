@@ -2,6 +2,8 @@
 
 namespace App\Models;
 
+use App\Mail\SystemMail;
+use App\Support\NotificationCategories;
 use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
@@ -11,6 +13,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Illuminate\Support\Facades\Mail;
 
 #[Fillable([
     'username', 'first_name', 'last_name', 'name', 'email', 'password',
@@ -19,6 +22,7 @@ use Illuminate\Notifications\Notifiable;
     'display_name', 'phone', 'department', 'company', 'position', 'office',
     'manager', 'distinguished_name', 'domain', 'account_status',
     'extra_attributes', 'roles', 'manual_roles', 'last_synced_at', 'last_login_at', 'last_login_method',
+    'notification_email_prefs',
 ])]
 #[Hidden(['password', 'remember_token'])]
 class User extends Authenticatable
@@ -42,6 +46,7 @@ class User extends Authenticatable
             'password' => 'hashed',
             'is_admin' => 'boolean',
             'is_active' => 'boolean',
+            'notification_email_prefs' => 'array',
             'extra_attributes' => 'array',
             'roles' => 'array',
             'manual_roles' => 'array',
@@ -114,12 +119,46 @@ class User extends Authenticatable
     /**
      * Benachrichtigungen für die Glocke in der Navigationsleiste.
      *
-     * Überschreibt bewusst die Relation aus dem Notifiable-Trait – dieses
+     * Überschreibt bewusst die Relation aus dem Notifiable-Trait. Dieses
      * System nutzt keine Laravel-Datenbank-Notifications.
      */
     public function notifications(): HasMany
     {
         return $this->hasMany(Notification::class)->latest();
+    }
+
+    /**
+     * Soll dieser Benutzer Benachrichtigungen der Kategorie auch per E-Mail
+     * bekommen? Gesperrte (sicherheitsrelevante) Kategorien immer ja.
+     */
+    public function wantsEmailFor(string $category): bool
+    {
+        if (NotificationCategories::isLocked($category)) {
+            return true;
+        }
+
+        return (bool) (($this->notification_email_prefs ?? [])[$category] ?? true);
+    }
+
+    /**
+     * Link zum Zurücksetzen des Passworts. Wird als gebrandete System-E-Mail
+     * verschickt (siehe \App\Mail\SystemMail), nicht über die Standard-
+     * Notification von Laravel.
+     */
+    public function sendPasswordResetNotification($token): void
+    {
+        $url = route('password.reset', ['token' => $token, 'email' => $this->email]);
+
+        Mail::to($this->email)->send(new SystemMail(
+            subjectLine: 'Passwort zurücksetzen',
+            heading: 'Passwort zurücksetzen',
+            body: [
+                'Für dein Konto wurde angefragt, das Passwort zurückzusetzen.',
+                'Der Link ist 60 Minuten gültig. Warst du das nicht, ignoriere diese E-Mail einfach, dein Passwort bleibt unverändert.',
+            ],
+            actionUrl: $url,
+            actionLabel: 'Passwort zurücksetzen',
+        ));
     }
 
     public function oauthConsents(): HasMany

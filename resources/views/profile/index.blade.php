@@ -52,6 +52,10 @@
         <x-account-tile :href="route('profile.sessions')" title="Meine Sitzungen" icon="monitor">
             {{ $activeSessionCount }} {{ $activeSessionCount === 1 ? 'aktive Sitzung' : 'aktive Sitzungen' }}
         </x-account-tile>
+
+        <x-account-tile :href="route('profile.notifications')" title="Benachrichtigungen" icon="bell">
+            Festlegen, welche Hinweise du auch per E-Mail bekommst
+        </x-account-tile>
     </div>
 </div>
 @endsection

@@ -17,6 +17,7 @@ use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\Auth\NegotiateController;
 use App\Http\Controllers\Auth\PasskeyLoginController;
+use App\Http\Controllers\Auth\PasswordResetController;
 use App\Http\Controllers\Auth\TwoFactorChallengeController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\InstallController;
@@ -91,6 +92,14 @@ Route::middleware('guest')->group(function () {
     Route::post('login', [LoginController::class, 'login'])->name('login.attempt');
     Route::post('login/directory', [LoginController::class, 'loginDirectory'])->name('login.directory');
 
+    // Passwort vergessen (nur lokale Konten; Meldung bleibt immer gleich)
+    Route::get('forgot-password', [PasswordResetController::class, 'showForgot'])->name('password.request');
+    Route::post('forgot-password', [PasswordResetController::class, 'sendResetLink'])
+        ->middleware('throttle:6,1')->name('password.email');
+    Route::get('reset-password/{token}', [PasswordResetController::class, 'showReset'])->name('password.reset');
+    Route::post('reset-password', [PasswordResetController::class, 'reset'])
+        ->middleware('throttle:6,1')->name('password.update');
+
     // Passwortlose Anmeldung mit einem Passkey
     Route::post('login/passkey/options', [PasskeyLoginController::class, 'options'])
         ->middleware('throttle:30,1')->name('login.passkey.options');
@@ -130,6 +139,8 @@ Route::middleware('auth')->group(function () {
     Route::post('profile/sessions/destroy-others', [ProfileSessionController::class, 'destroyOthers'])->name('profile.sessions.destroy-others');
 
     Route::get('profile', [AccountController::class, 'index'])->name('profile.index');
+    Route::get('profile/notifications', [AccountController::class, 'notifications'])->name('profile.notifications');
+    Route::post('profile/notifications', [AccountController::class, 'updateNotifications'])->name('profile.notifications.update');
     Route::get('profile/apps', [ConnectedAppController::class, 'index'])->name('profile.apps');
     Route::delete('profile/apps/{client}', [ConnectedAppController::class, 'destroy'])->name('profile.apps.destroy');
 

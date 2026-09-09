@@ -273,6 +273,7 @@ class SecurityController extends Controller
     {
         Notifier::toUser($user, 'security.change', $title, [
             'level' => 'warning',
+            'security' => true,
             'body' => $body,
             'action_url' => route('profile.security'),
         ]);

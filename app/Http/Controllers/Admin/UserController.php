@@ -452,6 +452,7 @@ class UserController extends Controller
 
         Notifier::toUser($user, 'security.password_reset', 'Dein Passwort wurde zurückgesetzt', [
             'level' => 'warning',
+            'security' => true,
             'body' => 'Eine Administration hat das Passwort deines Kontos zurückgesetzt.',
             'action_url' => route('profile.security'),
         ]);

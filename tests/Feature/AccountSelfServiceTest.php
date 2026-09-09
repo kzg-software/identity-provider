@@ -10,9 +10,12 @@ use App\Models\OauthToken;
 use App\Models\SystemSetting;
 use App\Models\User;
 use App\Support\MailSettings;
+use App\Support\Notifier;
 use App\Support\Secret;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\Password;
 use Illuminate\Support\Str;
 use Tests\TestCase;
 
@@ -24,6 +27,12 @@ class AccountSelfServiceTest extends TestCase
     {
         parent::setUp();
         SystemSetting::set('installed', '1');
+    }
+
+    private function configureMail(): void
+    {
+        SystemSetting::set('mail_enabled', '1');
+        SystemSetting::set('mail_host', 'smtp.test');
     }
 
     // ----- Mein Account (Übersicht) --------------------------------------
@@ -38,6 +47,132 @@ class AccountSelfServiceTest extends TestCase
             ->assertSee('Sicherheit')
             ->assertSee('Verbundene Anwendungen')
             ->assertSee('Meine Sitzungen');
+    }
+
+    public function test_notification_category_toggle_is_saved_for_admin(): void
+    {
+        $admin = User::factory()->create(['auth_source' => 'local', 'is_admin' => true, 'is_active' => true, 'email' => 'a@b.de']);
+
+        $this->actingAs($admin)->get(route('profile.notifications'))->assertOk()->assertSee('Software-Updates');
+
+        // Nichts angehakt -> alle einstellbaren Kategorien aus.
+        $this->actingAs($admin)->post(route('profile.notifications.update'), [])->assertRedirect();
+        $this->assertFalse($admin->fresh()->wantsEmailFor('updates'));
+        $this->assertTrue($admin->fresh()->wantsEmailFor('account_security'));
+
+        $this->actingAs($admin)->post(route('profile.notifications.update'), ['categories' => ['updates' => '1']])->assertRedirect();
+        $this->assertTrue($admin->fresh()->wantsEmailFor('updates'));
+        $this->assertFalse($admin->fresh()->wantsEmailFor('backup'));
+    }
+
+    public function test_non_admin_only_sees_locked_security_category(): void
+    {
+        $user = User::factory()->create(['auth_source' => 'local', 'is_active' => true, 'email' => 'u@b.de']);
+
+        $this->actingAs($user)->get(route('profile.notifications'))
+            ->assertOk()
+            ->assertSee('Konto-Sicherheit')
+            ->assertSee('Immer aktiv')
+            ->assertDontSee('Software-Updates');
+    }
+
+    // ----- E-Mail bei Benachrichtigungen --------------------------------
+
+    public function test_security_notification_is_always_emailed(): void
+    {
+        Mail::fake();
+        $this->configureMail();
+        $user = User::factory()->create([
+            'auth_source' => 'local', 'is_active' => true, 'email' => 'u@firma.de',
+            'notification_email_prefs' => ['updates' => false],
+            'password' => Hash::make('altes-Passwort-123'),
+        ]);
+
+        $this->actingAs($user)->post(route('profile.security.password'), [
+            'current_password' => 'altes-Passwort-123',
+            'password' => 'ganz-neues-Passwort-456',
+            'password_confirmation' => 'ganz-neues-Passwort-456',
+        ])->assertRedirect();
+
+        Mail::assertQueued(SystemMail::class, fn ($m) => $m->hasTo('u@firma.de'));
+    }
+
+    public function test_non_security_notification_respects_preference(): void
+    {
+        Mail::fake();
+        $this->configureMail();
+        $user = User::factory()->create([
+            'auth_source' => 'local', 'is_active' => true, 'email' => 'u@firma.de',
+            'notification_email_prefs' => ['updates' => false],
+        ]);
+
+        Notifier::toUser($user, 'system.update', 'Update verfügbar', ['body' => 'Text']);
+        Mail::assertNothingOutgoing();
+
+        $user->update(['notification_email_prefs' => ['updates' => true]]);
+        Notifier::toUser($user, 'system.update', 'Update verfügbar 2', ['dedupe_key' => 'x', 'body' => 'Text']);
+        Mail::assertQueued(SystemMail::class);
+    }
+
+    // ----- Passwort vergessen -----------------------------------------
+
+    public function test_forgot_password_always_shows_generic_message(): void
+    {
+        Mail::fake();
+        $this->configureMail();
+        User::factory()->create(['auth_source' => 'active_directory', 'is_active' => true, 'email' => 'ad-user@firma.de']);
+
+        foreach (['gibtsnicht@x.de', 'ad-user@firma.de'] as $email) {
+            $this->post(route('password.email'), ['email' => $email])
+                ->assertSessionHas('status', fn ($s) => str_contains($s, 'Falls ein Konto'));
+        }
+
+        Mail::assertNothingOutgoing();
+    }
+
+    public function test_forgot_password_sends_link_for_local_account(): void
+    {
+        Mail::fake();
+        $this->configureMail();
+        User::factory()->create(['auth_source' => 'local', 'is_active' => true, 'email' => 'local@firma.de']);
+
+        $this->post(route('password.email'), ['email' => 'local@firma.de'])->assertRedirect();
+
+        Mail::assertQueued(SystemMail::class, fn ($m) => $m->hasTo('local@firma.de'));
+    }
+
+    public function test_reset_password_with_valid_token_changes_password(): void
+    {
+        Mail::fake();
+        $user = User::factory()->create([
+            'auth_source' => 'local', 'is_active' => true, 'email' => 'r@firma.de',
+            'password' => Hash::make('alt'),
+        ]);
+        $token = Password::createToken($user);
+
+        $this->post(route('password.update'), [
+            'token' => $token,
+            'email' => 'r@firma.de',
+            'password' => 'frisches-Passwort-999',
+            'password_confirmation' => 'frisches-Passwort-999',
+        ])->assertRedirect(route('login'));
+
+        $this->assertTrue(Hash::check('frisches-Passwort-999', $user->fresh()->password));
+        $this->assertDatabaseHas('user_notifications', ['user_id' => $user->id, 'title' => 'Passwort zurückgesetzt']);
+    }
+
+    public function test_reset_password_with_bad_token_is_rejected(): void
+    {
+        $user = User::factory()->create(['auth_source' => 'local', 'is_active' => true, 'email' => 'r2@firma.de', 'password' => Hash::make('alt')]);
+
+        $this->post(route('password.update'), [
+            'token' => 'falsch',
+            'email' => 'r2@firma.de',
+            'password' => 'frisches-Passwort-999',
+            'password_confirmation' => 'frisches-Passwort-999',
+        ])->assertSessionHasErrors('email');
+
+        $this->assertTrue(Hash::check('alt', $user->fresh()->password));
     }
 
     // ----- Passwort ändern -------------------------------------------------
