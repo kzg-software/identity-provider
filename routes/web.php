@@ -6,6 +6,7 @@ use App\Http\Controllers\Admin\BackupController;
 use App\Http\Controllers\Admin\DirectoryController;
 use App\Http\Controllers\Admin\GroupRoleMappingController;
 use App\Http\Controllers\Admin\ImpersonateController;
+use App\Http\Controllers\Admin\MailQueueController;
 use App\Http\Controllers\Admin\OidcKeyController;
 use App\Http\Controllers\Admin\ProviderController;
 use App\Http\Controllers\Admin\SamlCertificateController;
@@ -199,6 +200,15 @@ Route::middleware('auth')->group(function () {
         Route::post('directories/{directory}/sync', [DirectoryController::class, 'sync'])->name('directories.sync');
 
         Route::get('status', [SystemStatusController::class, 'index'])->name('status.index');
+
+        Route::get('mail-queue', [MailQueueController::class, 'index'])->name('mail-queue.index');
+        Route::post('mail-queue/process', [MailQueueController::class, 'process'])->name('mail-queue.process');
+        Route::delete('mail-queue/pending', [MailQueueController::class, 'cancelAll'])->name('mail-queue.cancel-all');
+        Route::delete('mail-queue/pending/{job}', [MailQueueController::class, 'cancel'])->name('mail-queue.cancel');
+        Route::post('mail-queue/retry-all', [MailQueueController::class, 'retryAll'])->name('mail-queue.retry-all');
+        Route::post('mail-queue/{uuid}/retry', [MailQueueController::class, 'retry'])->name('mail-queue.retry');
+        Route::delete('mail-queue/failed', [MailQueueController::class, 'flush'])->name('mail-queue.flush');
+        Route::delete('mail-queue/{uuid}', [MailQueueController::class, 'forget'])->name('mail-queue.forget');
 
         Route::get('updates', [SystemUpdateController::class, 'index'])->name('updates.index');
         Route::post('updates/check', [SystemUpdateController::class, 'check'])->name('updates.check');

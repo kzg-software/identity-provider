@@ -36,6 +36,7 @@
             ['route' => 'admin.settings.edit', 'match' => 'admin.settings.*', 'label' => 'Systemeinstellungen', 'icon' => 'cog'],
             ['route' => 'admin.backups.index', 'match' => 'admin.backups.*', 'label' => 'Datensicherung', 'icon' => 'download'],
             ['route' => 'admin.status.index', 'match' => 'admin.status.*', 'label' => 'Systemstatus', 'icon' => 'heart-pulse'],
+            ['route' => 'admin.mail-queue.index', 'match' => 'admin.mail-queue.*', 'label' => 'E-Mail-Warteschlange', 'icon' => 'mail'],
             ['route' => 'admin.updates.index', 'match' => 'admin.updates.*', 'label' => 'Aktualisierungen', 'icon' => 'sparkles'],
             ['route' => 'admin.audit-log.index', 'match' => 'admin.audit-log.*', 'label' => 'Audit-Log', 'icon' => 'journal'],
             ['route' => 'admin.sessions.index', 'match' => 'admin.sessions.*', 'label' => 'Alle Sitzungen', 'icon' => 'monitor'],
