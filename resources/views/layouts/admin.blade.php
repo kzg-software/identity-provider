@@ -46,8 +46,8 @@
     {{-- Header --}}
     <header class="bg-white border-b border-gray-200">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div class="flex justify-between h-16 gap-4">
-                <div class="flex min-w-0">
+            <div class="flex items-center justify-between h-16 gap-4">
+                <div class="flex min-w-0 items-center self-stretch">
                     @if ($isConsole)
                         <button @click="mobileOpen = !mobileOpen" class="lg:hidden self-center -ml-2 p-2 text-gray-500 hover:text-gray-700" aria-label="Menü">
                             <svg class="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h16" /></svg>
@@ -64,9 +64,9 @@
                     @if ($isConsole)
                         <span class="ml-3 self-center hidden sm:inline-flex items-center rounded-full bg-laravel-50 px-2.5 py-0.5 text-xs font-medium text-laravel-700">Administration</span>
                     @else
-                        <div class="hidden lg:flex lg:ml-8 lg:space-x-6 overflow-x-auto">
+                        <div class="hidden lg:flex lg:ml-8 lg:space-x-6 self-stretch overflow-x-auto">
                             @foreach ($portalNav as $item)
-                                <a href="{{ route($item['route']) }}" class="inline-flex items-center gap-1.5 px-1 pt-1 border-b-2 text-sm font-medium whitespace-nowrap {{ request()->routeIs($item['match']) ? 'border-laravel-600 text-gray-900' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300' }}">
+                                <a href="{{ route($item['route']) }}" class="inline-flex items-center gap-1.5 px-1 border-b-2 text-sm font-medium whitespace-nowrap {{ request()->routeIs($item['match']) ? 'border-laravel-600 text-gray-900' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300' }}">
                                     <x-icon :name="$item['icon']" class="h-4 w-4 shrink-0" />
                                     {{ $item['label'] }}
                                 </a>
@@ -78,8 +78,8 @@
                 <div class="flex items-center gap-3">
                     @if ($isAdmin)
                         <a href="{{ $isConsole ? route('dashboard') : route('admin.dashboard') }}"
-                           class="hidden sm:inline-flex items-center gap-1.5 rounded-md border border-gray-300 px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-50">
-                            <x-icon :name="$isConsole ? 'grid' : 'cog'" class="h-4 w-4" />
+                           class="hidden sm:inline-flex shrink-0 whitespace-nowrap items-center gap-1.5 rounded-md border border-gray-300 px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-50">
+                            <x-icon :name="$isConsole ? 'grid' : 'cog'" class="h-4 w-4 shrink-0" />
                             {{ $isConsole ? 'Zum Portal' : 'Administration' }}
                         </a>
                     @endif
