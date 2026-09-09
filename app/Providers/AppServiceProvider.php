@@ -4,6 +4,7 @@ namespace App\Providers;
 
 use App\Models\SystemSetting;
 use App\Support\AccentPalette;
+use Carbon\Carbon;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\View;
@@ -58,6 +59,8 @@ class AppServiceProvider extends ServiceProvider
         if ($locale) {
             app()->setLocale($locale);
         }
+
+        Carbon::setLocale(app()->getLocale());
     }
 
     private function resolveSystemName(): string

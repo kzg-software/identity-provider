@@ -111,6 +111,17 @@ class User extends Authenticatable
         return $this->hasMany(UserSession::class);
     }
 
+    /**
+     * Benachrichtigungen für die Glocke in der Navigationsleiste.
+     *
+     * Überschreibt bewusst die Relation aus dem Notifiable-Trait – dieses
+     * System nutzt keine Laravel-Datenbank-Notifications.
+     */
+    public function notifications(): HasMany
+    {
+        return $this->hasMany(Notification::class)->latest();
+    }
+
     public function oauthConsents(): HasMany
     {
         return $this->hasMany(OauthConsent::class);

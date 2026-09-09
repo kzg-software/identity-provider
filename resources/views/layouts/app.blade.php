@@ -137,6 +137,8 @@
         html.dark .text-emerald-700, html.dark .text-emerald-800 { color: #6ee7b7; }
         html.dark .text-blue-700, html.dark .text-blue-800 { color: #93c5fd; }
 
+        html.dark .ring-white { --tw-ring-color: #1e222b; }
+
         html.dark .border-red-200, html.dark .border-red-300 { border-color: rgba(239, 68, 68, 0.35); }
         html.dark .border-amber-200, html.dark .border-amber-300 { border-color: rgba(245, 158, 11, 0.35); }
         html.dark .border-emerald-200 { border-color: rgba(16, 185, 129, 0.35); }

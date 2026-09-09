@@ -84,9 +84,7 @@
                         </a>
                     @endif
 
-                    <div class="hidden sm:block">
-                        <x-theme-toggle />
-                    </div>
+                    <x-notification-bell />
 
                     <div class="relative" x-data="{ open: false }" @click.outside="open = false">
                         <button @click="open = !open" class="flex items-center gap-2 text-sm font-medium text-gray-600 hover:text-gray-900">
@@ -111,10 +109,6 @@
                                     <x-icon :name="$isConsole ? 'grid' : 'cog'" class="h-4 w-4 text-gray-400" />{{ $isConsole ? 'Zum Portal' : 'Administration' }}
                                 </a>
                             @endif
-                            <div class="sm:hidden border-b border-gray-100 px-4 py-2.5">
-                                <div class="text-xs uppercase tracking-wide text-gray-400 mb-1.5">Farbschema</div>
-                                <x-theme-toggle />
-                            </div>
                             <form method="POST" action="{{ route('logout') }}">
                                 @csrf
                                 <button type="submit" class="w-full text-left flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"><x-icon name="logout" class="h-4 w-4 text-gray-400" />Abmelden</button>

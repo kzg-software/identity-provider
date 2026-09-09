@@ -20,7 +20,10 @@
             @endif
         </div>
 
-        <div class="flex flex-wrap items-center justify-center gap-x-4 gap-y-1">
+        <div class="flex flex-wrap items-center justify-center gap-x-4 gap-y-2">
+            @auth
+                <x-theme-toggle />
+            @endauth
             @if ($showUpdate)
                 <a href="{{ route('admin.updates.index') }}"
                    class="inline-flex items-center gap-1 font-medium text-laravel-600 hover:text-laravel-700">

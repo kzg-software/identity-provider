@@ -25,6 +25,9 @@ Schedule::command('backup:run')->everyThirtyMinutes()->withoutOverlapping()->run
 // Administration unter "Aktualisierungen" angezeigt).
 Schedule::command('updates:check --force')->everyTwoHours()->withoutOverlapping();
 
+// Gleicht die Administrator-Benachrichtigungen (Glocke) mit dem Systemzustand ab.
+Schedule::command('notifications:sync')->everyFifteenMinutes()->withoutOverlapping();
+
 // Beweist auf der Systemstatus-Seite, dass der Laravel-Scheduler tatsächlich läuft.
 Schedule::call(fn () => Cache::put('schedule.heartbeat', now()->toDateTimeString(), 600))
     ->everyMinute()

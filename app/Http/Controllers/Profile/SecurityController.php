@@ -8,6 +8,7 @@ use App\Models\SystemSetting;
 use App\Models\TwoFactorCredential;
 use App\Models\User;
 use App\Models\WebauthnCredential;
+use App\Support\Notifier;
 use App\Support\SecuritySettings;
 use App\Webauthn\WebAuthnException;
 use App\Webauthn\WebAuthnService;
@@ -65,6 +66,7 @@ class SecurityController extends Controller
         }
 
         AuditLog::record('webauthn.registered', $user, ['credential_id' => $credential->id, 'name' => $credential->name]);
+        $this->notifySecurity($user, 'Passkey hinzugefügt', 'Der Passkey „'.$credential->name.'" wurde deinem Konto hinzugefügt. Warst du das nicht, entferne ihn und ändere dein Passwort.');
 
         $codes = $this->ensureRecoveryCodes($user);
 
@@ -84,6 +86,7 @@ class SecurityController extends Controller
         $credential->delete();
 
         AuditLog::record('webauthn.removed', $request->user(), ['credential_id' => $credential->id, 'name' => $credential->name]);
+        $this->notifySecurity($request->user(), 'Passkey entfernt', 'Der Passkey „'.$credential->name.'" wurde aus deinem Konto entfernt.');
 
         $this->pruneRecoveryCodes($request->user());
 
@@ -136,6 +139,7 @@ class SecurityController extends Controller
         Session::forget(self::TOTP_SETUP_KEY);
 
         AuditLog::record('two_factor.enabled', $user, ['method' => 'totp']);
+        $this->notifySecurity($user, 'Authenticator-App aktiviert', 'Für dein Konto wurde eine Authenticator-App als zweiter Faktor eingerichtet.');
 
         $codes = $this->ensureRecoveryCodes($user);
 
@@ -160,6 +164,7 @@ class SecurityController extends Controller
         }
 
         AuditLog::record('two_factor.disabled', $user, ['method' => 'totp']);
+        $this->notifySecurity($user, 'Authenticator-App deaktiviert', 'Die Authenticator-App wurde als zweiter Faktor entfernt.');
 
         $this->pruneRecoveryCodes($user);
 
@@ -180,6 +185,7 @@ class SecurityController extends Controller
         $this->twoFactorFor($user)->forceFill(['recovery_codes' => $codes])->save();
 
         AuditLog::record('two_factor.recovery_regenerated', $user);
+        $this->notifySecurity($user, 'Wiederherstellungscodes neu erzeugt', 'Es wurden neue Wiederherstellungscodes für dein Konto erzeugt. Die alten sind ungültig.');
 
         return redirect()->route('profile.security')
             ->with('status', 'Neue Wiederherstellungscodes wurden erzeugt.')
@@ -226,6 +232,15 @@ class SecurityController extends Controller
         if (! $user->hasTwoFactorEnabled() && $user->twoFactor) {
             $user->twoFactor->forceFill(['recovery_codes' => null])->save();
         }
+    }
+
+    private function notifySecurity(User $user, string $title, string $body): void
+    {
+        Notifier::toUser($user, 'security.change', $title, [
+            'level' => 'warning',
+            'body' => $body,
+            'action_url' => route('profile.security'),
+        ]);
     }
 
     private function confirmIdentity(Request $request): void

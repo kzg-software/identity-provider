@@ -6,6 +6,7 @@ use App\Models\AuditLog;
 use App\Models\SystemSetting;
 use App\Models\User;
 use App\Models\WebauthnCredential;
+use App\Support\Notifier;
 use Illuminate\Support\Facades\Session;
 use lbuchs\WebAuthn\Binary\ByteBuffer;
 use lbuchs\WebAuthn\WebAuthn;
@@ -215,6 +216,12 @@ class WebAuthnService
         } catch (LibWebAuthnException $e) {
             if ($e->getCode() === LibWebAuthnException::SIGNATURE_COUNTER) {
                 AuditLog::record('webauthn.clone_detected', $user, ['credential_id' => $credential->id]);
+                Notifier::toUser($user, 'security.passkey_clone', 'Möglicherweise geklonter Passkey erkannt', [
+                    'level' => 'critical',
+                    'body' => 'Der Signaturzähler eines Passkeys war unerwartet niedrig. Das kann auf einen kopierten Sicherheitsschlüssel hindeuten. Entferne den betroffenen Passkey und prüfe dein Konto.',
+                    'action_url' => route('profile.security'),
+                    'dedupe_key' => 'security.passkey_clone:'.$credential->id,
+                ]);
             }
 
             throw new WebAuthnException('Der Passkey konnte nicht überprüft werden.', 0, $e);

@@ -20,6 +20,7 @@ use App\Http\Controllers\Auth\PasskeyLoginController;
 use App\Http\Controllers\Auth\TwoFactorChallengeController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\InstallController;
+use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\Oidc\AuthorizationController;
 use App\Http\Controllers\Oidc\DiscoveryController;
 use App\Http\Controllers\Oidc\JwksController;
@@ -114,6 +115,13 @@ Route::middleware('auth')->group(function () {
     Route::get('dashboard', [DashboardController::class, 'index']);
 
     Route::post('impersonate/stop', [ImpersonateController::class, 'stop'])->name('impersonate.stop');
+
+    Route::get('notifications', [NotificationController::class, 'index'])->name('notifications.index');
+    Route::get('notifications/{notification}/open', [NotificationController::class, 'open'])->name('notifications.open');
+    Route::post('notifications/{notification}/read', [NotificationController::class, 'markRead'])->name('notifications.read');
+    Route::post('notifications/read-all', [NotificationController::class, 'markAllRead'])->name('notifications.read-all');
+    Route::delete('notifications/{notification}', [NotificationController::class, 'destroy'])->name('notifications.destroy');
+    Route::delete('notifications', [NotificationController::class, 'clear'])->name('notifications.clear');
 
     Route::get('profile/sessions', [ProfileSessionController::class, 'index'])->name('profile.sessions');
     Route::delete('profile/sessions/{userSession}', [ProfileSessionController::class, 'destroy'])->name('profile.sessions.destroy');

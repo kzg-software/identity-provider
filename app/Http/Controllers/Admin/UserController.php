@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\AuditLog;
 use App\Models\User;
 use App\Models\WebauthnCredential;
+use App\Support\Notifier;
 use App\Support\SecuritySettings;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -448,6 +449,12 @@ class UserController extends Controller
         $user->update(['password' => Hash::make($data['password'])]);
 
         AuditLog::record('admin.password_reset', $request->user(), ['target_user_id' => $user->id]);
+
+        Notifier::toUser($user, 'security.password_reset', 'Dein Passwort wurde zurückgesetzt', [
+            'level' => 'warning',
+            'body' => 'Eine Administration hat das Passwort deines Kontos zurückgesetzt.',
+            'action_url' => route('profile.security'),
+        ]);
 
         return back()->with('status', 'Passwort wurde zurückgesetzt.');
     }
