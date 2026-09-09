@@ -19,6 +19,7 @@ use BaconQrCode\Writer;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Session;
 use Illuminate\View\View;
 use PragmaRX\Google2FA\Google2FA;
@@ -34,6 +35,18 @@ class SecurityController extends Controller
         $user = $request->user();
         $user->load(['webauthnCredentials' => fn ($q) => $q->orderBy('created_at'), 'twoFactor']);
 
+        $recentEvents = AuditLog::query()
+            ->where('user_id', $user->id)
+            ->whereIn('event', [
+                'login.success', 'login.windows_sso', 'webauthn.login',
+                'two_factor.enabled', 'two_factor.disabled', 'two_factor.recovery_used',
+                'two_factor.recovery_regenerated', 'webauthn.registered', 'webauthn.removed',
+                'password.changed',
+            ])
+            ->latest('created_at')
+            ->limit(8)
+            ->get();
+
         return view('profile.security', [
             'user' => $user,
             'passkeys' => $user->webauthnCredentials,
@@ -42,7 +55,29 @@ class SecurityController extends Controller
             'passwordlessEnabled' => SecuritySettings::passwordlessEnabledFor($user),
             'requiresPassword' => $user->isLocal(),
             'newRecoveryCodes' => Session::get('security.recovery_codes'),
+            'recentEvents' => $recentEvents,
         ]);
+    }
+
+    // ----- Passwort --------------------------------------------------------
+
+    public function updatePassword(Request $request): RedirectResponse
+    {
+        $user = $request->user();
+
+        abort_unless($user->isLocal(), 403, 'Das Passwort dieses Kontos wird im Verzeichnis verwaltet.');
+
+        $request->validate([
+            'current_password' => ['required', 'current_password:web'],
+            'password' => ['required', 'string', 'confirmed', SecuritySettings::passwordRule()],
+        ], [], ['current_password' => 'Aktuelles Passwort', 'password' => 'Neues Passwort']);
+
+        $user->forceFill(['password' => Hash::make($request->string('password'))])->save();
+
+        AuditLog::record('password.changed', $user);
+        $this->notifySecurity($user, 'Passwort geändert', 'Das Passwort deines Kontos wurde geändert. Warst du das nicht, wende dich sofort an deine Administration.');
+
+        return back()->with('status', 'Passwort wurde geändert.');
     }
 
     // ----- Passkeys ---------------------------------------------------------

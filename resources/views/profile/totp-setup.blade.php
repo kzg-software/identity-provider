@@ -2,10 +2,8 @@
 
 @section('admin-content')
 <div class="max-w-lg space-y-6">
-    <div>
-        <h1 class="text-2xl font-semibold text-gray-900 mb-1">Authenticator-App einrichten</h1>
-        <p class="text-gray-500">Scanne den Code mit deiner Authenticator-App und gib den erzeugten Code ein.</p>
-    </div>
+    <x-page-header title="Authenticator-App einrichten" :back="route('profile.security')" back-label="Sicherheit"
+                   description="Scanne den Code mit deiner Authenticator-App und gib den erzeugten Code ein." />
 
     <x-card>
         <div class="flex flex-col items-center gap-4">

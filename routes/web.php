@@ -27,6 +27,8 @@ use App\Http\Controllers\Oidc\JwksController;
 use App\Http\Controllers\Oidc\LogoutController;
 use App\Http\Controllers\Oidc\TokenController;
 use App\Http\Controllers\Oidc\UserInfoController;
+use App\Http\Controllers\Profile\AccountController;
+use App\Http\Controllers\Profile\ConnectedAppController;
 use App\Http\Controllers\Profile\SecurityController;
 use App\Http\Controllers\Profile\SessionController as ProfileSessionController;
 use App\Http\Controllers\Saml\MetadataController;
@@ -127,7 +129,12 @@ Route::middleware('auth')->group(function () {
     Route::delete('profile/sessions/{userSession}', [ProfileSessionController::class, 'destroy'])->name('profile.sessions.destroy');
     Route::post('profile/sessions/destroy-others', [ProfileSessionController::class, 'destroyOthers'])->name('profile.sessions.destroy-others');
 
+    Route::get('profile', [AccountController::class, 'index'])->name('profile.index');
+    Route::get('profile/apps', [ConnectedAppController::class, 'index'])->name('profile.apps');
+    Route::delete('profile/apps/{client}', [ConnectedAppController::class, 'destroy'])->name('profile.apps.destroy');
+
     Route::get('profile/security', [SecurityController::class, 'edit'])->name('profile.security');
+    Route::post('profile/security/password', [SecurityController::class, 'updatePassword'])->name('profile.security.password');
     Route::post('profile/security/passkeys/options', [SecurityController::class, 'passkeyOptions'])->name('profile.security.passkeys.options');
     Route::post('profile/security/passkeys', [SecurityController::class, 'storePasskey'])->name('profile.security.passkeys.store');
     Route::delete('profile/security/passkeys/{credential}', [SecurityController::class, 'destroyPasskey'])->name('profile.security.passkeys.destroy');

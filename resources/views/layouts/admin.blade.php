@@ -9,10 +9,10 @@
         ['route' => 'dashboard', 'match' => 'dashboard', 'label' => 'Meine Anwendungen', 'icon' => 'grid'],
     ]);
 
-    // Persönliche Einstellungen – im Profilmenü (dort, wo auch "Abmelden" liegt).
+    // Persönlicher Bereich im Profilmenü (dort, wo auch "Abmelden" liegt).
+    // "Mein Account" ist die Übersicht mit allen weiteren Unterseiten.
     $profileNav = [
-        ['route' => 'profile.security', 'match' => 'profile.security*', 'label' => 'Sicherheit', 'icon' => 'shield-check'],
-        ['route' => 'profile.sessions', 'match' => 'profile.sessions*', 'label' => 'Meine Sitzungen', 'icon' => 'monitor'],
+        ['route' => 'profile.index', 'match' => 'profile.*', 'label' => 'Mein Account', 'icon' => 'user'],
     ];
 
     $adminNav = [

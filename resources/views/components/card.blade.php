@@ -9,12 +9,15 @@
                         <x-icon :name="$icon" class="h-4 w-4" />
                     </span>
                 @endif
-                <div class="min-w-0">
+                <div class="min-w-0 flex-1">
                     <h3 class="text-base font-semibold text-gray-900">{{ $title }}</h3>
                     @if ($description)
                         <p class="mt-0.5 text-sm text-gray-500">{{ $description }}</p>
                     @endif
                 </div>
+                @isset($actions)
+                    <div class="flex shrink-0 items-center gap-2">{{ $actions }}</div>
+                @endisset
             </div>
         </div>
     @endif

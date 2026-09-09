@@ -3,6 +3,7 @@
 @section('admin-content')
 <x-page-header
     title="Meine Sitzungen"
+    :back="route('profile.index')" back-label="Mein Account"
     description="Alle Geräte, auf denen du gerade angemeldet bist. Kommt dir eine Sitzung fremd vor, beende sie und ändere dein Passwort.">
     <x-slot:actions>
         <x-confirm-form :action="route('profile.sessions.destroy-others')" method="POST"
