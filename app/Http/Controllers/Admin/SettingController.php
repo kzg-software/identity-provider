@@ -3,13 +3,17 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Mail\SystemMail;
 use App\Models\AuditLog;
 use App\Models\SystemSetting;
 use App\Support\AccentPalette;
 use App\Support\Locales;
+use App\Support\MailSettings;
+use App\Support\Secret;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
@@ -29,6 +33,8 @@ class SettingController extends Controller
         'password_require_symbol', 'password_check_pwned',
         'login_max_attempts', 'login_lockout_minutes',
         'passkey_passwordless_local_enabled', 'passkey_passwordless_ad_enabled',
+        'mail_enabled', 'mail_host', 'mail_port', 'mail_encryption',
+        'mail_username', 'mail_from_address', 'mail_from_name',
     ];
 
     public function edit(): View
@@ -37,8 +43,12 @@ class SettingController extends Controller
         $logoPath = SystemSetting::get('logo_path');
         $faviconPath = SystemSetting::get('favicon_path');
         $loginBackgroundPath = SystemSetting::get('login_background_path');
+        $hasMailPassword = filled(SystemSetting::get('mail_password'));
+        $mailConfigured = MailSettings::configured();
 
-        return view('admin.settings.edit', compact('settings', 'logoPath', 'faviconPath', 'loginBackgroundPath'));
+        return view('admin.settings.edit', compact(
+            'settings', 'logoPath', 'faviconPath', 'loginBackgroundPath', 'hasMailPassword', 'mailConfigured'
+        ));
     }
 
     public function update(Request $request): RedirectResponse
@@ -63,6 +73,13 @@ class SettingController extends Controller
             'password_min_length' => 'nullable|integer|min:6|max:128',
             'login_max_attempts' => 'nullable|integer|min:3|max:100',
             'login_lockout_minutes' => 'nullable|integer|min:1|max:1440',
+            'mail_host' => 'nullable|string|max:255',
+            'mail_port' => 'nullable|integer|min:1|max:65535',
+            'mail_encryption' => 'nullable|in:starttls,ssl,none',
+            'mail_username' => 'nullable|string|max:255',
+            'mail_password' => 'nullable|string|max:255',
+            'mail_from_address' => 'nullable|email|max:255',
+            'mail_from_name' => 'nullable|string|max:255',
         ], [
             'accent_color.regex' => 'Die Akzentfarbe muss ein Hex-Farbwert sein, z. B. #2563EB.',
         ]);
@@ -84,6 +101,16 @@ class SettingController extends Controller
         ] as $flag) {
             $data[$flag] = $request->boolean($flag) ? '1' : '0';
         }
+        $data['mail_enabled'] = $request->boolean('mail_enabled') ? '1' : '0';
+        $data['mail_encryption'] = $data['mail_encryption'] ?? 'starttls';
+        $data['mail_port'] = (string) (((int) ($data['mail_port'] ?? 0)) ?: ($data['mail_encryption'] === 'ssl' ? 465 : 587));
+
+        // Passwort nur überschreiben, wenn ein neuer Wert eingegeben wurde.
+        if (filled($request->input('mail_password'))) {
+            SystemSetting::set('mail_password', Secret::encrypt($request->string('mail_password')));
+        }
+        unset($data['mail_password']);
+
         $data['accent_color'] = AccentPalette::normalize($data['accent_color'] ?? null) ?? '';
         $data['login_title_mode'] = $data['login_title_mode'] ?? 'default';
         $data['brand_icon_mode'] = $data['brand_icon_mode'] ?? 'default';
@@ -96,6 +123,36 @@ class SettingController extends Controller
         AuditLog::record('admin.settings_updated', $request->user(), $data);
 
         return back()->with('status', 'Einstellungen wurden gespeichert.');
+    }
+
+    public function sendTestMail(Request $request): RedirectResponse
+    {
+        $data = $request->validate(['test_email' => 'required|email'], [
+            'test_email.required' => 'Bitte eine Empfängeradresse für die Testnachricht angeben.',
+        ]);
+
+        if (! MailSettings::configured()) {
+            return back()->with('error', 'Bitte zuerst den SMTP-Zugang eintragen, „E-Mail-Versand aktiv" setzen und speichern.');
+        }
+
+        try {
+            $system = SystemSetting::get('system_name') ?: config('app.name');
+
+            Mail::to($data['test_email'])->send(new SystemMail(
+                subjectLine: "Testnachricht von {$system}",
+                heading: 'Der E-Mail-Versand funktioniert',
+                body: [
+                    "Diese Nachricht wurde über die SMTP-Einstellungen von {$system} verschickt.",
+                    'Wenn du sie erhalten hast, ist alles richtig eingerichtet.',
+                ],
+            ));
+        } catch (\Throwable $e) {
+            return back()->with('error', 'Versand fehlgeschlagen: '.$e->getMessage());
+        }
+
+        AuditLog::record('admin.mail_test_sent', $request->user(), ['to' => $data['test_email']]);
+
+        return back()->with('status', 'Testnachricht an '.$data['test_email'].' gesendet.');
     }
 
     public function uploadLogo(Request $request): RedirectResponse

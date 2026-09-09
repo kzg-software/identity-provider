@@ -156,6 +156,7 @@ Route::middleware('auth')->group(function () {
 
         Route::get('settings', [SettingController::class, 'edit'])->name('settings.edit');
         Route::put('settings', [SettingController::class, 'update'])->name('settings.update');
+        Route::post('settings/test-mail', [SettingController::class, 'sendTestMail'])->name('settings.test-mail');
         Route::post('settings/logo', [SettingController::class, 'uploadLogo'])->name('settings.logo.upload');
         Route::delete('settings/logo', [SettingController::class, 'deleteLogo'])->name('settings.logo.delete');
         Route::post('settings/favicon', [SettingController::class, 'uploadFavicon'])->name('settings.favicon.upload');

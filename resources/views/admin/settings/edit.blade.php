@@ -7,6 +7,7 @@
         ['id' => 'images', 'label' => 'Bilder', 'icon' => 'image'],
         ['id' => 'login', 'label' => 'Anmeldung', 'icon' => 'login'],
         ['id' => 'security', 'label' => 'Sicherheit', 'icon' => 'shield-check'],
+        ['id' => 'email', 'label' => 'E-Mail', 'icon' => 'mail'],
         ['id' => 'audit', 'label' => 'Protokoll', 'icon' => 'journal'],
         ['id' => 'maintenance', 'label' => 'Wartung', 'icon' => 'warning'],
     ];
@@ -305,6 +306,55 @@
                     </x-card>
                 </div>
 
+                {{-- ===== E-Mail ===== --}}
+                <div x-show="tab === 'email'">
+                    <x-card title="E-Mail-Versand (SMTP)"
+                            description="Für Systemnachrichten wie Benachrichtigungen. Ohne Konfiguration versendet das System keine E-Mails.">
+                        <div class="space-y-4"
+                             x-data="{ on: {{ old('mail_enabled', $settings['mail_enabled'] ?? '0') === '1' ? 'true' : 'false' }} }">
+                            <label class="flex cursor-pointer items-start gap-3">
+                                <input type="hidden" name="mail_enabled" value="0">
+                                <x-checkbox name="mail_enabled" value="1" class="mt-0.5" x-model="on" />
+                                <span class="text-sm font-medium text-gray-900">E-Mail-Versand aktiv</span>
+                            </label>
+
+                            <div class="divide-y divide-gray-100" x-show="on" x-cloak>
+                                <x-setting-row label="SMTP-Server" hint="Hostname des Postausgangsservers, z. B. <code>smtp.firma.de</code>.">
+                                    <x-input type="text" name="mail_host" value="{{ old('mail_host', $settings['mail_host']) }}" placeholder="smtp.firma.de" />
+                                </x-setting-row>
+                                <x-setting-row label="Port">
+                                    <x-input type="number" name="mail_port" min="1" max="65535"
+                                             value="{{ old('mail_port', $settings['mail_port'] ?: '587') }}" class="!w-28" />
+                                </x-setting-row>
+                                <x-setting-row label="Verschlüsselung">
+                                    @php($enc = old('mail_encryption', $settings['mail_encryption'] ?: 'starttls'))
+                                    <x-select name="mail_encryption" class="!w-48">
+                                        <option value="starttls" @selected($enc === 'starttls')>STARTTLS (Port 587)</option>
+                                        <option value="ssl" @selected($enc === 'ssl')>SSL/TLS (Port 465)</option>
+                                        <option value="none" @selected($enc === 'none')>Keine</option>
+                                    </x-select>
+                                </x-setting-row>
+                                <x-setting-row label="Benutzername" hint="Meist die vollständige Absenderadresse. Leer lassen, wenn der Server keine Anmeldung verlangt.">
+                                    <x-input type="text" name="mail_username" autocomplete="off"
+                                             value="{{ old('mail_username', $settings['mail_username']) }}" />
+                                </x-setting-row>
+                                <x-setting-row label="Passwort">
+                                    <x-input type="password" name="mail_password" autocomplete="new-password"
+                                             placeholder="{{ $hasMailPassword ? '•••••••• (unverändert lassen)' : '' }}" />
+                                </x-setting-row>
+                                <x-setting-row label="Absenderadresse" hint="Erscheint als Absender in versendeten E-Mails.">
+                                    <x-input type="email" name="mail_from_address"
+                                             value="{{ old('mail_from_address', $settings['mail_from_address']) }}" placeholder="no-reply@firma.de" />
+                                </x-setting-row>
+                                <x-setting-row label="Absendername">
+                                    <x-input type="text" name="mail_from_name"
+                                             value="{{ old('mail_from_name', $settings['mail_from_name']) }}" placeholder="{{ $settings['system_name'] }}" />
+                                </x-setting-row>
+                            </div>
+                        </div>
+                    </x-card>
+                </div>
+
                 {{-- ===== Protokoll ===== --}}
                 <div x-show="tab === 'audit'" class="space-y-6">
                     <x-card title="Aufbewahrung"
@@ -384,6 +434,26 @@
                     <span class="text-xs text-gray-500">Gilt für alle Abschnitte außer „Bilder".</span>
                 </div>
             </form>
+
+            {{-- ===== E-Mail: Testnachricht (eigenes Formular) ===== --}}
+            <div x-show="tab === 'email'">
+                <x-card title="Testnachricht" description="Prüft die oben gespeicherten Zugangsdaten. Vorher speichern.">
+                    <form method="POST" action="{{ route('admin.settings.test-mail') }}" class="flex flex-wrap items-end gap-3">
+                        @csrf
+                        <div class="min-w-[16rem] flex-1">
+                            <x-input-label value="Empfänger" />
+                            <x-input type="email" name="test_email" required
+                                     value="{{ old('test_email', auth()->user()->email) }}" placeholder="du@firma.de" />
+                        </div>
+                        <x-button type="submit" variant="secondary" :disabled="! $mailConfigured">
+                            <x-icon name="mail" class="h-4 w-4" />Testnachricht senden
+                        </x-button>
+                    </form>
+                    @unless ($mailConfigured)
+                        <p class="mt-2 text-xs text-amber-600">SMTP ist noch nicht aktiv gespeichert.</p>
+                    @endunless
+                </x-card>
+            </div>
 
             {{-- ===== Bilder (eigene Formulare, außerhalb des Einstellungsformulars) ===== --}}
             <div x-show="tab === 'images'" class="space-y-6">

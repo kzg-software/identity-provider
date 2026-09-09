@@ -4,6 +4,7 @@ namespace App\Providers;
 
 use App\Models\SystemSetting;
 use App\Support\AccentPalette;
+use App\Support\MailSettings;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Storage;
@@ -61,6 +62,8 @@ class AppServiceProvider extends ServiceProvider
         }
 
         Carbon::setLocale(app()->getLocale());
+
+        MailSettings::apply();
     }
 
     private function resolveSystemName(): string
