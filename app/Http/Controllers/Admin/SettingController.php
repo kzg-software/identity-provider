@@ -138,7 +138,8 @@ class SettingController extends Controller
         try {
             $system = SystemSetting::get('system_name') ?: config('app.name');
 
-            Mail::to($data['test_email'])->send(new SystemMail(
+            // sendNow: der Admin soll sofort sehen, ob der Versand klappt.
+            Mail::to($data['test_email'])->sendNow(new SystemMail(
                 subjectLine: "Testnachricht von {$system}",
                 heading: 'Der E-Mail-Versand funktioniert',
                 body: [

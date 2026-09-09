@@ -28,6 +28,14 @@ Schedule::command('updates:check --force')->everyTwoHours()->withoutOverlapping(
 // Gleicht die Administrator-Benachrichtigungen (Glocke) mit dem Systemzustand ab.
 Schedule::command('notifications:sync')->everyFifteenMinutes()->withoutOverlapping();
 
+// Arbeitet die E-Mail-Warteschlange ab. Alle 30 Sekunden ein kurzer Lauf, der
+// leert und sich dann beendet. So gehen E-Mails (Passwort zuruecksetzen,
+// Benachrichtigungen) fast sofort raus, ohne dauerhaften Worker-Prozess.
+Schedule::command('queue:work --queue=mail,default --stop-when-empty --max-time=25 --tries=3 --sleep=1')
+    ->everyThirtySeconds()
+    ->withoutOverlapping()
+    ->runInBackground();
+
 // Beweist auf der Systemstatus-Seite, dass der Laravel-Scheduler tatsächlich läuft.
 Schedule::call(fn () => Cache::put('schedule.heartbeat', now()->toDateTimeString(), 600))
     ->everyMinute()
