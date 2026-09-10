@@ -191,6 +191,10 @@ class NegotiateController extends Controller
      */
     private function intendedUrl(Request $request): string
     {
+        if ($request->session()->has('saml.pending')) {
+            return route('saml.sso.resume');
+        }
+
         return $request->session()->pull('url.intended', route('dashboard'));
     }
 }

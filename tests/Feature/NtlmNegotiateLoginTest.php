@@ -190,6 +190,32 @@ class NtlmNegotiateLoginTest extends TestCase
         $this->assertNull(session('url.intended'), 'url.intended must be consumed, like redirect()->intended() does.');
     }
 
+    public function test_ntlm_auto_login_resumes_a_pending_saml_request(): void
+    {
+        $directory = $this->makeDirectory();
+        $name = DirectoryConnectionResolver::connectionName($directory);
+        $this->emulate($directory);
+
+        $user = new LdapUser([
+            'cn' => 'Jane Doe',
+            'samaccountname' => 'jdoe',
+            'userprincipalname' => 'jdoe@test.local',
+            'mail' => 'jdoe@test.local',
+            'objectguid' => (string) Str::uuid(),
+        ]);
+        $user->setConnection($name);
+        $user->save();
+
+        $this->withSession(['saml.pending' =>['sp_id' => 1, 'request_id' => 'x', 'acs_url' => 'https://sp.test/acs', 'relay_state' => null]])
+            ->get(route('auth.negotiate'), [
+                'Authorization' => 'NTLM '.$this->buildType3('jdoe', 'RL'),
+            ])
+            ->assertOk()
+            ->assertJson(['success' => true, 'redirect' => route('saml.sso.resume')]);
+
+        $this->assertAuthenticated();
+    }
+
     public function test_ntlm_auto_login_falls_back_to_dashboard_without_an_intended_url(): void
     {
         $directory = $this->makeDirectory();
