@@ -16,7 +16,10 @@ use Illuminate\Support\Facades\Cookie;
  */
 class LoginCompletion
 {
-    public function __construct(private SessionTracker $tracker) {}
+    public function __construct(
+        private SessionTracker $tracker,
+        private TrustedDevices $trustedDevices,
+    ) {}
 
     /**
      * Einstieg nach erfolgreicher Passwort-/Verzeichnisprüfung. Hat das Konto
@@ -27,12 +30,16 @@ class LoginCompletion
     {
         $request->session()->regenerate();
 
-        if ($user->hasTwoFactorEnabled()) {
+        if ($user->hasTwoFactorEnabled() && ! $this->trustedDevices->isTrusted($user, $request)) {
             TwoFactorChallenge::start($user, $method);
 
             AuditLog::record('login.2fa_required', $user, ['method' => $method]);
 
             return redirect()->route('two-factor.challenge');
+        }
+
+        if ($user->hasTwoFactorEnabled()) {
+            AuditLog::record('login.2fa_skipped_trusted_device', $user, ['method' => $method]);
         }
 
         return $this->finalize($request, $user, $method);

@@ -117,4 +117,32 @@ class SecuritySettings
 
         return $minutes * 60;
     }
+
+    /**
+     * Darf ein Benutzer auf der Zwei-Faktor-Seite "Diesem Gerät vertrauen"
+     * wählen, sodass der zweite Faktor auf diesem Gerät eine Weile nicht mehr
+     * abgefragt wird? Standard: an.
+     */
+    public static function trustedDevicesEnabled(): bool
+    {
+        return SystemSetting::bool('trusted_device_enabled', true);
+    }
+
+    /**
+     * Wie lange ein vertrautes Gerät gültig bleibt. Standard: 120 Tage.
+     */
+    public static function trustedDeviceDays(): int
+    {
+        return max(1, min(365, (int) SystemSetting::get('trusted_device_days', 120) ?: 120));
+    }
+
+    /**
+     * Bekommt der Benutzer eine E-Mail, wenn sich sein Konto erstmals von
+     * einem neuen Gerät (Browser + Betriebssystem + Gerätetyp) anmeldet?
+     * Standard: an. Bekannte Geräte lösen bewusst keine Mail aus.
+     */
+    public static function newDeviceEmailEnabled(): bool
+    {
+        return SystemSetting::bool('new_device_email_enabled', true);
+    }
 }

@@ -15,6 +15,7 @@ class AuditEventLabels
         'login.failed' => 'Anmeldung fehlgeschlagen',
         'login.2fa_required' => 'Zweiter Faktor angefordert',
         'login.2fa_failed' => 'Zweiter Faktor fehlgeschlagen',
+        'login.2fa_skipped_trusted_device' => 'Zweiter Faktor übersprungen (vertrautes Gerät)',
         'login.windows_sso' => 'Anmeldung über Windows',
         'logout' => 'Abmeldung',
 
@@ -29,6 +30,9 @@ class AuditEventLabels
         'two_factor.disabled' => 'Authenticator-App deaktiviert',
         'two_factor.recovery_used' => 'Wiederherstellungscode verwendet',
         'two_factor.recovery_regenerated' => 'Wiederherstellungscodes neu erzeugt',
+        'two_factor.device_trusted' => 'Gerät als vertraut gespeichert',
+        'two_factor.device_untrusted' => 'Vertrautes Gerät entfernt',
+        'two_factor.devices_untrusted' => 'Alle vertrauten Geräte entfernt',
 
         'oauth.application_created' => 'Anwendung angelegt',
         'oauth.application_updated' => 'Anwendung geändert',

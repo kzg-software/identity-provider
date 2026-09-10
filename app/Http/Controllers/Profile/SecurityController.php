@@ -2,9 +2,11 @@
 
 namespace App\Http\Controllers\Profile;
 
+use App\Auth\TrustedDevices;
 use App\Http\Controllers\Controller;
 use App\Models\AuditLog;
 use App\Models\SystemSetting;
+use App\Models\TrustedDevice;
 use App\Models\TwoFactorCredential;
 use App\Models\User;
 use App\Models\WebauthnCredential;
@@ -56,6 +58,7 @@ class SecurityController extends Controller
             'requiresPassword' => $user->isLocal(),
             'newRecoveryCodes' => Session::get('security.recovery_codes'),
             'recentEvents' => $recentEvents,
+            'trustedDevices' => $user->trustedDevices()->active()->latest('last_used_at')->get(),
         ]);
     }
 
@@ -74,10 +77,35 @@ class SecurityController extends Controller
 
         $user->forceFill(['password' => Hash::make($request->string('password'))])->save();
 
+        // Passwortwechsel entzieht allen vertrauten Geräten das Vertrauen: wer
+        // sich neu anmeldet, muss den zweiten Faktor wieder nachweisen.
+        app(TrustedDevices::class)->revokeAll($user);
+
         AuditLog::record('password.changed', $user);
         $this->notifySecurity($user, 'Passwort geändert', 'Das Passwort deines Kontos wurde geändert. Warst du das nicht, wende dich sofort an deine Administration.');
 
-        return back()->with('status', 'Passwort wurde geändert.');
+        return back()->with('status', 'Passwort wurde geändert. Vertraute Geräte müssen den zweiten Faktor erneut bestätigen.');
+    }
+
+    // ----- Vertraute Geräte ----------------------------------------------------
+
+    public function destroyTrustedDevice(Request $request, TrustedDevice $trustedDevice): RedirectResponse
+    {
+        abort_unless($trustedDevice->user_id === $request->user()->id, 403);
+
+        $trustedDevice->delete();
+        AuditLog::record('two_factor.device_untrusted', $request->user(), ['label' => $trustedDevice->label]);
+
+        return back()->with('status', 'Das Gerät wurde entfernt und wird beim nächsten Mal wieder nach dem zweiten Faktor fragen.');
+    }
+
+    public function destroyTrustedDevices(Request $request): RedirectResponse
+    {
+        $count = app(TrustedDevices::class)->revokeAll($request->user());
+
+        return back()->with('status', $count > 0
+            ? 'Alle vertrauten Geräte wurden entfernt.'
+            : 'Es waren keine vertrauten Geräte hinterlegt.');
     }
 
     // ----- Passkeys ---------------------------------------------------------

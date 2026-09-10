@@ -116,6 +116,16 @@ class User extends Authenticatable
         return $this->hasMany(UserSession::class);
     }
 
+    public function trustedDevices(): HasMany
+    {
+        return $this->hasMany(TrustedDevice::class);
+    }
+
+    public function loginDevices(): HasMany
+    {
+        return $this->hasMany(UserLoginDevice::class);
+    }
+
     /**
      * Benachrichtigungen für die Glocke in der Navigationsleiste.
      *

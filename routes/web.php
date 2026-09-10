@@ -154,6 +154,8 @@ Route::middleware('auth')->group(function () {
     Route::post('profile/security/authenticator', [SecurityController::class, 'storeTotp'])->name('profile.security.totp.store');
     Route::delete('profile/security/authenticator', [SecurityController::class, 'destroyTotp'])->name('profile.security.totp.destroy');
     Route::post('profile/security/recovery-codes', [SecurityController::class, 'regenerateRecoveryCodes'])->name('profile.security.recovery-codes');
+    Route::delete('profile/security/trusted-devices', [SecurityController::class, 'destroyTrustedDevices'])->name('profile.security.trusted-devices.destroy-all');
+    Route::delete('profile/security/trusted-devices/{trustedDevice}', [SecurityController::class, 'destroyTrustedDevice'])->name('profile.security.trusted-devices.destroy');
 
     Route::prefix('admin')->name('admin.')->middleware('admin')->group(function () {
         Route::get('/', [App\Http\Controllers\Admin\DashboardController::class, 'index'])->name('dashboard');

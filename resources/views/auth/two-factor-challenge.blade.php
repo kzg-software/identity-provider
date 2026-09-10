@@ -10,7 +10,7 @@
         : ($errors->has('code') ? 'totp'
         : ($hasWebauthn ? 'webauthn' : ($hasTotp ? 'totp' : 'recovery')));
 @endphp
-<div x-data="{ tab: '{{ $initialTab }}', loading: false }"
+<div x-data="{ tab: '{{ $initialTab }}', loading: false, trust: false }"
      x-on:pageshow.window="loading = false">
     <h1 class="text-lg font-semibold text-gray-900 mb-1">Zwei-Faktor-Bestätigung</h1>
     <p class="text-sm text-gray-500 mb-4">Bestätige die Anmeldung mit deinem zweiten Faktor.</p>
@@ -32,6 +32,7 @@
         <div x-show="tab === 'totp'" class="space-y-3">
             <form method="POST" action="{{ route('two-factor.totp') }}" class="space-y-3" @submit="loading = true">
                 @csrf
+                <input type="hidden" name="trust_device" :value="trust ? '1' : '0'">
                 <div>
                     <x-input-label value="Code aus der Authenticator-App" />
                     <x-input type="text" name="code" inputmode="numeric" autocomplete="one-time-code"
@@ -48,6 +49,7 @@
     <div x-show="tab === 'recovery'" class="space-y-3">
         <form method="POST" action="{{ route('two-factor.recovery') }}" class="space-y-3" @submit="loading = true">
             @csrf
+            <input type="hidden" name="trust_device" :value="trust ? '1' : '0'">
             <div>
                 <x-input-label value="Wiederherstellungscode" />
                 <x-input type="text" name="recovery_code" required placeholder="XXXXX-XXXXX"
@@ -59,6 +61,14 @@
             </x-button>
         </form>
     </div>
+
+    @if ($canTrustDevice)
+        <label class="mt-4 flex items-start gap-2 text-sm text-gray-600">
+            <input type="checkbox" x-model="trust"
+                   class="mt-0.5 h-4 w-4 rounded border-gray-300 text-laravel-600 focus:ring-laravel-500">
+            <span>Diesem Gerät vertrauen und {{ $trustDeviceDays }} Tage nicht mehr nach dem zweiten Faktor fragen. Nur auf privaten Geräten wählen.</span>
+        </label>
+    @endif
 
     <div class="mt-5 pt-4 border-t border-gray-200 text-sm flex flex-wrap gap-x-4 gap-y-1">
         @if ($hasWebauthn)
@@ -95,10 +105,14 @@
             err.classList.add('hidden');
             setLoading(true);
 
+            var trust = false;
+            try { trust = !! window.Alpine.$data(root).trust; } catch (_) {}
+
             window.Webauthn.authenticate(
                 '{{ route('two-factor.webauthn.options') }}',
                 '{{ route('two-factor.webauthn') }}',
-                '{{ csrf_token() }}'
+                '{{ csrf_token() }}',
+                { trust_device: trust ? '1' : '0' }
             ).then(function (res) {
                 if (res.redirected) { window.location.href = res.url; return; }
                 if (res.ok) { window.location.href = '{{ route('dashboard') }}'; return; }

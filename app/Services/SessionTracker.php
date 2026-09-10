@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Auth\LoginDeviceAlert;
 use App\Models\User;
 use App\Models\UserSession;
 use Illuminate\Http\Request;
@@ -20,7 +21,7 @@ class SessionTracker
         $sessionId = $request->session()->getId();
         [$browser, $platform, $device] = $this->parseUserAgent((string) $request->userAgent());
 
-        return UserSession::updateOrCreate(
+        $session = UserSession::updateOrCreate(
             ['session_id' => $sessionId],
             [
                 'user_id' => $user->id,
@@ -35,6 +36,16 @@ class SessionTracker
                 'revoked_at' => null,
             ],
         );
+
+        // Neues Gerät? Einmalig per E-Mail informieren (siehe LoginDeviceAlert).
+        // Darf den Login nie stören.
+        try {
+            app(LoginDeviceAlert::class)->record($user, $request, $loginMethod);
+        } catch (\Throwable $e) {
+            report($e);
+        }
+
+        return $session;
     }
 
     public function touch(Request $request): void
@@ -71,6 +82,43 @@ class SessionTracker
         if ($sessionIds->isNotEmpty()) {
             DB::table('sessions')->whereIn('id', $sessionIds)->delete();
         }
+    }
+
+    /**
+     * Grobe Kennung eines Geraets aus dem User-Agent, stabil genug, um
+     * "kenne ich dieses Geraet" zu beantworten, ohne bei jedem
+     * Browser-Update auszuschlagen: Browser, Betriebssystem und Geraetetyp.
+     */
+    public static function deviceSignature(?string $userAgent): string
+    {
+        [$browser, $platform, $device] = (new self)->parseUserAgent($userAgent);
+
+        return self::signatureFromParts($browser, $platform, $device);
+    }
+
+    /**
+     * Gleiche Kennung aus bereits zerlegten Bestandteilen (z. B. den Spalten
+     * in user_sessions).
+     */
+    public static function signatureFromParts(?string $browser, ?string $platform, ?string $device): string
+    {
+        return hash('sha256', strtolower(implode('|', [
+            $browser ?: 'unbekannt',
+            $platform ?: 'unbekannt',
+            $device ?: 'unbekannt',
+        ])));
+    }
+
+    /**
+     * Lesbare Beschreibung eines Geraets, z. B. "Chrome auf Windows (Desktop)".
+     */
+    public static function deviceLabel(?string $userAgent): string
+    {
+        [$browser, $platform, $device] = (new self)->parseUserAgent($userAgent);
+
+        $name = trim(($browser ?? 'Unbekannter Browser').' auf '.($platform ?? 'unbekanntem System'));
+
+        return $device ? "{$name} ({$device})" : $name;
     }
 
     /**

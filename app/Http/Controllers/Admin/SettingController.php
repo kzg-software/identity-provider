@@ -33,6 +33,7 @@ class SettingController extends Controller
         'password_require_symbol', 'password_check_pwned',
         'login_max_attempts', 'login_lockout_minutes',
         'passkey_passwordless_local_enabled', 'passkey_passwordless_ad_enabled',
+        'trusted_device_enabled', 'trusted_device_days', 'new_device_email_enabled',
         'mail_enabled', 'mail_host', 'mail_port', 'mail_encryption',
         'mail_username', 'mail_from_address', 'mail_from_name',
     ];
@@ -73,6 +74,7 @@ class SettingController extends Controller
             'password_min_length' => 'nullable|integer|min:6|max:128',
             'login_max_attempts' => 'nullable|integer|min:3|max:100',
             'login_lockout_minutes' => 'nullable|integer|min:1|max:1440',
+            'trusted_device_days' => 'nullable|integer|min:1|max:365',
             'mail_host' => 'nullable|string|max:255',
             'mail_port' => 'nullable|integer|min:1|max:65535',
             'mail_encryption' => 'nullable|in:starttls,ssl,none',
@@ -94,10 +96,12 @@ class SettingController extends Controller
         $data['password_min_length'] = (string) (((int) ($data['password_min_length'] ?? 0)) ?: 10);
         $data['login_max_attempts'] = (string) (((int) ($data['login_max_attempts'] ?? 0)) ?: 5);
         $data['login_lockout_minutes'] = (string) (((int) ($data['login_lockout_minutes'] ?? 0)) ?: 1);
+        $data['trusted_device_days'] = (string) (((int) ($data['trusted_device_days'] ?? 0)) ?: 120);
 
         foreach ([
             'password_require_mixed_case', 'password_require_number', 'password_require_symbol', 'password_check_pwned',
             'passkey_passwordless_local_enabled', 'passkey_passwordless_ad_enabled',
+            'trusted_device_enabled', 'new_device_email_enabled',
         ] as $flag) {
             $data[$flag] = $request->boolean($flag) ? '1' : '0';
         }

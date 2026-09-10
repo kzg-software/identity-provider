@@ -281,6 +281,37 @@
                         </div>
                     </x-card>
 
+                    <x-card title="Zwei-Faktor: vertraute Geräte und Geräte-Meldung"
+                            description="Steuert das Merken von Geräten auf der Zwei-Faktor-Seite und die einmalige E-Mail bei Anmeldung von einem neuen Gerät.">
+                        <div class="divide-y divide-gray-100">
+                            <x-setting-row label="Vertrautes Gerät anbieten"
+                                           hint="Zeigt auf der Zwei-Faktor-Seite die Option zum Merken des Geräts. Der zweite Faktor wird auf diesem Gerät dann eine Weile nicht mehr abgefragt.">
+                                <label class="flex cursor-pointer items-center gap-2.5 text-sm text-gray-700">
+                                    <input type="hidden" name="trusted_device_enabled" value="0">
+                                    <x-checkbox name="trusted_device_enabled" value="1"
+                                                :checked="old('trusted_device_enabled', $settings['trusted_device_enabled']) !== '0'" />
+                                    Option auf der Zwei-Faktor-Seite anzeigen
+                                </label>
+                            </x-setting-row>
+                            <x-setting-row label="Gültigkeit eines vertrauten Geräts">
+                                <div class="flex items-center gap-2">
+                                    <x-input type="number" name="trusted_device_days" min="1" max="365" class="!w-24"
+                                             value="{{ old('trusted_device_days', $settings['trusted_device_days'] ?: '120') }}" />
+                                    <span class="text-sm text-gray-500">Tage</span>
+                                </div>
+                            </x-setting-row>
+                            <x-setting-row label="E-Mail bei Anmeldung von neuem Gerät"
+                                           hint="Einmalig je neuer Kombination aus Browser, Betriebssystem und Gerätetyp. Bekannte Geräte lösen nichts aus, es wird nichts abgemeldet.">
+                                <label class="flex cursor-pointer items-center gap-2.5 text-sm text-gray-700">
+                                    <input type="hidden" name="new_device_email_enabled" value="0">
+                                    <x-checkbox name="new_device_email_enabled" value="1"
+                                                :checked="old('new_device_email_enabled', $settings['new_device_email_enabled']) !== '0'" />
+                                    Benutzer per E-Mail informieren
+                                </label>
+                            </x-setting-row>
+                        </div>
+                    </x-card>
+
                     <x-card title="Passkeys (WebAuthn / FIDO2)"
                             description="Passkeys richtet jeder Benutzer selbst unter Profil, Sicherheit ein – als zweiter Faktor und, wenn hier erlaubt, für die passwortlose Anmeldung.">
                         <div class="divide-y divide-gray-100">

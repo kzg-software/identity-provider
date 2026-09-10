@@ -253,6 +253,8 @@ Ablaufwarnung. Signierte AuthnRequests müssen über das POST Binding kommen.
 
 * Zwei Faktor Anmeldung unter **Profil, Sicherheit**: Passkeys (WebAuthn / FIDO2) und TOTP, als zweiter Faktor oder passwortlos, plus Wiederherstellungscodes. Die passwortlose Anmeldung ist pro Kontotyp in den Systemeinstellungen schaltbar (AD standardmäßig aus). Passkeys brauchen HTTPS und einen stabilen Hostnamen; weicht die Relying Party ID vom Host in `APP_URL` ab, über `WEBAUTHN_RP_ID` setzen
 * Eigene Sitzungen unter **Profil, Meine Sitzungen**, alle Sitzungen unter **Administration, Alle Sessions**, jeweils einsehbar und widerrufbar
+* Zwei Faktor: Auf der Bestätigungsseite lässt sich das Gerät merken, sodass der zweite Faktor dort eine Weile (Standard 120 Tage) nicht erneut abgefragt wird. Vertraute Geräte stehen unter **Profil, Sicherheit** und lassen sich einzeln oder gesammelt entfernen; eine Passwortänderung entzieht allen das Vertrauen
+* Meldet sich ein Konto erstmals von einem neuen Gerät an (Browser, Betriebssystem, Gerätetyp), gibt es einmalig eine E-Mail. Bekannte Geräte lösen bewusst nichts aus, und es wird nichts abgemeldet. Beides in den Systemeinstellungen abschaltbar
 * Audit Log unter **Administration, Audit Log**: Anmeldungen, Token Ereignisse, Zustimmungen, SAML, Admin Aktionen, Datensicherungen
 * Systemstatus unter **Administration, Systemstatus**: Datenbank, Cache, Dateisystem, Queue, Scheduler, AD Verbindungen, Ablauf von OIDC Schlüsseln und SAML Zertifikaten
 * Rate Limiting auf Anmeldung, `/oauth/token`, `/oauth/revoke` und `/saml/sso`

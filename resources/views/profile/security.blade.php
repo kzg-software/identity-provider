@@ -219,6 +219,41 @@
         </x-card>
     @endif
 
+    {{-- Vertraute Geräte --}}
+    @if ($trustedDevices->isNotEmpty())
+        <x-card title="Vertraute Geräte" icon="shield-check"
+                description="Auf diesen Geräten wird der zweite Faktor eine Weile nicht abgefragt. Entferne Geräte, die du nicht mehr nutzt oder nicht wiedererkennst.">
+            <x-slot:actions>
+                <form method="POST" action="{{ route('profile.security.trusted-devices.destroy-all') }}"
+                      onsubmit="return confirm('Alle vertrauten Geräte entfernen?')">
+                    @csrf
+                    @method('DELETE')
+                    <x-button type="submit" variant="secondary" size="sm">Alle entfernen</x-button>
+                </form>
+            </x-slot:actions>
+
+            <ul class="divide-y divide-gray-100">
+                @foreach ($trustedDevices as $device)
+                    <li class="flex items-center justify-between gap-3 py-2.5">
+                        <div class="min-w-0">
+                            <p class="truncate text-sm text-gray-900">{{ $device->label ?? 'Unbekanntes Gerät' }}</p>
+                            <p class="text-xs text-gray-500">
+                                zuletzt {{ optional($device->last_used_at)->diffForHumans() ?? 'nie' }}
+                                @if ($device->ip_address) · {{ $device->ip_address }} @endif
+                                · gültig bis {{ $device->expires_at->format('d.m.Y') }}
+                            </p>
+                        </div>
+                        <form method="POST" action="{{ route('profile.security.trusted-devices.destroy', $device) }}">
+                            @csrf
+                            @method('DELETE')
+                            <x-button type="submit" variant="secondary" size="sm">Entfernen</x-button>
+                        </form>
+                    </li>
+                @endforeach
+            </ul>
+        </x-card>
+    @endif
+
     {{-- Letzte Aktivität --}}
     @if ($recentEvents->isNotEmpty())
         <x-card title="Letzte Aktivität" icon="journal" :padding="false">

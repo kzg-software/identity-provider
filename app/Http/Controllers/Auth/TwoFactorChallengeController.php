@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Auth;
 
 use App\Auth\LoginCompletion;
+use App\Auth\TrustedDevices;
 use App\Auth\TwoFactorChallenge;
 use App\Http\Controllers\Controller;
 use App\Models\AuditLog;
@@ -24,7 +25,19 @@ class TwoFactorChallengeController extends Controller
     public function __construct(
         private LoginCompletion $completion,
         private WebAuthnService $webauthn,
+        private TrustedDevices $trustedDevices,
     ) {}
+
+    /**
+     * Hat der Nutzer auf der Challenge-Seite "Diesem Gerät vertrauen"
+     * angehakt, wird das Gerät nach bestandenem zweiten Faktor gemerkt.
+     */
+    private function rememberDeviceIfRequested(Request $request, User $user): void
+    {
+        if ($request->boolean('trust_device')) {
+            $this->trustedDevices->remember($user, $request);
+        }
+    }
 
     public function show(): View|RedirectResponse
     {
@@ -38,6 +51,8 @@ class TwoFactorChallengeController extends Controller
             'hasWebauthn' => $user->webauthnCredentials()->exists(),
             'hasTotp' => (bool) $user->twoFactor?->hasTotp(),
             'hasRecovery' => ! empty($user->twoFactor?->recoveryCodes()),
+            'canTrustDevice' => SecuritySettings::trustedDevicesEnabled(),
+            'trustDeviceDays' => SecuritySettings::trustedDeviceDays(),
         ]);
     }
 
@@ -63,6 +78,8 @@ class TwoFactorChallengeController extends Controller
         RateLimiter::clear($this->rateKey($request, $user));
         AuditLog::record('webauthn.login', $user, ['credential_id' => $result['credential']->id]);
 
+        $this->rememberDeviceIfRequested($request, $user);
+
         return $this->completion->finalize($request, $user, TwoFactorChallenge::method().'+passkey');
     }
 
@@ -82,6 +99,8 @@ class TwoFactorChallengeController extends Controller
 
         RateLimiter::clear($this->rateKey($request, $user));
 
+        $this->rememberDeviceIfRequested($request, $user);
+
         return $this->completion->finalize($request, $user, TwoFactorChallenge::method().'+totp');
     }
 
@@ -98,6 +117,8 @@ class TwoFactorChallengeController extends Controller
 
         RateLimiter::clear($this->rateKey($request, $user));
         AuditLog::record('two_factor.recovery_used', $user, ['remaining' => count($user->twoFactor->recoveryCodes())]);
+
+        $this->rememberDeviceIfRequested($request, $user);
 
         $remaining = count($user->twoFactor->recoveryCodes());
 
