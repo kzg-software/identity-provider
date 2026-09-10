@@ -6,32 +6,30 @@ use App\Directory\DirectorySyncService;
 use App\Models\Directory;
 use Illuminate\Console\Command;
 
-class SyncDirectoryUsers extends Command
+class SyncDirectoryDelta extends Command
 {
-    protected $signature = 'directory:sync-users
-        {directory? : Optionale Directory-ID, sonst alle aktiven}
-        {--full : Volle Synchronisierung erzwingen, auch bei aktivierter Delta-Synchronisierung}';
+    protected $signature = 'directory:sync-delta {directory? : Optionale Directory-ID, sonst alle aktiven mit aktivierter Delta-Synchronisierung}';
 
-    protected $description = 'Synchronisiert Benutzer (und Gruppen) aus allen aktiven Verzeichnissen';
+    protected $description = 'Inkrementelle Synchronisierung (nur seit dem letzten Lauf geänderte Objekte) für Active-Directory-Verzeichnisse';
 
     public function handle(DirectorySyncService $service): int
     {
         $directories = $this->argument('directory')
             ? Directory::where('id', $this->argument('directory'))->get()
-            : Directory::where('is_active', true)->get();
+            : Directory::where('is_active', true)->where('delta_sync_enabled', true)->get();
 
         if ($directories->isEmpty()) {
-            $this->warn('Keine aktiven Verzeichnisse gefunden.');
+            $this->info('Kein Verzeichnis mit aktivierter Delta-Synchronisierung.');
 
             return self::SUCCESS;
         }
 
         foreach ($directories as $directory) {
-            $this->info("Synchronisiere {$directory->name}...");
-            $result = $service->syncNow($directory, forceFull: $this->option('full'));
+            $this->info("Delta-Synchronisierung {$directory->name}...");
+            $result = $service->syncDelta($directory);
 
             if ($result['ok']) {
-                $mode = ($result['mode'] ?? 'full') === 'delta' ? 'delta' : 'voll';
+                $mode = $result['mode'] ?? 'delta';
                 $this->info("  OK ({$mode}): {$result['users']} Benutzer, {$result['groups']} Gruppen, {$result['duration']}s");
             } else {
                 $this->error("  Fehler: {$result['message']}");

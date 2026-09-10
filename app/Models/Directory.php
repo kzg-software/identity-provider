@@ -12,6 +12,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
     'ldap_server', 'ldap_port', 'use_ldaps', 'base_dn', 'user_dn', 'group_dn',
     'bind_user', 'bind_password_encrypted', 'upn_suffix', 'kerberos_realm',
     'priority', 'is_active', 'config', 'stale_user_handling', 'login_group_filter',
+    'delta_sync_enabled',
 ])]
 class Directory extends Model
 {
@@ -20,10 +21,22 @@ class Directory extends Model
         return [
             'use_ldaps' => 'boolean',
             'is_active' => 'boolean',
+            'delta_sync_enabled' => 'boolean',
             'config' => 'array',
             'last_sync_at' => 'datetime',
+            'last_full_sync_at' => 'datetime',
             'bind_password_encrypted' => 'encrypted',
         ];
+    }
+
+    /**
+     * Ob die inkrementelle Synchronisierung (nur geaenderte Objekte anhand
+     * uSNChanged) genutzt werden soll. Nur fuer Active Directory; LDAP kennt
+     * keine vergleichbaren Replikations-Metadaten.
+     */
+    public function deltaSyncEnabled(): bool
+    {
+        return $this->delta_sync_enabled && $this->type === 'active_directory';
     }
 
     /*

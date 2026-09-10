@@ -10,7 +10,14 @@ Artisan::command('inspire', function () {
 })->purpose('Display an inspiring quote');
 
 Schedule::command('directory:sync-groups')->everyFifteenMinutes()->withoutOverlapping();
-Schedule::command('directory:sync-users')->daily()->withoutOverlapping();
+
+// Inkrementelle Synchronisierung fuer Verzeichnisse mit aktivierter
+// Delta-Synchronisierung: holt nur seit dem letzten Lauf geaenderte Objekte.
+Schedule::command('directory:sync-delta')->everyTenMinutes()->withoutOverlapping();
+
+// Volle Synchronisierung: gleicht alles ab und raeumt verwaiste Konten auf
+// (das kann eine Delta-Abfrage nicht). --full auch fuer Delta-Verzeichnisse.
+Schedule::command('directory:sync-users --full')->daily()->withoutOverlapping();
 
 // Räumt den Audit-Log gemäß der in den Systemeinstellungen gesetzten
 // Aufbewahrungsfrist auf (ohne Frist passiert nichts).

@@ -9,6 +9,7 @@ use App\Models\GroupRoleMapping;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use LdapRecord\Models\ActiveDirectory\Entry as ActiveDirectoryEntry;
 use LdapRecord\Models\ActiveDirectory\Group as LdapGroup;
 use LdapRecord\Models\ActiveDirectory\User as LdapUser;
 use LdapRecord\Models\Model;
@@ -21,9 +22,29 @@ use Throwable;
  */
 class DirectorySyncService
 {
+    /**
+     * Hoechster uSNChanged-Wert, der in diesem Lauf ueber Benutzer und Gruppen
+     * gesehen wurde. Dient als Cursor fuer die naechste Delta-Synchronisierung.
+     */
+    private int $maxUsnSeen = 0;
+
+    /**
+     * Fuehrt die passende Synchronisierung aus: inkrementell, wenn fuer das
+     * Verzeichnis aktiviert und moeglich, sonst voll. Erzwingt $forceFull die
+     * volle Synchronisierung (fuer den taeglichen Scheduler-Lauf, der auch
+     * verwaiste Konten aufraeumt).
+     */
+    public function syncNow(DirectoryModel $directory, bool $forceFull = false): array
+    {
+        return (! $forceFull && $directory->deltaSyncEnabled())
+            ? $this->syncDelta($directory)
+            : $this->syncAll($directory);
+    }
+
     public function syncAll(DirectoryModel $directory): array
     {
         $start = microtime(true);
+        $this->maxUsnSeen = 0;
 
         try {
             DirectoryConnectionResolver::connect($directory);
@@ -38,15 +59,19 @@ class DirectorySyncService
 
             $directory->forceFill([
                 'last_sync_at' => now(),
+                'last_full_sync_at' => now(),
                 'last_sync_duration_seconds' => $duration,
                 'last_sync_user_count' => $userCount,
                 'last_sync_removed_count' => $removed,
                 'last_sync_group_count' => $groupCount,
+                'last_sync_usn' => $this->maxUsnSeen ?: $directory->last_sync_usn,
+                'last_sync_directory_host' => $this->directoryHost($name) ?? $directory->last_sync_directory_host,
                 'last_sync_error' => null,
             ])->save();
 
             return [
                 'ok' => true,
+                'mode' => 'full',
                 'users' => $userCount,
                 'groups' => $groupCount,
                 'removed' => $removed,
@@ -89,6 +114,222 @@ class DirectorySyncService
         }
     }
 
+    /**
+     * Inkrementelle Synchronisierung: fragt nur Objekte ab, deren uSNChanged
+     * seit dem letzten Lauf gestiegen ist (Active-Directory-Replikations-
+     * metadaten). Bei grossen Verzeichnissen um ein Vielfaches schneller als
+     * die volle Synchronisierung.
+     *
+     * Nicht abgedeckt: geloeschte Konten. Eine Delta-Abfrage liefert keine
+     * geloeschten Objekte, daher raeumt weiterhin nur die volle
+     * Synchronisierung verwaiste Benutzer auf (stale_user_handling). Sie
+     * laeuft zusaetzlich taeglich.
+     *
+     * Faellt automatisch auf die volle Synchronisierung zurueck, wenn:
+     * - das Verzeichnis kein Active Directory ist,
+     * - noch kein Cursor gespeichert ist (erster Lauf),
+     * - der Domaenencontroller gewechselt hat (uSNChanged ist DC-lokal).
+     */
+    public function syncDelta(DirectoryModel $directory): array
+    {
+        if ($directory->type !== 'active_directory' || $directory->last_sync_usn === null) {
+            return $this->syncAll($directory);
+        }
+
+        $start = microtime(true);
+        $this->maxUsnSeen = (int) $directory->last_sync_usn;
+
+        try {
+            DirectoryConnectionResolver::connect($directory);
+            $name = DirectoryConnectionResolver::connectionName($directory);
+
+            $host = $this->directoryHost($name);
+
+            if ($host !== null && $directory->last_sync_directory_host !== null
+                && $host !== $directory->last_sync_directory_host) {
+                Log::info('Delta-Synchronisierung: Domaenencontroller gewechselt, volle Synchronisierung', [
+                    'directory_id' => $directory->id,
+                    'from' => $directory->last_sync_directory_host,
+                    'to' => $host,
+                ]);
+
+                return $this->syncAll($directory);
+            }
+
+            // >= statt >: ein Objekt, das exakt auf dem Cursor geaendert wurde,
+            // lieber ein zweites Mal verarbeiten (updateOrCreate ist idempotent)
+            // als es zu verpassen.
+            $since = max(0, (int) $directory->last_sync_usn);
+
+            $userCount = $this->syncChangedUsers($directory, $name, $since);
+            [$groupCount, $touchedUsers] = $this->syncChangedGroups($directory, $name, $since);
+
+            $duration = (int) round(microtime(true) - $start);
+
+            $directory->forceFill([
+                'last_sync_at' => now(),
+                'last_sync_duration_seconds' => $duration,
+                'last_sync_user_count' => $userCount + $touchedUsers,
+                'last_sync_removed_count' => 0,
+                'last_sync_group_count' => $groupCount,
+                'last_sync_usn' => $this->maxUsnSeen,
+                'last_sync_directory_host' => $host ?? $directory->last_sync_directory_host,
+                'last_sync_error' => null,
+            ])->save();
+
+            return [
+                'ok' => true,
+                'mode' => 'delta',
+                'users' => $userCount + $touchedUsers,
+                'groups' => $groupCount,
+                'removed' => 0,
+                'duration' => $duration,
+            ];
+        } catch (Throwable $e) {
+            Log::warning('Delta-Synchronisierung fehlgeschlagen', [
+                'directory_id' => $directory->id,
+                'error' => $e->getMessage(),
+            ]);
+
+            $directory->forceFill([
+                'last_sync_at' => now(),
+                'last_sync_duration_seconds' => (int) round(microtime(true) - $start),
+                'last_sync_error' => $e->getMessage(),
+            ])->save();
+
+            return ['ok' => false, 'message' => $e->getMessage()];
+        }
+    }
+
+    /**
+     * Benutzer mit uSNChanged >= $since neu einlesen.
+     */
+    private function syncChangedUsers(DirectoryModel $directory, string $connectionName, int $since): int
+    {
+        $query = LdapUser::on($connectionName)
+            ->in($directory->userSearchDn() ?? DirectoryConnectionResolver::resolveBaseDn($directory, $connectionName))
+            ->where('usnchanged', '>=', (string) $since);
+
+        $query = GroupMembershipFilter::constrain(
+            $query,
+            GroupMembershipFilter::groupDns($directory, $connectionName)
+        );
+
+        $count = 0;
+
+        foreach ($query->paginate(500) as $ldapUser) {
+            /** @var LdapUser $ldapUser */
+            if ($this->syncSingleUser($directory, $connectionName, $ldapUser)) {
+                $count++;
+            }
+        }
+
+        return $count;
+    }
+
+    /**
+     * Gruppen mit uSNChanged >= $since neu einlesen und die Mitgliedschaften
+     * der betroffenen Benutzer neu aufloesen (eine Mitgliedschaftsaenderung
+     * erhoeht nur den uSNChanged der Gruppe, nicht den des Benutzers).
+     *
+     * @return array{0: int, 1: int} [Gruppen, zusaetzlich beruehrte Benutzer]
+     */
+    private function syncChangedGroups(DirectoryModel $directory, string $connectionName, int $since): array
+    {
+        $groups = LdapGroup::on($connectionName)
+            ->in($directory->groupSearchDn() ?? DirectoryConnectionResolver::resolveBaseDn($directory, $connectionName))
+            ->where('usnchanged', '>=', (string) $since)
+            ->paginate(500);
+
+        $count = 0;
+        $changedGuids = [];
+        $memberDns = [];
+
+        foreach ($groups as $group) {
+            /** @var LdapGroup $group */
+            $guid = $group->getConvertedGuid();
+            if (! $guid) {
+                continue;
+            }
+
+            DirectoryGroup::updateOrCreate(
+                ['directory_id' => $directory->id, 'object_guid' => $guid],
+                [
+                    'sid' => $group->getConvertedSid(),
+                    'name' => $group->getFirstAttribute('cn'),
+                    'distinguished_name' => $group->getDn(),
+                    'description' => $group->getFirstAttribute('description'),
+                    'extra_attributes' => $this->extraAttributes($group),
+                    'last_synced_at' => now(),
+                ]
+            );
+
+            $this->trackUsn($group);
+            $count++;
+            $changedGuids[] = $guid;
+
+            foreach ((array) $group->getAttribute('member') as $dn) {
+                $memberDns[$dn] = true;
+            }
+        }
+
+        if ($changedGuids === []) {
+            return [0, 0];
+        }
+
+        // Auch lokal bekannte Mitglieder der geaenderten Gruppen mitnehmen,
+        // damit Austritte auffallen.
+        $localMemberDns = DirectoryUser::query()
+            ->where('directory_id', $directory->id)
+            ->whereHas('groups', fn ($q) => $q->whereIn('object_guid', $changedGuids))
+            ->pluck('distinguished_name')
+            ->filter();
+
+        foreach ($localMemberDns as $dn) {
+            $memberDns[$dn] = true;
+        }
+
+        $touched = 0;
+
+        foreach (array_keys($memberDns) as $dn) {
+            $ldapUser = LdapUser::on($connectionName)->find($dn);
+
+            if ($ldapUser instanceof LdapUser && $this->syncSingleUser($directory, $connectionName, $ldapUser)) {
+                $touched++;
+            }
+        }
+
+        return [$count, $touched];
+    }
+
+    /**
+     * Hostname des verbundenen Domaenencontrollers aus dem RootDSE, klein
+     * geschrieben, oder null. uSNChanged-Werte gelten nur je DC, daher wird
+     * der Host als Teil des Delta-Cursors gespeichert.
+     */
+    private function directoryHost(string $connectionName): ?string
+    {
+        try {
+            $rootDse = ActiveDirectoryEntry::getRootDse($connectionName);
+
+            $host = $rootDse->getFirstAttribute('dnshostname')
+                ?? $rootDse->getFirstAttribute('servername');
+
+            return $host ? mb_strtolower(trim((string) $host)) : null;
+        } catch (Throwable) {
+            return null;
+        }
+    }
+
+    private function trackUsn(Model $model): void
+    {
+        $usn = (int) $model->getFirstAttribute('usnchanged');
+
+        if ($usn > $this->maxUsnSeen) {
+            $this->maxUsnSeen = $usn;
+        }
+    }
+
     private function syncGroups(DirectoryModel $directory, string $connectionName): int
     {
         // paginate() holt alle Seiten (AD begrenzt get() sonst auf MaxPageSize,
@@ -118,6 +359,7 @@ class DirectorySyncService
                 ]
             );
 
+            $this->trackUsn($group);
             $count++;
         }
 
@@ -235,6 +477,8 @@ class DirectorySyncService
         if (! $guid) {
             return null;
         }
+
+        $this->trackUsn($ldapUser);
 
         return DB::transaction(function () use ($directory, $connectionName, $ldapUser, $guid) {
             $sam = $ldapUser->getFirstAttribute('samaccountname');

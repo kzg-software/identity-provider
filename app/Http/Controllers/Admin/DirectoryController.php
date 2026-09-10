@@ -129,7 +129,7 @@ class DirectoryController extends Controller
 
     public function sync(Request $request, Directory $directory): RedirectResponse
     {
-        $result = (new DirectorySyncService)->syncAll($directory);
+        $result = (new DirectorySyncService)->syncNow($directory, forceFull: $request->boolean('full'));
 
         AuditLog::record('admin.directory_synced', $request->user(), [
             'directory_id' => $directory->id,
@@ -140,7 +140,8 @@ class DirectoryController extends Controller
             return back()->with('ldap_error', $result['message']);
         }
 
-        $message = "Synchronisierung abgeschlossen: {$result['users']} Benutzer, {$result['groups']} Gruppen";
+        $label = ($result['mode'] ?? 'full') === 'delta' ? 'Delta-Synchronisierung' : 'Synchronisierung';
+        $message = "{$label} abgeschlossen: {$result['users']} Benutzer, {$result['groups']} Gruppen";
         if (($result['removed'] ?? 0) > 0) {
             $verb = $directory->stalePolicy() === 'delete' ? 'gelöscht' : 'gesperrt';
             $message .= ", {$result['removed']} nicht mehr im Verzeichnis ({$verb})";
@@ -173,6 +174,7 @@ class DirectoryController extends Controller
             'priority' => 'nullable|integer',
             'is_active' => 'nullable|boolean',
             'stale_user_handling' => 'nullable|in:keep,disable,delete',
+            'delta_sync_enabled' => 'nullable|boolean',
         ]);
     }
 
@@ -199,6 +201,7 @@ class DirectoryController extends Controller
             'priority' => $data['priority'] ?? 0,
             'is_active' => $request->boolean('is_active'),
             'stale_user_handling' => $data['stale_user_handling'] ?? 'keep',
+            'delta_sync_enabled' => $request->boolean('delta_sync_enabled'),
         ];
     }
 }

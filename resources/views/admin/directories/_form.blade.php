@@ -253,4 +253,30 @@
             </x-select>
         </div>
     </section>
+
+    {{-- 6. Synchronisierung --}}
+    <section class="space-y-4 border-t border-gray-100 pt-6">
+        <div>
+            <h4 class="text-sm font-semibold text-gray-900">Synchronisierung</h4>
+            <p class="text-xs text-gray-500">Wie oft und wie umfangreich das Verzeichnis abgeglichen wird.</p>
+        </div>
+
+        <label class="flex items-start gap-2 text-sm text-gray-700">
+            <x-checkbox name="delta_sync_enabled" value="1" :checked="old('delta_sync_enabled', $d?->delta_sync_enabled)" class="mt-0.5" />
+            <span>
+                Delta-Synchronisierung
+                <x-field-info>
+                    Nur für Active Directory. Zwischen den vollen Läufen werden alle zehn Minuten
+                    ausschließlich die seit dem letzten Lauf geänderten Objekte abgefragt
+                    (<code class="rounded bg-gray-100 px-1">uSNChanged</code>). Das entlastet große
+                    Verzeichnisse deutlich. Die volle Synchronisierung läuft weiterhin täglich und
+                    räumt dabei verwaiste Konten auf – das kann eine Delta-Abfrage nicht leisten.
+                </x-field-info>
+                <span class="mt-0.5 block text-xs text-gray-500">
+                    Empfohlen mit fest gesetztem Domain Controller, da <code class="rounded bg-gray-100 px-1">uSNChanged</code>
+                    je Domänencontroller zählt. Bei einem Wechsel wird automatisch voll synchronisiert.
+                </span>
+            </span>
+        </label>
+    </section>
 </div>

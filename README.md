@@ -142,6 +142,7 @@ auf Benutzer und Gruppen (kein Domain Admin) und die Base DN, etwa
 * LDAPS auf Port 636 wird empfohlen. Unverschlüsseltes LDAP auf Port 389 nur in vertrauenswürdigen Netzen. Pro Verzeichnis einstellbar.
 * In der Detailansicht: Verbindung testen, Benutzer suchen, Gruppe suchen, Testanmeldung, rohe LDAP Abfrage.
 * Synchronisiert wird manuell per Knopf, bei jeder Windows SSO Anmeldung und regelmäßig über den Scheduler.
+* Optionale Delta Synchronisierung für Active Directory: zwischen den täglichen vollen Läufen holt der Scheduler alle zehn Minuten nur die seit dem letzten Lauf geänderten Objekte (`uSNChanged`). Das entlastet große Verzeichnisse. Das Aufräumen verwaister Konten bleibt dem vollen Lauf vorbehalten.
 * Pro Verzeichnis lässt sich Synchronisierung und Anmeldung auf Mitglieder bestimmter Gruppen beschränken. Verschachtelte Mitgliedschaft wird berücksichtigt.
 * Pro Verzeichnis einstellbar, was mit Benutzern passiert, die bei einer vollen Synchronisierung nicht mehr gefunden werden: behalten, sperren oder löschen. Liefert die Suche gar nichts, wird nichts angetastet.
 * Unter `/admin/group-role-mappings` lassen sich AD Gruppen auf interne Rollen abbilden, zum Beispiel auf `admin`.

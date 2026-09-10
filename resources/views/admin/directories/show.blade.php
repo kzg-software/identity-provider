@@ -53,12 +53,21 @@
                 description="Voll läuft täglich über den Scheduler, die Gruppen zusätzlich alle 15 Minuten.">
             @php
                 $syncRows = [
+                    'Modus' => $directory->deltaSyncEnabled() ? 'Delta (alle 10 Min.) + täglich voll' : 'Voll (täglich)',
                     'Letzte Synchronisierung' => $directory->last_sync_at ?? 'noch nie',
+                    'Letzte volle Synchronisierung' => $directory->last_full_sync_at ?? 'noch nie',
                     'Dauer' => $directory->last_sync_duration_seconds !== null ? $directory->last_sync_duration_seconds.'s' : '–',
                     'Benutzer' => $directory->last_sync_user_count,
                     'Gruppen' => $directory->last_sync_group_count,
                     'Fehlende Benutzer' => ['keep' => 'behalten', 'disable' => 'sperren', 'delete' => 'löschen'][$directory->stalePolicy()],
                 ];
+                if (! $directory->deltaSyncEnabled()) {
+                    unset($syncRows['Letzte volle Synchronisierung']);
+                }
+                if ($directory->deltaSyncEnabled() && $directory->last_sync_usn) {
+                    $syncRows['Delta-Cursor (uSNChanged)'] = $directory->last_sync_usn
+                        .($directory->last_sync_directory_host ? ' @ '.$directory->last_sync_directory_host : '');
+                }
                 if ($directory->hasLoginGroupFilter()) {
                     $syncRows['Nur Gruppen'] = implode(', ', array_map(
                         fn ($g) => \Illuminate\Support\Str::afterLast(\Illuminate\Support\Str::before($g, ','), '='),
