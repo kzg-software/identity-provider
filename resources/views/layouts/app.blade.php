@@ -65,6 +65,16 @@
     <style>
         [x-cloak] { display: none !important; }
 
+        /* Ladebalken oben am Rand, bei Seitenwechseln und Formular-Submits. */
+        #page-loading-bar {
+            position: fixed; top: 0; left: 0; height: 3px; width: 0%;
+            background-color: {{ $accentPalette['DEFAULT'] }};
+            z-index: 9999; opacity: 0;
+            transition: width 0.3s ease-out, opacity 0.2s ease-out;
+            pointer-events: none;
+        }
+        #page-loading-bar.is-active { opacity: 1; }
+
         /*
          * Dunkler Modus – gedaempfte, augenschonende Palette (kein reines Schwarz).
          * Die App nutzt durchgaengig Tailwind-Grau/Weiss-Utilities; hier werden diese
@@ -148,8 +158,73 @@
     @stack('styles')
 </head>
 <body class="font-sans antialiased bg-gray-100 text-gray-900">
+    <div id="page-loading-bar"></div>
+
     @yield('content')
 
     @stack('scripts')
+
+    <script>
+        (function () {
+            var bar = document.getElementById('page-loading-bar');
+            var timer = null;
+            var hideTimeout = null;
+
+            function start() {
+                clearTimeout(hideTimeout);
+                clearInterval(timer);
+                bar.style.transition = 'none';
+                bar.style.width = '0%';
+                // Reflow erzwingen, damit der naechste Uebergang wieder animiert.
+                void bar.offsetWidth;
+                bar.style.transition = '';
+                bar.classList.add('is-active');
+                bar.style.width = '20%';
+
+                var progress = 20;
+                timer = setInterval(function () {
+                    progress += (90 - progress) * 0.1;
+                    bar.style.width = Math.min(progress, 90) + '%';
+                }, 300);
+
+                // Sicherheitsnetz: falls die Navigation ausbleibt (z.B. Datei-Download), Balken wieder ausblenden.
+                hideTimeout = setTimeout(finish, 8000);
+            }
+
+            function finish() {
+                clearInterval(timer);
+                clearTimeout(hideTimeout);
+                bar.style.width = '100%';
+                setTimeout(function () {
+                    bar.classList.remove('is-active');
+                    setTimeout(function () { bar.style.width = '0%'; }, 200);
+                }, 150);
+            }
+
+            document.addEventListener('click', function (e) {
+                var link = e.target instanceof Element ? e.target.closest('a[href]') : null;
+                if (! link || e.defaultPrevented) return;
+                if (e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+                if (link.target === '_blank' || link.hasAttribute('download')) return;
+
+                var href = link.getAttribute('href');
+                if (! href || href.startsWith('#') || href.startsWith('javascript:')) return;
+                if (link.origin !== window.location.origin) return;
+
+                start();
+            });
+
+            document.addEventListener('submit', function (e) {
+                if (e.defaultPrevented || e.target.hasAttribute('data-no-loading-bar')) return;
+
+                start();
+            });
+
+            window.addEventListener('pageshow', function (e) {
+                // Aus dem Browser-Cache wiederhergestellt (z.B. "Zurueck"): Balken zuruecksetzen.
+                if (e.persisted) finish();
+            });
+        })();
+    </script>
 </body>
 </html>
