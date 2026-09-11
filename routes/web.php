@@ -168,6 +168,7 @@ Route::middleware('auth')->group(function () {
         Route::post('users/import', [UserController::class, 'import'])->name('users.import.run');
         Route::post('users/bulk', [UserController::class, 'bulk'])->name('users.bulk');
         Route::get('users/{user}', [UserController::class, 'show'])->name('users.show');
+        Route::put('users/{user}', [UserController::class, 'update'])->name('users.update');
         Route::post('users/{user}/reset-password', [UserController::class, 'resetPassword'])->name('users.reset-password');
         Route::post('users/{user}/two-factor/reset', [UserController::class, 'resetTwoFactor'])->name('users.two-factor.reset');
         Route::delete('users/{user}/webauthn/{credential}', [UserController::class, 'removeWebauthn'])->name('users.webauthn.destroy');

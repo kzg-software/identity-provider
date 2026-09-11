@@ -16,9 +16,29 @@
 <div class="grid gap-6 md:grid-cols-2">
     <div class="space-y-6">
         <x-card title="Allgemein">
-            <x-dl :rows="[
-                'Benutzername' => $user->username,
-                'E-Mail' => $user->email,
+            @if ($user->isLocal())
+                <form method="POST" action="{{ route('admin.users.update', $user) }}" class="space-y-3">
+                    @csrf
+                    @method('PUT')
+                    <div>
+                        <label class="mb-1 block text-sm font-medium text-gray-700">Benutzername</label>
+                        <x-input name="username" value="{{ old('username', $user->username) }}" required />
+                    </div>
+                    <div>
+                        <label class="mb-1 block text-sm font-medium text-gray-700">E-Mail</label>
+                        <x-input type="email" name="email" value="{{ old('email', $user->email) }}" required />
+                    </div>
+                    <x-button type="submit" size="sm">Speichern</x-button>
+                </form>
+            @else
+                <x-dl :rows="[
+                    'Benutzername' => $user->username,
+                    'E-Mail' => $user->email,
+                ]" />
+                <p class="mt-3 text-xs text-gray-400">Dieses Konto kommt aus einem Verzeichnis. Benutzername und E-Mail werden von dort synchronisiert und lassen sich hier nicht ändern.</p>
+            @endif
+
+            <x-dl class="mt-4" :rows="[
                 'Domain' => $user->domain,
                 'Auth-Quelle' => $user->auth_source,
                 'Rollen' => $user->effectiveRoles() ? implode(', ', $user->effectiveRoles()) : '–',

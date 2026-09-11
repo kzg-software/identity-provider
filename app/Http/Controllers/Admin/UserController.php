@@ -104,6 +104,24 @@ class UserController extends Controller
         return redirect()->route('admin.users.index')->with('status', 'Benutzer wurde erstellt.');
     }
 
+    public function update(Request $request, User $user): RedirectResponse
+    {
+        if (! $user->isLocal()) {
+            abort(403, 'Benutzername und E-Mail werden bei Verzeichnis-Konten synchronisiert und lassen sich hier nicht ändern.');
+        }
+
+        $data = $request->validate([
+            'username' => ['required', 'string', 'max:255', 'unique:users,username,'.$user->id],
+            'email' => ['required', 'email', 'unique:users,email,'.$user->id],
+        ]);
+
+        $user->update($data);
+
+        AuditLog::record('admin.user_updated', $request->user(), ['target_user_id' => $user->id]);
+
+        return back()->with('status', 'Benutzer wurde aktualisiert.');
+    }
+
     public function destroy(Request $request, User $user): RedirectResponse
     {
         if ($user->id === $request->user()->id) {
