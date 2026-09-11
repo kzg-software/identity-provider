@@ -43,6 +43,15 @@ Der einfachste Weg. Sie brauchen nur zwei Dateien, nicht den ganzen Quellcode.
 Voraussetzung: ein Server mit Docker und ein Reverse Proxy mit HTTPS davor
 (zum Beispiel nginx, Traefik oder Caddy).
 
+### Docker installieren
+
+Falls noch kein Docker auf dem Server läuft:
+
+```bash
+curl -sSL https://get.docker.com/ | CHANNEL=stable bash
+sudo systemctl enable --now docker
+```
+
 ```bash
 mkdir auth && cd auth
 
