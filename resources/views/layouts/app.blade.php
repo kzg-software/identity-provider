@@ -100,6 +100,7 @@
         html.dark .border-gray-100 { border-color: #2a2f39; }
         html.dark .border-gray-200 { border-color: #333a45; }
         html.dark .border-gray-300 { border-color: #3d4550; }
+        html.dark .ring-gray-200 { --tw-ring-color: #333a45; }
         html.dark .divide-gray-100 > :not([hidden]) ~ :not([hidden]) { border-color: #2a2f39; }
         html.dark .divide-gray-200 > :not([hidden]) ~ :not([hidden]) { border-color: #333a45; }
 
