@@ -1,4 +1,4 @@
-@extends('layouts.admin')
+@extends('layouts.portal')
 
 @section('admin-content')
 <x-page-header
