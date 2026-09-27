@@ -26,7 +26,7 @@ class BackupController extends Controller
 {
     /** Einstellungs-Schlüssel der automatischen Sicherung (Präfix auto_backup_). */
     private const AUTO_KEYS = [
-        'enabled', 'frequency', 'time', 'keep', 'target', 'dir',
+        'enabled', 'frequency', 'time', 'keep', 'retention_days', 'target', 'dir',
         'host', 'port', 'username',
         'ftp_ssl', 's3_key', 's3_region', 's3_bucket', 's3_endpoint', 's3_path_style',
         'last_run', 'last_error', 'last_file',
@@ -141,6 +141,7 @@ class BackupController extends Controller
             'frequency' => 'required|in:daily,weekly',
             'time' => 'required|date_format:H:i',
             'keep' => 'required|integer|min:0|max:365',
+            'retention_days' => 'nullable|integer|min:0|max:3650',
             'target' => 'required|in:'.implode(',', BackupDestination::TARGETS),
             'dir' => 'nullable|string|max:255',
             'archive_password' => 'nullable|string|min:10',
@@ -161,6 +162,7 @@ class BackupController extends Controller
         $set('frequency', $data['frequency']);
         $set('time', $data['time']);
         $set('keep', (int) $data['keep']);
+        $set('retention_days', (int) ($data['retention_days'] ?? 0));
         $set('target', $data['target']);
         $set('dir', trim($data['dir'] ?? ''));
         $set('ftp_ssl', $request->boolean('ftp_ssl') ? '1' : '0');

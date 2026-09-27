@@ -26,7 +26,7 @@ Schedule::command('audit-log:prune')->dailyAt('03:20')->withoutOverlapping();
 // Automatische Sicherung. Der Befehl entscheidet anhand der
 // Systemeinstellungen (aktiv, Häufigkeit, Uhrzeit, letzter Lauf) selbst,
 // ob gerade eine Sicherung fällig ist.
-Schedule::command('backup:run')->everyThirtyMinutes()->withoutOverlapping()->runInBackground();
+Schedule::command('backup:run')->everyThirtyMinutes()->withoutOverlapping()->onOneServer()->runInBackground();
 
 // Prüft das GitHub-Repository auf neue Releases (Ergebnis wird in der
 // Administration unter "Aktualisierungen" angezeigt).

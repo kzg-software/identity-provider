@@ -58,6 +58,33 @@ Wichtig: Auf dem neuen Server muss derselbe Datenbanktyp laufen wie beim
 Erstellen der Sicherung. Eine Sicherung aus SQLite lässt sich nicht in eine
 MySQL Datenbank einspielen und umgekehrt.
 
+## Automatische Sicherung, Ziel und Aufbewahrung
+
+Unter **Administration, Datensicherung, Automatische Sicherung** lässt sich ein
+Zeitplan (täglich/wöchentlich) und ein Ziel einrichten: ein lokales
+Verzeichnis, S3, FTP oder SFTP.
+
+* **Lokales Ziel.** Ohne eigene Angabe landen Sicherungen unter
+  `storage/backups` - bewusst außerhalb von `storage/app`, das selbst
+  vollständig in jede Sicherung aufgenommen wird. Ein Ziel *innerhalb* von
+  `storage/app` (oder gleich dem internen Arbeitsverzeichnis
+  `storage/framework/backups`) wird beim Speichern der Einstellungen und vor
+  jedem Lauf abgelehnt, da eine Sicherung sich sonst bei jedem Lauf selbst mit
+  einsammeln und mit jedem weiteren Lauf verdoppeln würde.
+* **Aufbewahrung.** Zwei unabhängige Regeln, beide über die Oberfläche
+  einstellbar (Standardwerte auch über `BACKUP_MAX_COUNT` bzw.
+  `BACKUP_RETENTION_DAYS` in der `.env` vorbelegbar, Standard je 14): eine
+  maximale Anzahl an Sicherungen und ein maximales Alter in Tagen. Nach jedem
+  Lauf wird alles entfernt, was eine der beiden Grenzen überschreitet - die
+  jeweils jüngste Sicherung bleibt dabei immer erhalten.
+* **Speicherplatz.** Vor jeder Sicherung wird der freie Speicherplatz geprüft
+  (Sicherheitsreserve standardmäßig 2 GB, `BACKUP_MIN_FREE_BYTES`). Reicht er
+  nicht, wird die Sicherung gar nicht erst gestartet.
+* **Keine zwei gleichzeitigen Sicherungen.** Ein systemweiter Sperr-Lock
+  (über den gemeinsamen Cache, funktioniert auch über mehrere Container
+  hinweg) verhindert, dass eine manuelle und eine automatische Sicherung -
+  oder zwei automatische Läufe - gleichzeitig laufen.
+
 ## Grenzen und Hinweise
 
 * **Dateigröße beim Upload.** Große Sicherungen können am Upload Limit des

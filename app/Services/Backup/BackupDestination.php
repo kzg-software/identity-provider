@@ -89,18 +89,27 @@ class BackupDestination
         };
     }
 
+    /**
+     * Ohne eigene Angabe liegt das Ziel unter storage/backups - bewusst
+     * außerhalb von storage/app/(public|private), das bei jeder Sicherung
+     * vollständig durchsucht wird. Läge das Ziel dort drin, würde jede
+     * Sicherung alle bisherigen Sicherungsdateien erneut mitsichern und sich
+     * bei jedem Lauf verdoppeln. Ein zusätzlicher Check vor jedem Lauf
+     * ({@see BackupPaths::assertDestinationIsSafe()}) fängt das auch ab,
+     * falls hier trotzdem ein Pfad innerhalb von storage/app konfiguriert wird.
+     */
     public function localRoot(): string
     {
         $dir = rtrim($this->rawDir(), '/\\');
 
         if ($dir === '') {
-            return storage_path('app/private/backups');
+            return storage_path('backups');
         }
 
         // Absoluter Pfad: /foo unter Unix, C:\foo bzw. C:/foo unter Windows.
         $isAbsolute = str_starts_with($dir, '/') || preg_match('#^[a-zA-Z]:[\\\\/]#', $dir) === 1;
 
-        return $isAbsolute ? $dir : storage_path('app/'.ltrim($dir, '/\\'));
+        return $isAbsolute ? $dir : storage_path(ltrim($dir, '/\\'));
     }
 
     /**

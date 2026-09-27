@@ -161,7 +161,7 @@
             <span class="text-sm font-medium text-gray-900">Automatische Sicherung aktiv</span>
         </label>
 
-        <div class="grid gap-4 sm:grid-cols-3">
+        <div class="grid gap-4 sm:grid-cols-4">
             <div>
                 <x-input-label value="Häufigkeit" />
                 <x-select name="frequency">
@@ -174,14 +174,23 @@
                 <x-input type="time" name="time" value="{{ old('time', $auto['auto_backup_time'] ?: '03:00') }}" />
             </div>
             <div>
-                <x-input-label value="Aufbewahrung" />
+                <x-input-label value="Aufbewahrung (Anzahl)" />
                 <div class="flex items-center gap-2">
                     <x-input type="number" name="keep" min="0" max="365" class="!w-24"
-                             value="{{ old('keep', $auto['auto_backup_keep'] ?: '7') }}" />
+                             value="{{ old('keep', $auto['auto_backup_keep'] ?: '14') }}" />
                     <span class="text-sm text-gray-500">Stück (0 = alle)</span>
                 </div>
             </div>
+            <div>
+                <x-input-label value="Aufbewahrung (Alter)" />
+                <div class="flex items-center gap-2">
+                    <x-input type="number" name="retention_days" min="0" max="3650" class="!w-24"
+                             value="{{ old('retention_days', $auto['auto_backup_retention_days'] ?: '0') }}" />
+                    <span class="text-sm text-gray-500">Tage (0 = aus)</span>
+                </div>
+            </div>
         </div>
+        <p class="text-xs text-gray-500">Nach jeder Sicherung werden Dateien entfernt, die über die behaltene Anzahl hinausgehen oder älter als die eingestellte Anzahl Tage sind. Die jeweils jüngste Sicherung bleibt immer erhalten.</p>
 
         <div>
             <x-input-label value="Passwort für die Sicherungsdateien" />
@@ -208,7 +217,7 @@
                     </x-input-label>
                     <x-input type="text" name="dir" value="{{ old('dir', $auto['auto_backup_dir']) }}"
                              placeholder="z. B. /var/backups/idp oder backups" />
-                    <p class="mt-1 text-xs text-gray-500" x-show="target === 'local'">Absoluter Pfad, oder relativ zu <code class="rounded bg-gray-100 px-1">storage/app/</code>. Leer = <code class="rounded bg-gray-100 px-1">storage/app/private/backups</code>.</p>
+                    <p class="mt-1 text-xs text-gray-500" x-show="target === 'local'">Absoluter Pfad, oder relativ zu <code class="rounded bg-gray-100 px-1">storage/</code>. Leer = <code class="rounded bg-gray-100 px-1">storage/backups</code>. Ein Ziel innerhalb von <code class="rounded bg-gray-100 px-1">storage/app/</code> wird abgelehnt, da dieser Bereich selbst gesichert wird.</p>
                 </div>
 
                 {{-- FTP / SFTP --}}

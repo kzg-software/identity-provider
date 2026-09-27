@@ -7,6 +7,7 @@ use App\Models\SystemSetting;
 use App\Support\Secret;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\File;
+use Illuminate\Support\Facades\Log;
 use Throwable;
 
 /**
@@ -60,18 +61,36 @@ class AutoBackupRunner
      */
     public function run(): array
     {
+        $startedAt = now();
+
         $password = Secret::decrypt(SystemSetting::get('auto_backup_archive_password'));
 
         if ($password === '') {
-            return $this->fail('Es ist kein Passwort für die Sicherungsdatei hinterlegt.');
+            return $this->fail('Es ist kein Passwort für die Sicherungsdatei hinterlegt.', $startedAt);
+        }
+
+        $isLocal = $this->destination->target() === 'local';
+
+        if ($isLocal) {
+            try {
+                BackupPaths::assertDestinationIsSafe($this->destination->localRoot());
+                BackupPaths::assertEnoughFreeSpace($this->destination->localRoot());
+            } catch (BackupException $e) {
+                return $this->fail($e->getMessage(), $startedAt);
+            }
         }
 
         @set_time_limit(0);
 
+        Log::info('backup.auto.started', [
+            'target' => $this->destination->target(),
+            'destination' => $isLocal ? $this->destination->localRoot() : $this->destination->path('*'),
+        ]);
+
         try {
             $built = $this->backups->create($password);
         } catch (Throwable $e) {
-            return $this->fail('Archiv konnte nicht erstellt werden: '.$e->getMessage());
+            return $this->fail('Archiv konnte nicht erstellt werden: '.$e->getMessage(), $startedAt);
         }
 
         $name = $this->backups->fileName();
@@ -87,9 +106,10 @@ class AutoBackupRunner
         } catch (Throwable $e) {
             File::deleteDirectory(dirname($built));
 
-            return $this->fail('Upload zum Ziel fehlgeschlagen: '.$e->getMessage());
+            return $this->fail('Upload zum Ziel fehlgeschlagen: '.$e->getMessage(), $startedAt);
         }
 
+        $size = is_file($built) ? filesize($built) : null;
         File::deleteDirectory(dirname($built));
 
         $pruned = $this->prune();
@@ -97,6 +117,15 @@ class AutoBackupRunner
         SystemSetting::set('auto_backup_last_run', now()->toIso8601String());
         SystemSetting::set('auto_backup_last_error', '');
         SystemSetting::set('auto_backup_last_file', $name);
+
+        Log::info('backup.auto.completed', [
+            'started_at' => $startedAt->toIso8601String(),
+            'file' => $name,
+            'target' => $this->destination->target(),
+            'size_bytes' => $size,
+            'duration_ms' => now()->diffInMilliseconds($startedAt),
+            'pruned' => $pruned,
+        ]);
 
         AuditLog::record('admin.backup_auto_created', null, [
             'file' => $name,
@@ -108,32 +137,66 @@ class AutoBackupRunner
     }
 
     /**
-     * Entfernt alte Sicherungen, sodass nur die jüngsten N übrig bleiben.
-     * 0 = alle behalten.
+     * Entfernt alte Sicherungen: alles jenseits der behaltenen Anzahl
+     * (auto_backup_keep) und - falls gesetzt - alles älter als
+     * auto_backup_retention_days. Die jüngste Sicherung wird nie entfernt,
+     * damit nach einer Rotation immer mindestens eine Sicherung übrig bleibt.
+     * Läuft ausschließlich gegen das Zielverzeichnis, nie gegen das
+     * Arbeitsverzeichnis eines laufenden Backups.
      */
     public function prune(): int
     {
-        $keep = (int) SystemSetting::get('auto_backup_keep', 0);
+        $keep = (int) SystemSetting::get('auto_backup_keep', config('backup.max_count', 14));
+        $retentionDays = (int) SystemSetting::get('auto_backup_retention_days', 0);
 
-        if ($keep <= 0) {
+        $backups = $this->destination->existingBackups();
+
+        if (count($backups) <= 1) {
             return 0;
         }
 
+        $cutoff = $retentionDays > 0 ? now()->subDays($retentionDays)->getTimestamp() : null;
         $disk = $this->destination->disk();
-        $backups = $this->destination->existingBackups();
-        $stale = array_slice($backups, $keep);
+        $stale = [];
+
+        foreach ($backups as $index => $file) {
+            if ($index === 0) {
+                continue; // die jüngste Sicherung bleibt immer erhalten.
+            }
+
+            $beyondCount = $keep > 0 && $index >= $keep;
+            $tooOld = $cutoff !== null && $file['last_modified'] !== null && $file['last_modified'] < $cutoff;
+
+            if ($beyondCount || $tooOld) {
+                $stale[] = $file;
+            }
+        }
 
         foreach ($stale as $file) {
             rescue(fn () => $disk->delete($file['path']), null, false);
         }
 
+        if ($stale !== []) {
+            Log::info('backup.auto.pruned', [
+                'removed' => array_map(fn ($f) => $f['name'], $stale),
+                'keep' => $keep,
+                'retention_days' => $retentionDays,
+            ]);
+        }
+
         return count($stale);
     }
 
-    private function fail(string $message): array
+    private function fail(string $message, Carbon $startedAt): array
     {
         SystemSetting::set('auto_backup_last_run', now()->toIso8601String());
         SystemSetting::set('auto_backup_last_error', $message);
+
+        Log::error('backup.auto.failed', [
+            'started_at' => $startedAt->toIso8601String(),
+            'duration_ms' => now()->diffInMilliseconds($startedAt),
+            'error' => $message,
+        ]);
 
         AuditLog::record('admin.backup_auto_failed', null, ['error' => $message]);
 

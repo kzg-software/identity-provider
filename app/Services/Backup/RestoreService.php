@@ -258,12 +258,28 @@ class RestoreService
                 continue;
             }
 
-            $target = storage_path('app/'.$area);
-
-            File::deleteDirectory($target);
-            File::ensureDirectoryExists($target);
-            File::copyDirectory($source, $target);
+            $this->restoreStorageArea($source, storage_path('app/'.$area));
         }
+    }
+
+    /**
+     * Kopiert ein einzelnes wiederhergestelltes Storage-Verzeichnis
+     * (public/private) an seinen Zielort. Als eigene, von Datenbank und .env
+     * unabhängige Methode gehalten, damit sie sich isoliert testen lässt.
+     *
+     * Sicherungen aus der Zeit vor der Korrektur des rekursiven Backup-
+     * Fehlers können intern selbst einen (teils riesigen) "backups"-
+     * Unterordner enthalten. Der gehört nicht zu den eigentlichen Nutzdaten
+     * und wird verworfen, statt ihn als neue Sicherungsdateien
+     * wiederherzustellen.
+     */
+    public function restoreStorageArea(string $source, string $target): void
+    {
+        File::deleteDirectory($source.'/backups');
+
+        File::deleteDirectory($target);
+        File::ensureDirectoryExists($target);
+        File::copyDirectory($source, $target);
     }
 
     private function refreshCaches(): void

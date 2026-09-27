@@ -7,6 +7,4 @@ namespace App\Services\Backup;
  * Nachricht ist immer so formuliert, dass sie einem Administrator direkt
  * angezeigt werden kann.
  */
-class BackupException extends \RuntimeException
-{
-}
+class BackupException extends \RuntimeException {}
