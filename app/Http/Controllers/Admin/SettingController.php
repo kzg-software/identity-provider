@@ -26,6 +26,7 @@ class SettingController extends Controller
         'maintenance_mode', 'maintenance_message', 'maintenance_allow',
         'accent_color', 'brand_icon_mode', 'brand_icon_shape',
         'login_title_mode', 'login_title_text',
+        'header_title_mode', 'header_title_text',
         'windows_sso_enabled',
         'audit_log_retention_days',
         'audit_forward_enabled', 'audit_forward_host', 'audit_forward_port', 'audit_forward_protocol',
@@ -67,6 +68,8 @@ class SettingController extends Controller
             'brand_icon_shape' => 'nullable|in:rounded,circle,square',
             'login_title_mode' => 'nullable|in:default,hidden,custom',
             'login_title_text' => 'nullable|string|max:255',
+            'header_title_mode' => 'nullable|in:default,hidden,custom',
+            'header_title_text' => 'nullable|string|max:255',
             'audit_log_retention_days' => 'nullable|integer|min:0|max:36500',
             'audit_forward_host' => 'nullable|string|max:255',
             'audit_forward_port' => 'nullable|integer|min:1|max:65535',
@@ -117,6 +120,7 @@ class SettingController extends Controller
 
         $data['accent_color'] = AccentPalette::normalize($data['accent_color'] ?? null) ?? '';
         $data['login_title_mode'] = $data['login_title_mode'] ?? 'default';
+        $data['header_title_mode'] = $data['header_title_mode'] ?? 'default';
         $data['brand_icon_mode'] = $data['brand_icon_mode'] ?? 'default';
         $data['brand_icon_shape'] = $data['brand_icon_shape'] ?? 'rounded';
 

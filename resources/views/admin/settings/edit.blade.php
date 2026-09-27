@@ -32,6 +32,8 @@
         iconShape: @js(old('brand_icon_shape', $settings['brand_icon_shape'] ?: 'rounded')),
         loginMode: @js(old('login_title_mode', $settings['login_title_mode'] ?: 'default')),
         loginText: @js(old('login_title_text', $settings['login_title_text'] ?? '')),
+        headerMode: @js(old('header_title_mode', $settings['header_title_mode'] ?: 'default')),
+        headerText: @js(old('header_title_text', $settings['header_title_text'] ?? '')),
         systemName: @js(old('system_name', $settings['system_name'] ?? '')),
         hasLogo: @js((bool) $logoPath),
         logoUrl: @js($logoPath ? $storage->url($logoPath) : ''),
@@ -40,6 +42,11 @@
         get loginPreview() {
             if (this.loginMode === 'hidden') return '';
             if (this.loginMode === 'custom') return this.loginText.trim();
+            return this.systemName.trim() || 'System';
+        },
+        get headerPreview() {
+            if (this.headerMode === 'hidden') return '';
+            if (this.headerMode === 'custom') return this.headerText.trim();
             return this.systemName.trim() || 'System';
         },
     }"
@@ -128,7 +135,7 @@
                                         <svg x-show="iconMode !== 'initial'" class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2 3 6v6c0 5.25 3.75 9.75 9 11 5.25-1.25 9-5.75 9-11V6l-9-4Z"/></svg>
                                     </span>
                                 </template>
-                                <span class="truncate text-sm font-semibold text-gray-800" x-text="systemName.trim() || 'System'"></span>
+                                <span class="truncate text-sm font-semibold text-gray-800" x-show="headerPreview" x-text="headerPreview"></span>
                                 <span class="ml-auto shrink-0 rounded-full px-2 py-0.5 text-[10px] font-medium text-white" :style="`background:${accent}`">Administration</span>
                             </div>
                             {{-- Anmeldeseite --}}
@@ -195,6 +202,20 @@
                                     <x-input type="text" name="login_title_text" maxlength="255" x-model="loginText"
                                              x-show="loginMode === 'custom'"
                                              value="{{ old('login_title_text', $settings['login_title_text']) }}"
+                                             placeholder="z. B. Willkommen" class="!w-64" />
+                                </div>
+                            </x-setting-row>
+
+                            <x-setting-row label="Titel im Kopfbereich" hint="Der Text neben dem Symbol in der Administration und im Portal.">
+                                <div class="space-y-2">
+                                    <x-select name="header_title_mode" x-model="headerMode" class="!w-64">
+                                        <option value="default">Systemnamen anzeigen</option>
+                                        <option value="hidden">Ausblenden</option>
+                                        <option value="custom">Eigener Text</option>
+                                    </x-select>
+                                    <x-input type="text" name="header_title_text" maxlength="255" x-model="headerText"
+                                             x-show="headerMode === 'custom'"
+                                             value="{{ old('header_title_text', $settings['header_title_text']) }}"
                                              placeholder="z. B. Willkommen" class="!w-64" />
                                 </div>
                             </x-setting-row>

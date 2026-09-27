@@ -54,7 +54,9 @@
         <div class="flex items-center justify-between h-16 px-4 border-b border-white/10 shrink-0">
             <a href="{{ route('admin.dashboard') }}" class="flex min-w-0 items-center gap-2 font-semibold text-white">
                 <x-brand-mark context="header" />
-                <span class="truncate">{{ $systemName }}</span>
+                @if (! empty($headerTitle))
+                    <span class="truncate">{{ $headerTitle }}</span>
+                @endif
             </a>
             <button @click="mobileOpen = false" class="lg:hidden p-1 text-gray-400 hover:text-white" aria-label="Menü schließen">
                 <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12" /></svg>
@@ -67,15 +69,6 @@
 
         <div class="flex-1 overflow-y-auto px-3 py-3" @click="mobileOpen = false">
             @include('layouts.partials.admin-nav', ['groups' => $adminNav, 'dark' => true])
-        </div>
-
-        <div class="border-t border-white/10 p-3">
-            <div class="flex items-center gap-2.5 rounded-md px-1 py-1 text-sm">
-                <span class="flex items-center justify-center h-8 w-8 rounded-full bg-white/10 text-gray-200 text-xs font-semibold shrink-0">
-                    {{ strtoupper(substr(auth()->user()->display_name ?? auth()->user()->username ?? '?', 0, 1)) }}
-                </span>
-                <span class="min-w-0 truncate text-gray-300">{{ auth()->user()->display_name ?? auth()->user()->username }}</span>
-            </div>
         </div>
     </aside>
 

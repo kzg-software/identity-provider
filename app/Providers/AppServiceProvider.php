@@ -36,6 +36,7 @@ class AppServiceProvider extends ServiceProvider
         View::share('systemFaviconUrl', $this->resolveBrandingUrl('favicon_path'));
         View::share('loginBackgroundUrl', $this->resolveBrandingUrl('login_background_path'));
         View::share('loginTitle', $this->resolveLoginTitle());
+        View::share('headerTitle', $this->resolveHeaderTitle());
         View::share('brandIcon', [
             'mode' => $this->resolveSetting('brand_icon_mode') ?: 'default',
             'shape' => $this->resolveSetting('brand_icon_shape') ?: 'rounded',
@@ -94,6 +95,28 @@ class AppServiceProvider extends ServiceProvider
 
         if ($mode === 'custom') {
             $text = trim((string) $this->resolveSetting('login_title_text'));
+
+            return $text !== '' ? $text : null;
+        }
+
+        return $this->resolveSystemName();
+    }
+
+    /**
+     * Systemname neben dem Symbol im Kopfbereich (Administration & Portal):
+     * null  => ausblenden
+     * string => anzuzeigender Text (Systemname oder eigener Text)
+     */
+    private function resolveHeaderTitle(): ?string
+    {
+        $mode = $this->resolveSetting('header_title_mode') ?: 'default';
+
+        if ($mode === 'hidden') {
+            return null;
+        }
+
+        if ($mode === 'custom') {
+            $text = trim((string) $this->resolveSetting('header_title_text'));
 
             return $text !== '' ? $text : null;
         }

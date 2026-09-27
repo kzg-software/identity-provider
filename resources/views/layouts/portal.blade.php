@@ -26,8 +26,8 @@
 
                     <a href="{{ route('dashboard') }}" class="flex items-center gap-2 shrink-0 font-semibold text-gray-800">
                         <x-brand-mark context="header" />
-                        @if (empty($systemLogoUrl))
-                            <span>{{ $systemName }}</span>
+                        @if (empty($systemLogoUrl) && ! empty($headerTitle))
+                            <span>{{ $headerTitle }}</span>
                         @endif
                     </a>
 
