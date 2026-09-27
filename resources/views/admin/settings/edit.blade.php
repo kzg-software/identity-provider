@@ -206,6 +206,13 @@
                                 </div>
                             </x-setting-row>
 
+                            <x-setting-row label="Layout der Anmeldeseite" hint="„Geteilt&quot; zeigt links eine große Fläche mit Marke und Hintergrundbild, rechts das Formular. Ohne Hintergrundbild wird dort ein Farbverlauf in der Akzentfarbe angezeigt.">
+                                <x-select name="login_layout" class="!w-64">
+                                    <option value="centered" @selected(old('login_layout', $settings['login_layout'] ?: 'centered') === 'centered')>Zentriert (Standard)</option>
+                                    <option value="split" @selected(old('login_layout', $settings['login_layout'] ?: 'centered') === 'split')>Geteilt</option>
+                                </x-select>
+                            </x-setting-row>
+
                             <x-setting-row label="Titel im Kopfbereich" hint="Der Text neben dem Symbol in der Administration und im Portal.">
                                 <div class="space-y-2">
                                     <x-select name="header_title_mode" x-model="headerMode" class="!w-64">
