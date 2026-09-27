@@ -25,9 +25,11 @@
         <span x-text="loading ? 'Anmeldung läuft …' : 'Anmelden'">Anmelden</span>
     </x-button>
 
-    <p class="text-center text-sm">
-        <a href="{{ route('password.request') }}" class="text-laravel-600 hover:text-laravel-700">Passwort vergessen?</a>
-    </p>
+    @if (\App\Support\MailSettings::configured())
+        <p class="text-center text-sm">
+            <a href="{{ route('password.request') }}" class="text-laravel-600 hover:text-laravel-700">Passwort vergessen?</a>
+        </p>
+    @endif
 </form>
 
 @if (\App\Support\SecuritySettings::passwordlessAnyEnabled())

@@ -19,13 +19,21 @@ class PasswordResetController extends Controller
     /** Unabhaengig vom Ausgang immer dieselbe Meldung, um Konten nicht zu verraten. */
     private const GENERIC = 'Falls ein Konto mit dieser Adresse existiert, ist eine E-Mail mit einem Link zum Zurücksetzen unterwegs.';
 
-    public function showForgot(): View
+    public function showForgot(): View|RedirectResponse
     {
+        if (! MailSettings::configured()) {
+            return redirect()->route('login');
+        }
+
         return view('auth.forgot-password');
     }
 
     public function sendResetLink(Request $request): RedirectResponse
     {
+        if (! MailSettings::configured()) {
+            return redirect()->route('login');
+        }
+
         $request->validate(['email' => ['required', 'email']]);
 
         $user = User::query()
@@ -33,7 +41,7 @@ class PasswordResetController extends Controller
             ->where('auth_source', 'local')
             ->first();
 
-        if ($user && MailSettings::configured()) {
+        if ($user) {
             try {
                 Password::sendResetLink(['email' => $user->email]);
             } catch (\Throwable $e) {
@@ -44,8 +52,12 @@ class PasswordResetController extends Controller
         return back()->with('status', self::GENERIC);
     }
 
-    public function showReset(Request $request, string $token): View
+    public function showReset(Request $request, string $token): View|RedirectResponse
     {
+        if (! MailSettings::configured()) {
+            return redirect()->route('login');
+        }
+
         return view('auth.reset-password', [
             'token' => $token,
             'email' => (string) $request->query('email', ''),
@@ -54,6 +66,10 @@ class PasswordResetController extends Controller
 
     public function reset(Request $request): RedirectResponse
     {
+        if (! MailSettings::configured()) {
+            return redirect()->route('login');
+        }
+
         $request->validate([
             'token' => ['required'],
             'email' => ['required', 'email'],

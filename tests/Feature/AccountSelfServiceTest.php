@@ -116,6 +116,23 @@ class AccountSelfServiceTest extends TestCase
 
     // ----- Passwort vergessen -----------------------------------------
 
+    public function test_forgot_password_routes_are_blocked_without_mail_configured(): void
+    {
+        User::factory()->create(['auth_source' => 'local', 'is_active' => true, 'email' => 'r3@firma.de', 'password' => Hash::make('alt')]);
+
+        $this->get(route('login'))->assertDontSee('Passwort vergessen?');
+
+        $this->get(route('password.request'))->assertRedirect(route('login'));
+        $this->post(route('password.email'), ['email' => 'r3@firma.de'])->assertRedirect(route('login'));
+        $this->get(route('password.reset', ['token' => 'irgendwas']))->assertRedirect(route('login'));
+        $this->post(route('password.update'), [
+            'token' => 'irgendwas',
+            'email' => 'r3@firma.de',
+            'password' => 'frisches-Passwort-999',
+            'password_confirmation' => 'frisches-Passwort-999',
+        ])->assertRedirect(route('login'));
+    }
+
     public function test_forgot_password_always_shows_generic_message(): void
     {
         Mail::fake();
@@ -144,6 +161,7 @@ class AccountSelfServiceTest extends TestCase
     public function test_reset_password_with_valid_token_changes_password(): void
     {
         Mail::fake();
+        $this->configureMail();
         $user = User::factory()->create([
             'auth_source' => 'local', 'is_active' => true, 'email' => 'r@firma.de',
             'password' => Hash::make('alt'),
@@ -163,6 +181,7 @@ class AccountSelfServiceTest extends TestCase
 
     public function test_reset_password_with_bad_token_is_rejected(): void
     {
+        $this->configureMail();
         $user = User::factory()->create(['auth_source' => 'local', 'is_active' => true, 'email' => 'r2@firma.de', 'password' => Hash::make('alt')]);
 
         $this->post(route('password.update'), [
