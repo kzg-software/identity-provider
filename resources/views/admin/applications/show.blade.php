@@ -231,6 +231,35 @@
         </form>
     </x-card>
 
+    <form method="POST" action="{{ route('admin.applications.update', $application) }}" class="mt-6">
+        @csrf
+        @method('PUT')
+        <input type="hidden" name="section" value="zugriff">
+        <x-card title="Netzwerk und Uhrzeit"
+                description="Zusätzliche Einschränkungen, die für alle Benutzer gelten, auch wenn eine Zugriffsregel sie zulässt. Leer lassen für keine Einschränkung.">
+            <div class="space-y-5">
+                <div>
+                    <x-input-label>Erlaubte IP-Adressen
+                        <x-field-info example="10.0.0.0/8, 192.168.1.0/24, 203.0.113.7">
+                            IP-Adressen oder Netze in CIDR-Schreibweise (IPv4 und IPv6), getrennt durch Komma oder Zeilenumbruch. Nur Anmeldungen von diesen Adressen werden zugelassen. Hinter einem Reverse Proxy muss TRUSTED_PROXIES gesetzt sein.
+                        </x-field-info>
+                    </x-input-label>
+                    <x-textarea name="allowed_ip_ranges" rows="3">{{ old('allowed_ip_ranges', $application->allowed_ip_ranges) }}</x-textarea>
+                    @error('allowed_ip_ranges')<p class="mt-1 text-sm text-red-600">{{ $message }}</p>@enderror
+                </div>
+                <div>
+                    <x-input-label>Erlaubte Zeiten
+                        <x-field-info example="Mo-Fr 08:00-18:00">
+                            Eine Zeile pro Zeitfenster: Wochentage (Mo Di Mi Do Fr Sa So, auch als Bereich "Mo-Fr" oder Liste "Mo,Mi") gefolgt von Uhrzeit von-bis. Fenster über Mitternacht sind möglich ("Fr 22:00-06:00"). Es gilt die Zeitzone des Systems.
+                        </x-field-info>
+                    </x-input-label>
+                    <x-textarea name="access_time_windows" rows="3">{{ old('access_time_windows', $application->access_time_windows) }}</x-textarea>
+                    @error('access_time_windows')<p class="mt-1 text-sm text-red-600">{{ $message }}</p>@enderror
+                </div>
+                <x-button type="submit" size="sm">Speichern</x-button>
+            </div>
+        </x-card>
+    </form>
 @endif
 
 @if ($tab === 'darstellung')

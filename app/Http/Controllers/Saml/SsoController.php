@@ -7,6 +7,7 @@ use App\Models\AuditLog;
 use App\Models\SamlServiceProvider;
 use App\Saml\SamlIdpService;
 use App\Services\AccessPolicyEvaluator;
+use App\Support\AccessRestrictions;
 use App\Support\MaintenanceGate;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -118,6 +119,11 @@ class SsoController extends Controller
         if ($sp->application && MaintenanceGate::applicationBlockedFor($sp->application, $user)) {
             AuditLog::record('saml.sso.maintenance', $user, ['sp' => $sp->entity_id], $sp->application);
             abort(503, MaintenanceGate::applicationMessage($sp->application));
+        }
+
+        if ($violation = AccessPolicyEvaluator::restrictionViolation($sp->application?->id)) {
+            AuditLog::record('saml.sso.restricted', $user, ['sp' => $sp->entity_id, 'reason' => $violation], $sp->application);
+            abort(403, AccessRestrictions::message($violation));
         }
 
         if (! $this->userMayAccess($sp, $user)) {

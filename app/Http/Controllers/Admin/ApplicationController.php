@@ -8,14 +8,16 @@ use App\Models\Application;
 use App\Models\AuditLog;
 use App\Models\OauthScope;
 use App\Models\Provider;
-use App\Support\SvgSanitizer;
 use App\Services\ProviderService;
+use App\Support\AccessRestrictions;
+use App\Support\SvgSanitizer;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
 
 class ApplicationController extends Controller
@@ -153,6 +155,37 @@ class ApplicationController extends Controller
 
             $application->visibility = $data['visibility'];
             $application->save();
+        } elseif ($section === 'zugriff') {
+            $data = $request->validate([
+                'allowed_ip_ranges' => 'nullable|string|max:4000',
+                'access_time_windows' => 'nullable|string|max:4000',
+            ]);
+
+            $invalidRanges = array_filter(
+                AccessRestrictions::parseIpRanges($data['allowed_ip_ranges'] ?? ''),
+                fn (string $entry) => ! AccessRestrictions::isValidIpRange($entry),
+            );
+            if ($invalidRanges !== []) {
+                throw ValidationException::withMessages([
+                    'allowed_ip_ranges' => 'Ungültiger IP-Eintrag: '.implode(', ', $invalidRanges),
+                ]);
+            }
+
+            if (AccessRestrictions::parseTimeWindows($data['access_time_windows'] ?? '') === null) {
+                throw ValidationException::withMessages([
+                    'access_time_windows' => 'Ungültiges Zeitfenster. Erlaubt ist z. B. "Mo-Fr 08:00-18:00", eine Zeile pro Fenster.',
+                ]);
+            }
+
+            $application->update([
+                'allowed_ip_ranges' => trim((string) ($data['allowed_ip_ranges'] ?? '')) ?: null,
+                'access_time_windows' => trim((string) ($data['access_time_windows'] ?? '')) ?: null,
+            ]);
+
+            AuditLog::record('oauth.application_restrictions_updated', $request->user(), [], $application);
+
+            return redirect()->route('admin.applications.show', ['application' => $application, 'tab' => 'zugriff'])
+                ->with('status', 'Zugriffsbeschränkung wurde gespeichert.');
         } else {
             $data = $request->validate([
                 'name' => 'required|string|max:255',

@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Models\AccessPolicy;
 use App\Models\Application;
 use App\Models\User;
+use App\Support\AccessRestrictions;
 
 /**
  * Deny-overrides-allow access policy evaluation (promt.md Abschnitt 25),
@@ -14,7 +15,20 @@ use App\Models\User;
  */
 class AccessPolicyEvaluator
 {
+    public static function restrictionViolation(?int $applicationId): ?string
+    {
+        $application = $applicationId ? Application::query()->find($applicationId) : null;
+
+        return $application ? AccessRestrictions::violation($application, request()->ip(), now()) : null;
+    }
+
     public static function mayAccessApplication(?int $applicationId, User $user): bool
+    {
+        return self::restrictionViolation($applicationId) === null
+            && self::passesPolicies($applicationId, $user);
+    }
+
+    public static function passesPolicies(?int $applicationId, User $user): bool
     {
         if (! $applicationId) {
             return true;

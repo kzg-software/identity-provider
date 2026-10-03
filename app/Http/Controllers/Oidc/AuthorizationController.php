@@ -13,6 +13,7 @@ use App\Oidc\NonceContext;
 use App\Oidc\Psr7Bridge;
 use App\Oidc\Repositories\AuthCodeRepository;
 use App\Services\AccessPolicyEvaluator;
+use App\Support\AccessRestrictions;
 use App\Support\MaintenanceGate;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -66,6 +67,11 @@ class AuthorizationController extends Controller
         if (MaintenanceGate::applicationBlockedFor($application, $user)) {
             AuditLog::record('oauth.authorize.maintenance', $user, ['application' => $application->name], $application);
             abort(503, MaintenanceGate::applicationMessage($application));
+        }
+
+        if ($violation = AccessPolicyEvaluator::restrictionViolation($application->id)) {
+            AuditLog::record('oauth.authorize.restricted', $user, ['application' => $application->name, 'reason' => $violation], $application);
+            abort(403, AccessRestrictions::message($violation));
         }
 
         if (! $this->userMayAccess($application, $user)) {

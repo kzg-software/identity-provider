@@ -8,7 +8,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
-#[Fillable(['provider_id', 'name', 'slug', 'description', 'logo_path', 'visibility', 'launch_url', 'category', 'login_mode', 'preferred_provider', 'consent_required', 'consent_mode', 'is_active', 'maintenance_mode', 'maintenance_message', 'maintenance_allow'])]
+#[Fillable(['provider_id', 'name', 'slug', 'description', 'logo_path', 'visibility', 'launch_url', 'category', 'login_mode', 'preferred_provider', 'consent_required', 'consent_mode', 'is_active', 'maintenance_mode', 'maintenance_message', 'maintenance_allow', 'allowed_ip_ranges', 'access_time_windows'])]
 class Application extends Model
 {
     public const VISIBILITY_PORTAL = 'portal';
