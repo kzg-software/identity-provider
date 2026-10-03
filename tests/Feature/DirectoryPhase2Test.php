@@ -267,6 +267,52 @@ class DirectoryPhase2Test extends TestCase
             ->assertSee('(nach Name)');
     }
 
+    public function test_group_role_mapping_page_groups_by_role_and_shows_effect(): void
+    {
+        $admin = $this->admin();
+        $directory = Directory::create(['name' => 'AD', 'type' => 'active_directory', 'base_dn' => 'DC=test,DC=local']);
+        $group = DirectoryGroup::create([
+            'directory_id' => $directory->id, 'object_guid' => 'g1',
+            'name' => 'IT-Team', 'distinguished_name' => 'CN=IT-Team,DC=test,DC=local',
+        ]);
+        GroupRoleMapping::create(['directory_group_id' => $group->id, 'role' => 'admin']);
+        GroupRoleMapping::create(['group_name' => 'Gast', 'role' => 'admin']);
+
+        $holder = \App\Models\User::factory()->create(['name' => 'Erika Muster', 'roles' => ['admin'], 'manual_roles' => []]);
+        \App\Models\User::factory()->create(['name' => 'Hans Manuell', 'roles' => [], 'manual_roles' => ['admin']]);
+
+        $this->actingAs($admin)->get(route('admin.group-role-mappings.index'))
+            ->assertOk()
+            ->assertSee('Gruppe verknüpft')
+            ->assertSee('Noch nicht gefunden')
+            ->assertSee('Erika Muster')
+            ->assertSee('manuell vergeben')
+            ->assertSee('So funktioniert das Rollen-Mapping')
+            ->assertDontSee('Es gibt keine Zuordnung für die Rolle');
+    }
+
+    public function test_group_role_mapping_page_hints_when_admin_role_is_not_mapped(): void
+    {
+        $admin = $this->admin();
+        GroupRoleMapping::create(['group_name' => 'Leser', 'role' => 'viewer']);
+
+        $this->actingAs($admin)->get(route('admin.group-role-mappings.index'))
+            ->assertOk()
+            ->assertSee('Es gibt keine Zuordnung für die Rolle');
+    }
+
+    public function test_group_role_mapping_rejects_roles_with_whitespace_and_explains_unknown_groups(): void
+    {
+        $admin = $this->admin();
+
+        $this->actingAs($admin)->post(route('admin.group-role-mappings.store'), [
+            'group' => 'IT', 'role' => 'zwei worte',
+        ])->assertSessionHasErrors('role');
+
+        $this->actingAs($admin)->post(route('admin.group-role-mappings.store'), [
+            'group' => 'Unbekannt', 'role' => 'viewer',
+        ])->assertSessionHas('status', fn ($status) => str_contains($status, 'noch nicht bekannt'));
+    }
     public function test_group_role_mapping_accepts_a_free_text_group_name(): void
     {
         $admin = $this->admin();
