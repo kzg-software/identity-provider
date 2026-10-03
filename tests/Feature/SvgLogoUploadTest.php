@@ -131,6 +131,36 @@ class SvgLogoUploadTest extends TestCase
         $this->assertStringNotContainsString('height:', $default);
     }
 
+    public function test_settings_overview_lists_open_tasks_and_status(): void
+    {
+        SystemSetting::set('installed', '1');
+        SystemSetting::set('base_url', 'http://auth.example.test');
+        SystemSetting::set('maintenance_mode', '1');
+        $admin = User::factory()->create(['is_admin' => true, 'is_active' => true, 'auth_source' => 'local']);
+
+        $this->actingAs($admin)->get(route('admin.settings.edit'))
+            ->assertOk()
+            ->assertSee('Zustand des Systems')
+            ->assertSee('Basis-URL mit HTTPS')
+            ->assertSee('Die Basis-URL beginnt nicht mit https://')
+            ->assertSee('Nicht eingerichtet. Ohne E-Mail-Versand')
+            ->assertSee('Aktiv. Normale Benutzer sehen nur die Wartungsseite.')
+            ->assertSee('Ungespeicherte Änderungen');
+    }
+
+    public function test_validation_errors_open_the_section_that_contains_the_field(): void
+    {
+        SystemSetting::set('installed', '1');
+        $admin = User::factory()->create(['is_admin' => true, 'is_active' => true, 'auth_source' => 'local']);
+
+        $this->actingAs($admin)->from(route('admin.settings.edit'))
+            ->put(route('admin.settings.update'), $this->settingsPayload(['mail_port' => 'abc']));
+
+        $this->actingAs($admin)->get(route('admin.settings.edit'))
+            ->assertOk()
+            ->assertSee("return 'email';", false);
+    }
+
     public function test_logo_height_must_be_within_limits(): void
     {
         SystemSetting::set('installed', '1');

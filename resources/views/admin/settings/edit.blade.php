@@ -2,16 +2,87 @@
 
 @php
     $sections = [
-        ['id' => 'general', 'label' => 'Allgemein', 'icon' => 'cog'],
-        ['id' => 'appearance', 'label' => 'Erscheinungsbild', 'icon' => 'paint'],
-        ['id' => 'images', 'label' => 'Bilder', 'icon' => 'image'],
-        ['id' => 'login', 'label' => 'Anmeldung', 'icon' => 'login'],
-        ['id' => 'security', 'label' => 'Sicherheit', 'icon' => 'shield-check'],
-        ['id' => 'email', 'label' => 'E-Mail', 'icon' => 'mail'],
-        ['id' => 'audit', 'label' => 'Protokoll', 'icon' => 'journal'],
-        ['id' => 'maintenance', 'label' => 'Wartung', 'icon' => 'warning'],
+        ['id' => 'overview', 'label' => 'Übersicht', 'icon' => 'grid', 'desc' => 'Was ist eingerichtet, was fehlt noch?'],
+        ['id' => 'general', 'label' => 'Allgemein', 'icon' => 'cog', 'desc' => 'Name, Adresse, Zeitzone, Sprache'],
+        ['id' => 'appearance', 'label' => 'Erscheinungsbild', 'icon' => 'paint', 'desc' => 'Farbe, Symbol, Titel, Banner-Größe'],
+        ['id' => 'images', 'label' => 'Bilder', 'icon' => 'image', 'desc' => 'Banner, Favicon, Login-Hintergrund'],
+        ['id' => 'login', 'label' => 'Anmeldung', 'icon' => 'login', 'desc' => 'Windows-Anmeldung'],
+        ['id' => 'security', 'label' => 'Sicherheit', 'icon' => 'shield-check', 'desc' => 'Passwörter, Sperre, Zwei-Faktor, Passkeys'],
+        ['id' => 'email', 'label' => 'E-Mail', 'icon' => 'mail', 'desc' => 'Versand und Testnachricht'],
+        ['id' => 'audit', 'label' => 'Protokoll', 'icon' => 'journal', 'desc' => 'Aufbewahrung und Syslog'],
+        ['id' => 'maintenance', 'label' => 'Wartung', 'icon' => 'warning', 'desc' => 'System für Benutzer sperren'],
     ];
 
+    $mailEnabled = ($settings['mail_enabled'] ?? '0') === '1';
+    $maintenanceOn = ($settings['maintenance_mode'] ?? '0') === '1';
+    $syslogOn = ($settings['audit_forward_enabled'] ?? '0') === '1';
+    $retentionDays = (int) ($settings['audit_log_retention_days'] ?? 0);
+    $usesHttps = str_starts_with((string) ($settings['base_url'] ?? ''), 'https://');
+
+    // Kurzstatus je Abschnitt, wird in der Navigation angezeigt.
+    $sectionStatus = [
+        'email' => $mailEnabled
+            ? ($mailConfigured ? ['Aktiv', 'green'] : ['Unvollständig', 'amber'])
+            : ['Aus', 'gray'],
+        'maintenance' => $maintenanceOn ? ['Aktiv', 'amber'] : null,
+        'audit' => $syslogOn ? ['Syslog', 'green'] : null,
+        'images' => $logoPath ? null : ['Kein Banner', 'gray'],
+    ];
+
+    // In welchem Abschnitt liegt ein Feld? Damit Fehler den richtigen Abschnitt öffnen.
+    $fieldSection = static function (string $field): string {
+        return match (true) {
+            in_array($field, ['logo', 'favicon', 'login_background'], true) => 'images',
+            in_array($field, ['accent_color', 'login_layout', 'logo_height_header', 'logo_height_login'], true),
+            str_starts_with($field, 'brand_icon_'), str_starts_with($field, 'login_title_'), str_starts_with($field, 'header_title_') => 'appearance',
+            $field === 'windows_sso_enabled' => 'login',
+            str_starts_with($field, 'password_'), str_starts_with($field, 'login_'), str_starts_with($field, 'trusted_device_'),
+            str_starts_with($field, 'passkey_'), str_starts_with($field, 'new_device_') => 'security',
+            str_starts_with($field, 'mail_'), $field === 'test_email' => 'email',
+            str_starts_with($field, 'audit_') => 'audit',
+            str_starts_with($field, 'maintenance_') => 'maintenance',
+            default => 'general',
+        };
+    };
+    $errorSections = collect($errors->keys())->map($fieldSection)->unique()->values();
+
+    // "Übersicht": Prüfpunkte mit Zustand und Sprung in den passenden Abschnitt.
+    $checks = [
+        [
+            'ok' => $usesHttps, 'section' => 'general', 'action' => 'Prüfen',
+            'title' => 'Basis-URL mit HTTPS',
+            'text' => $usesHttps
+                ? 'Das System ist über HTTPS erreichbar.'
+                : 'Die Basis-URL beginnt nicht mit https://. Anmeldungen sollten verschlüsselt laufen.',
+        ],
+        [
+            'ok' => $mailEnabled && $mailConfigured, 'section' => 'email', 'action' => 'Einrichten',
+            'title' => 'E-Mail-Versand',
+            'text' => $mailEnabled && $mailConfigured
+                ? 'Aktiv. Passwort-Zurücksetzen und Benachrichtigungen per E-Mail funktionieren.'
+                : 'Nicht eingerichtet. Ohne E-Mail-Versand gibt es kein „Passwort vergessen“ und keine Benachrichtigungen.',
+        ],
+        [
+            'ok' => (bool) $logoPath, 'optional' => true, 'section' => 'images', 'action' => 'Hochladen',
+            'title' => 'Banner (Logo)',
+            'text' => $logoPath ? 'Ein Banner ist hochgeladen.' : 'Optional. Ohne Banner wird das Symbol angezeigt.',
+        ],
+        [
+            'ok' => ! $maintenanceOn, 'section' => 'maintenance', 'action' => 'Öffnen',
+            'title' => 'Wartungsmodus',
+            'text' => $maintenanceOn
+                ? 'Aktiv. Normale Benutzer sehen nur die Wartungsseite.'
+                : 'Aus. Das System ist normal erreichbar.',
+        ],
+        [
+            'ok' => $retentionDays > 0, 'optional' => true, 'section' => 'audit', 'action' => 'Festlegen',
+            'title' => 'Aufbewahrung des Audit-Logs',
+            'text' => $retentionDays > 0
+                ? "Einträge werden nach {$retentionDays} Tagen gelöscht."
+                : 'Einträge werden unbegrenzt aufbewahrt. Eine Frist hält die Datenbank klein.',
+        ],
+    ];
+    $openChecks = collect($checks)->filter(fn ($c) => ! $c['ok'] && empty($c['optional']))->count();
     $accent = old('accent_color', $settings['accent_color'] ?: \App\Support\AccentPalette::DEFAULT);
     $storage = \Illuminate\Support\Facades\Storage::disk('public');
 @endphp
@@ -24,9 +95,53 @@
 <div
     x-data="{
         tab: (() => {
-            @if ($errors->any()) return 'general'; @endif
-            try { return localStorage.getItem('idp_settings_tab') || 'general'; } catch (e) { return 'general'; }
+            @if ($errorSections->isNotEmpty()) return @js($errorSections->first()); @endif
+            try { return localStorage.getItem('idp_settings_tab') || 'overview'; } catch (e) { return 'overview'; }
         })(),
+        dirty: false,
+        saving: false,
+        showChanges: false,
+        initial: {},
+        changes: [],
+        fields() {
+            return [...this.$refs.form.querySelectorAll('input[name], select[name], textarea[name]')]
+                .filter(el => el.type !== 'hidden' && el.type !== 'file' && el.type !== 'submit' && ! el.name.startsWith('_'));
+        },
+        fieldValue(el) {
+            if (el.type === 'checkbox') return el.checked ? 'an' : 'aus';
+            if (el.tagName === 'SELECT') return el.options[el.selectedIndex]?.text.trim() ?? '';
+            return el.value;
+        },
+        fieldLabel(el) {
+            const label = el.closest('label');
+            const own = label ? label.textContent.replace(/\s+/g, ' ').trim() : '';
+            const row = el.closest('[data-label]');
+            if (el.type === 'checkbox' && own) return row ? row.dataset.label + ': ' + own : own;
+            if (row) return row.dataset.label;
+            if (own) return own;
+            const prev = el.parentElement?.querySelector('label');
+            return (prev ? prev.textContent.replace(/\s+/g, ' ').trim() : '') || el.name;
+        },
+        snapshot() {
+            this.initial = Object.fromEntries(this.fields().map((el, i) => [i, this.fieldValue(el)]));
+            this.changes = [];
+            this.dirty = false;
+        },
+        updateChanges() {
+            const secret = el => el.type === 'password';
+            const shorten = v => v === '' ? 'leer' : (v.length > 40 ? v.slice(0, 40) + '…' : v);
+            this.changes = this.fields().map((el, i) => ({ el, i, now: this.fieldValue(el) }))
+                .filter(c => c.now !== this.initial[c.i])
+                .map(c => ({
+                    label: this.fieldLabel(c.el),
+                    from: secret(c.el) ? '' : shorten(this.initial[c.i] ?? ''),
+                    to: secret(c.el) ? 'neu gesetzt' : shorten(c.now),
+                    secret: secret(c.el),
+                    i: c.i,
+                }));
+            this.dirty = this.changes.length > 0;
+            if (! this.dirty) this.showChanges = false;
+        },
         accent: @js($accent),
         iconMode: @js(old('brand_icon_mode', $settings['brand_icon_mode'] ?: 'default')),
         iconShape: @js(old('brand_icon_shape', $settings['brand_icon_shape'] ?: 'rounded')),
@@ -52,7 +167,8 @@
             return this.systemName.trim() || 'System';
         },
     }"
-    x-init="$watch('tab', v => { try { localStorage.setItem('idp_settings_tab', v); } catch (e) {} })"
+    x-init="$nextTick(() => snapshot()); $watch('tab', v => { try { localStorage.setItem('idp_settings_tab', v); } catch (e) {} });
+             window.addEventListener('beforeunload', e => { if (dirty && ! saving) { e.preventDefault(); e.returnValue = ''; } })"
     x-cloak
 >
     {{-- Mobile: Abschnittswahl --}}
@@ -60,7 +176,9 @@
         @foreach ($sections as $s)
             <button type="button" @click="tab = '{{ $s['id'] }}'"
                     :class="tab === '{{ $s['id'] }}' ? 'bg-laravel-600 text-white' : 'border border-gray-200 bg-white text-gray-600'"
-                    class="shrink-0 rounded-full px-3 py-1.5 text-sm font-medium transition">{{ $s['label'] }}</button>
+                    class="relative shrink-0 rounded-full px-3 py-1.5 text-sm font-medium transition">{{ $s['label'] }}
+                @if ($errorSections->contains($s['id']))<span class="absolute -right-0.5 -top-0.5 h-2.5 w-2.5 rounded-full bg-red-500"></span>@endif
+            </button>
         @endforeach
     </div>
 
@@ -71,19 +189,78 @@
                 @foreach ($sections as $s)
                     <button type="button" @click="tab = '{{ $s['id'] }}'"
                             :class="tab === '{{ $s['id'] }}' ? 'bg-laravel-50 text-laravel-700' : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'"
-                            class="flex w-full items-center gap-2.5 rounded-md px-3 py-2 text-left text-sm font-medium transition">
-                        <x-icon name="{{ $s['icon'] }}" class="h-4 w-4 shrink-0" />
-                        {{ $s['label'] }}
+                            class="flex w-full items-start gap-2.5 rounded-md px-3 py-2 text-left transition">
+                        <x-icon name="{{ $s['icon'] }}" class="mt-0.5 h-4 w-4 shrink-0" />
+                        <span class="min-w-0 flex-1">
+                            <span class="flex items-center gap-1.5 text-sm font-medium">
+                                {{ $s['label'] }}
+                                @if ($errorSections->contains($s['id']))
+                                    <span class="h-2 w-2 rounded-full bg-red-500" title="Eingabefehler"></span>
+                                @elseif ($s['id'] === 'overview' && $openChecks > 0)
+                                    <span class="rounded-full bg-amber-100 px-1.5 text-[10px] font-semibold text-amber-700">{{ $openChecks }}</span>
+                                @endif
+                            </span>
+                            <span class="block text-xs font-normal leading-snug text-gray-500">{{ $s['desc'] }}</span>
+                            @if (! empty($sectionStatus[$s['id']]))
+                                <x-badge :color="$sectionStatus[$s['id']][1]" class="mt-1 !px-2 !py-0 !text-[10px]">{{ $sectionStatus[$s['id']][0] }}</x-badge>
+                            @endif
+                        </span>
                     </button>
                 @endforeach
             </div>
         </nav>
 
         <div class="min-w-0 space-y-6">
-            <form method="POST" action="{{ route('admin.settings.update') }}" class="space-y-6">
+            <form method="POST" action="{{ route('admin.settings.update') }}" class="space-y-6"
+                  x-ref="form" @input="updateChanges()" @change="updateChanges()" @click="$nextTick(() => updateChanges())" @submit="saving = true">
                 @csrf
                 @method('PUT')
 
+                {{-- ===== Übersicht ===== --}}
+                <div x-show="tab === 'overview'" class="space-y-6">
+                    <x-card title="Zustand des Systems"
+                            description="Hier sieht man auf einen Blick, was bereits eingerichtet ist und was noch zu tun ist.">
+                        <ul class="divide-y divide-gray-100">
+                            @foreach ($checks as $check)
+                                <li class="flex items-start gap-3 py-4 first:pt-0 last:pb-0">
+                                    @if ($check['ok'])
+                                        <span class="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-emerald-100 text-emerald-700" title="In Ordnung">
+                                            <svg class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M16.7 5.3a1 1 0 0 1 0 1.4l-7.5 7.5a1 1 0 0 1-1.4 0L3.3 9.7a1 1 0 1 1 1.4-1.4l3.8 3.8 6.8-6.8a1 1 0 0 1 1.4 0Z" clip-rule="evenodd"/></svg>
+                                        </span>
+                                    @elseif (! empty($check['optional']))
+                                        <span class="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-gray-100 text-gray-500" title="Optional">
+                                            <svg class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor"><path d="M10 4a1 1 0 0 1 1 1v4h4a1 1 0 1 1 0 2h-4v4a1 1 0 1 1-2 0v-4H5a1 1 0 1 1 0-2h4V5a1 1 0 0 1 1-1Z"/></svg>
+                                        </span>
+                                    @else
+                                        <span class="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-amber-100 text-amber-700" title="Zu erledigen">
+                                            <svg class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M8.6 3.2a1.6 1.6 0 0 1 2.8 0l6 10.5A1.6 1.6 0 0 1 16 16H4a1.6 1.6 0 0 1-1.4-2.3l6-10.5ZM10 7a1 1 0 0 0-1 1v3a1 1 0 1 0 2 0V8a1 1 0 0 0-1-1Zm0 7.5a1 1 0 1 0 0-2 1 1 0 0 0 0 2Z" clip-rule="evenodd"/></svg>
+                                        </span>
+                                    @endif
+                                    <div class="min-w-0 flex-1">
+                                        <p class="text-sm font-medium text-gray-900">
+                                            {{ $check['title'] }}
+                                            @if (! $check['ok'] && ! empty($check['optional']))
+                                                <span class="ml-1 text-xs font-normal text-gray-400">optional</span>
+                                            @endif
+                                        </p>
+                                        <p class="mt-0.5 text-sm text-gray-500">{{ $check['text'] }}</p>
+                                    </div>
+                                    <x-button type="button" variant="secondary" size="sm" @click="tab = '{{ $check['section'] }}'; window.scrollTo({ top: 0, behavior: 'smooth' })">
+                                        {{ $check['ok'] ? 'Öffnen' : $check['action'] }}
+                                    </x-button>
+                                </li>
+                            @endforeach
+                        </ul>
+                    </x-card>
+
+                    <x-card title="So funktionieren die Einstellungen">
+                        <ul class="space-y-2 text-sm text-gray-600">
+                            <li><strong class="font-medium text-gray-900">Speichern:</strong> Änderungen in den Abschnitten Allgemein, Erscheinungsbild, Anmeldung, Sicherheit, E-Mail, Protokoll und Wartung werden erst mit „Speichern“ übernommen. Unten erscheint ein Hinweis, solange etwas ungespeichert ist.</li>
+                            <li><strong class="font-medium text-gray-900">Bilder:</strong> Banner, Favicon und Login-Hintergrund werden sofort beim Hochladen gespeichert.</li>
+                            <li><strong class="font-medium text-gray-900">Wirkung:</strong> Alles gilt sofort für alle Benutzer. Rot markierte Abschnitte in der Navigation enthalten Eingabefehler.</li>
+                        </ul>
+                    </x-card>
+                </div>
                 {{-- ===== Allgemein ===== --}}
                 <div x-show="tab === 'general'">
                     <x-card title="Allgemein" description="Name, Adresse und grundlegendes Verhalten.">
@@ -98,7 +275,12 @@
                             </x-setting-row>
 
                             <x-setting-row label="Zeitzone" hint="Zeitzone für Zeitstempel im Audit-Log und in der Verwaltung, z. B. <code>Europe/Berlin</code>.">
-                                <x-input type="text" name="timezone" value="{{ old('timezone', $settings['timezone']) }}" required />
+                                <x-input type="text" name="timezone" list="timezone-list" value="{{ old('timezone', $settings['timezone']) }}" required />
+                                <datalist id="timezone-list">
+                                    @foreach (\DateTimeZone::listIdentifiers() as $tz)
+                                        <option value="{{ $tz }}"></option>
+                                    @endforeach
+                                </datalist>
                             </x-setting-row>
 
                             <x-setting-row label="Sprache" hint="Sprache der Oberfläche. Es stehen nur Sprachen zur Auswahl, für die Übersetzungen vorliegen.">
@@ -503,11 +685,39 @@
                     </x-card>
                 </div>
 
-                {{-- Speicherleiste (nicht bei "Bilder") --}}
-                <div x-show="tab !== 'images'"
-                     class="sticky bottom-0 -mx-4 flex items-center gap-3 border-t border-gray-200 bg-gray-100 px-4 py-3 sm:mx-0 sm:rounded-lg sm:border sm:bg-white">
-                    <x-button type="submit">Speichern</x-button>
-                    <span class="text-xs text-gray-500">Gilt für alle Abschnitte außer „Bilder".</span>
+                {{-- Speicherleiste (nicht bei "Übersicht" und "Bilder") --}}
+                <div x-show="tab !== 'images' && tab !== 'overview'"
+                     class="sticky bottom-0 z-10 -mx-4 sm:mx-0">
+                    {{-- Was wurde verändert? --}}
+                    <div x-show="dirty && showChanges" x-cloak x-transition
+                         class="mb-2 max-h-64 overflow-y-auto border border-gray-200 bg-white px-4 py-3 shadow-lg sm:rounded-lg">
+                        <p class="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-500">Das hat sich geändert</p>
+                        <ul class="divide-y divide-gray-100 text-sm">
+                            <template x-for="c in changes" :key="c.i">
+                                <li class="flex flex-wrap items-baseline gap-x-2 py-1.5">
+                                    <span class="font-medium text-gray-900" x-text="c.label"></span>
+                                    <span class="text-gray-500">
+                                        <template x-if="! c.secret"><span><span x-text="c.from"></span> <span aria-hidden="true">→</span> <span class="font-medium text-amber-700" x-text="c.to"></span></span></template>
+                                        <template x-if="c.secret"><span class="font-medium text-amber-700" x-text="c.to"></span></template>
+                                    </span>
+                                </li>
+                            </template>
+                        </ul>
+                    </div>
+
+                    <div class="flex flex-wrap items-center gap-3 border-t border-gray-200 bg-gray-100 px-4 py-3 sm:rounded-lg sm:border sm:bg-white">
+                        <x-button type="submit" x-bind:class="dirty ? '' : 'opacity-60'">Speichern</x-button>
+                        <button type="button" x-show="dirty" x-cloak onclick="window.location.reload()"
+                                class="text-sm text-gray-500 underline decoration-dotted hover:text-gray-700">Verwerfen</button>
+                        <span x-show="dirty" x-cloak class="flex items-center gap-1.5 text-sm font-medium text-amber-700">
+                            <span class="h-2 w-2 rounded-full bg-amber-500"></span>Ungespeicherte Änderungen
+                            (<span x-text="changes.length"></span>)
+                        </span>
+                        <button type="button" x-show="dirty" x-cloak @click="showChanges = ! showChanges"
+                                class="text-sm text-laravel-600 hover:text-laravel-700"
+                                x-text="showChanges ? 'Details ausblenden' : 'Was wurde geändert?'"></button>
+                        <span x-show="! dirty" class="text-sm text-gray-500">Keine ungespeicherten Änderungen.</span>
+                    </div>
                 </div>
             </form>
 
