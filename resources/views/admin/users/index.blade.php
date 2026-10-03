@@ -121,7 +121,7 @@
     {{-- Bestätigung Massen-Löschung --}}
     <div x-show="confirmDelete" x-cloak style="display:none" class="fixed inset-0 z-50 flex items-center justify-center p-4" @keydown.escape.window="confirmDelete = false">
         <div class="fixed inset-0 bg-gray-900/50" @click="confirmDelete = false"></div>
-        <div class="relative w-full max-w-sm rounded-lg bg-white p-6 shadow-xl">
+        <div class="relative w-full max-w-sm rounded-lg bg-white p-6 text-left shadow-xl">
             <h3 class="mb-2 text-base font-semibold text-gray-900">Benutzer löschen</h3>
             <p class="mb-6 text-sm text-gray-600"><span x-text="selected.length"></span> Benutzer werden endgültig entfernt. Das eigene Konto und der letzte lokale Administrator werden übersprungen.</p>
             <div class="flex justify-end gap-3">

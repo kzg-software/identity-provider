@@ -54,7 +54,7 @@
     {{-- Modal: erstellen --}}
     <div x-show="create" x-cloak style="display:none" class="fixed inset-0 z-50 flex items-center justify-center p-4" @keydown.escape.window="create = false">
         <div class="fixed inset-0 bg-gray-900/50" @click="create = false"></div>
-        <div class="relative w-full max-w-md rounded-lg bg-white p-6 shadow-xl">
+        <div class="relative w-full max-w-md rounded-lg bg-white p-6 text-left shadow-xl">
             <h3 class="mb-1 text-base font-semibold text-gray-900">Sicherung erstellen</h3>
             <p class="mb-4 text-sm text-gray-600">Vergib ein Passwort für die Sicherungsdatei. Du brauchst es zum Wiederherstellen, es lässt sich nicht zurücksetzen.</p>
 
@@ -86,7 +86,7 @@
     {{-- Modal: wiederherstellen --}}
     <div x-show="restore" x-cloak style="display:none" class="fixed inset-0 z-50 flex items-center justify-center p-4" @keydown.escape.window="restore = false">
         <div class="fixed inset-0 bg-gray-900/50" @click="restore = false"></div>
-        <div class="relative w-full max-w-md rounded-lg bg-white p-6 shadow-xl">
+        <div class="relative w-full max-w-md rounded-lg bg-white p-6 text-left shadow-xl">
             <h3 class="mb-1 text-base font-semibold text-gray-900">Sicherung wiederherstellen</h3>
             <div class="mb-4 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800">
                 Alle aktuellen Daten dieses Systems werden ersetzt. Das lässt sich nicht rückgängig machen.

@@ -28,7 +28,7 @@
     <div x-show="open" x-cloak style="display:none" class="fixed inset-0 z-50 flex items-center justify-center p-4" @keydown.escape.window="open = false">
         <div class="fixed inset-0 bg-gray-900/50" @click="open = false"></div>
 
-        <div x-show="open" x-transition class="relative bg-white rounded-lg shadow-xl max-w-sm w-full p-6">
+        <div x-show="open" x-transition class="relative bg-white rounded-lg shadow-xl max-w-sm w-full p-6 text-left">
             <h3 class="text-base font-semibold text-gray-900 mb-2">{{ $title }}</h3>
             <p class="text-sm text-gray-600 mb-6">{{ $message }}</p>
             <div class="flex justify-end gap-3">
