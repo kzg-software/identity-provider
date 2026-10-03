@@ -42,6 +42,10 @@ class AppServiceProvider extends ServiceProvider
             'mode' => $this->resolveSetting('brand_icon_mode') ?: 'default',
             'shape' => $this->resolveSetting('brand_icon_shape') ?: 'rounded',
         ]);
+        View::share('logoSize', [
+            'header' => (int) $this->resolveSetting('logo_height_header') ?: null,
+            'login' => (int) $this->resolveSetting('logo_height_login') ?: null,
+        ]);
         View::share('accentPalette', AccentPalette::from($this->resolveSetting('accent_color')));
 
         // Same story for the timezone: Administration -> Systemeinstellungen

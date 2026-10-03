@@ -16,13 +16,19 @@
     $boxClass = $isLogin ? 'h-14 w-14' : 'h-8 w-8';
     $glyphClass = $isLogin ? 'h-8 w-8' : 'h-5 w-5';
     $spacing = $isLogin ? 'mb-3' : '';
+    $logoHeight = $logoSize[$isLogin ? 'login' : 'header'] ?? null;
 
     $initial = \Illuminate\Support\Str::upper(\Illuminate\Support\Str::substr(trim((string) ($systemName ?? '')), 0, 1)) ?: 'A';
 @endphp
 
 @if (! empty($systemLogoUrl))
     <img src="{{ $systemLogoUrl }}" alt="{{ $systemName }}"
-         class="{{ $isLogin ? 'max-h-14 '.$spacing : 'h-8 max-w-[10rem]' }} object-contain {{ $shape === 'rounded' ? '' : $shapeClass }}">
+         @if ($logoHeight)
+             style="height:{{ $logoHeight }}px;width:auto;max-width:{{ $isLogin ? '100%' : '20rem' }};"
+             class="{{ $isLogin ? $spacing : '' }} object-contain {{ $shape === 'rounded' ? '' : $shapeClass }}"
+         @else
+             class="{{ $isLogin ? 'max-h-14 '.$spacing : 'h-8 max-w-[10rem]' }} object-contain {{ $shape === 'rounded' ? '' : $shapeClass }}"
+         @endif>
 @elseif ($mode === 'hidden')
     {{-- Symbol ausgeblendet --}}
 @elseif ($mode === 'initial')

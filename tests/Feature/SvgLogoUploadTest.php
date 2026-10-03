@@ -84,4 +84,61 @@ class SvgLogoUploadTest extends TestCase
             ->assertOk()
             ->assertSee('alt="Vorschau"', false);
     }
+
+    private function settingsPayload(array $extra = []): array
+    {
+        return array_merge([
+            'system_name' => 'Auth',
+            'base_url' => 'https://auth.example.test',
+            'timezone' => 'Europe/Berlin',
+            'locale' => 'de',
+            'session_lifetime' => 120,
+        ], $extra);
+    }
+
+    public function test_logo_height_is_saved_and_shown_in_the_settings_form(): void
+    {
+        SystemSetting::set('installed', '1');
+        $admin = User::factory()->create(['is_admin' => true, 'is_active' => true, 'auth_source' => 'local']);
+
+        $this->actingAs($admin)->put(route('admin.settings.update'), $this->settingsPayload([
+            'logo_height_header' => 48,
+            'logo_height_login' => 120,
+        ]))->assertSessionHasNoErrors();
+
+        $this->assertSame('48', SystemSetting::get('logo_height_header'));
+        $this->assertSame('120', SystemSetting::get('logo_height_login'));
+
+        $this->actingAs($admin)->get(route('admin.settings.edit'))
+            ->assertOk()
+            ->assertSee('name="logo_height_header"', false)
+            ->assertSee('value="48"', false);
+    }
+
+    public function test_brand_mark_applies_the_configured_height_and_keeps_defaults(): void
+    {
+        $shared = ['systemName' => 'Kinzig', 'systemLogoUrl' => '/storage/branding/logo.svg', 'brandIcon' => ['mode' => 'default', 'shape' => 'rounded']];
+
+        $login = view('components.brand-mark', ['context' => 'login', 'logoSize' => ['header' => 48, 'login' => 120]] + $shared)->render();
+        $this->assertStringContainsString('height:120px', $login);
+        $this->assertStringNotContainsString('max-h-14', $login);
+
+        $header = view('components.brand-mark', ['context' => 'header', 'logoSize' => ['header' => 48, 'login' => 120]] + $shared)->render();
+        $this->assertStringContainsString('height:48px', $header);
+
+        $default = view('components.brand-mark', ['context' => 'login', 'logoSize' => ['header' => null, 'login' => null]] + $shared)->render();
+        $this->assertStringContainsString('max-h-14', $default);
+        $this->assertStringNotContainsString('height:', $default);
+    }
+
+    public function test_logo_height_must_be_within_limits(): void
+    {
+        SystemSetting::set('installed', '1');
+        $admin = User::factory()->create(['is_admin' => true, 'is_active' => true, 'auth_source' => 'local']);
+
+        $this->actingAs($admin)->put(route('admin.settings.update'), $this->settingsPayload(['logo_height_header' => 5]))
+            ->assertSessionHasErrors('logo_height_header');
+        $this->actingAs($admin)->put(route('admin.settings.update'), $this->settingsPayload(['logo_height_login' => 999]))
+            ->assertSessionHasErrors('logo_height_login');
+    }
 }

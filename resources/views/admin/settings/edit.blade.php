@@ -36,6 +36,8 @@
         headerText: @js(old('header_title_text', $settings['header_title_text'] ?? '')),
         systemName: @js(old('system_name', $settings['system_name'] ?? '')),
         hasLogo: @js((bool) $logoPath),
+        logoHeaderH: @js(old('logo_height_header', $settings['logo_height_header'] ?? '')),
+        logoLoginH: @js(old('logo_height_login', $settings['logo_height_login'] ?? '')),
         logoUrl: @js($logoPath ? $storage->url($logoPath) : ''),
         get iconInitial() { return (this.systemName.trim()[0] || 'A').toUpperCase(); },
         get shapeClass() { return { rounded: 'rounded-md', circle: 'rounded-full', square: 'rounded-none' }[this.iconShape] || 'rounded-md'; },
@@ -127,7 +129,7 @@
                             {{-- Kopfbereich --}}
                             <div class="flex items-center gap-2 border-b border-gray-200 bg-white px-3 py-2.5">
                                 <template x-if="hasLogo">
-                                    <img :src="logoUrl" alt="" class="h-7 max-w-[8rem] object-contain">
+                                    <img :src="logoUrl" alt="" class="max-w-[12rem] object-contain" :style="`height:${(Number(logoHeaderH) || 32) * 0.875}px`">
                                 </template>
                                 <template x-if="! hasLogo && iconMode !== 'hidden'">
                                     <span class="flex h-7 w-7 items-center justify-center text-white" :class="shapeClass" :style="`background:${accent}`">
@@ -141,7 +143,7 @@
                             {{-- Anmeldeseite --}}
                             <div class="flex flex-col items-center gap-2 bg-gray-50 px-3 py-6">
                                 <template x-if="hasLogo">
-                                    <img :src="logoUrl" alt="" class="h-11 max-w-[10rem] object-contain">
+                                    <img :src="logoUrl" alt="" class="max-w-full object-contain" :style="`height:${(Number(logoLoginH) || 56) * 0.8}px`">
                                 </template>
                                 <template x-if="! hasLogo && iconMode !== 'hidden'">
                                     <span class="flex h-11 w-11 items-center justify-center text-white" :class="shapeClass" :style="`background:${accent}`">
@@ -156,6 +158,21 @@
                                     <div class="h-6 rounded text-center text-[11px] font-medium leading-6 text-white" :style="`background:${accent}`">Anmelden</div>
                                 </div>
                             </div>
+                        </div>
+                    </x-card>
+
+                    <x-card title="Banner-Größe" description="Skaliert ein hochgeladenes Banner (auch SVG). Die Breite folgt dem Seitenverhältnis. Leer lassen für die Standardgröße.">
+                        <div class="divide-y divide-gray-100">
+                            <x-setting-row label="Höhe im Kopfbereich" hint="In Pixeln, 16 bis 96. Standard: 32.">
+                                <x-input type="number" name="logo_height_header" min="16" max="96" step="1" x-model="logoHeaderH"
+                                         value="{{ old('logo_height_header', $settings['logo_height_header']) }}" placeholder="32" class="!w-28" />
+                                @error('logo_height_header')<p class="mt-1 text-sm text-red-600">{{ $message }}</p>@enderror
+                            </x-setting-row>
+                            <x-setting-row label="Höhe auf der Anmeldeseite" hint="In Pixeln, 24 bis 240. Standard: bis zu 56.">
+                                <x-input type="number" name="logo_height_login" min="24" max="240" step="1" x-model="logoLoginH"
+                                         value="{{ old('logo_height_login', $settings['logo_height_login']) }}" placeholder="56" class="!w-28" />
+                                @error('logo_height_login')<p class="mt-1 text-sm text-red-600">{{ $message }}</p>@enderror
+                            </x-setting-row>
                         </div>
                     </x-card>
 

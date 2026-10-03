@@ -27,6 +27,7 @@ class SettingController extends Controller
         'maintenance_mode', 'maintenance_message', 'maintenance_allow',
         'accent_color', 'brand_icon_mode', 'brand_icon_shape',
         'login_title_mode', 'login_title_text', 'login_layout',
+        'logo_height_header', 'logo_height_login',
         'header_title_mode', 'header_title_text',
         'windows_sso_enabled',
         'audit_log_retention_days',
@@ -70,6 +71,8 @@ class SettingController extends Controller
             'login_title_mode' => 'nullable|in:default,hidden,custom',
             'login_title_text' => 'nullable|string|max:255',
             'login_layout' => 'nullable|in:centered,split',
+            'logo_height_header' => 'nullable|integer|min:16|max:96',
+            'logo_height_login' => 'nullable|integer|min:24|max:240',
             'header_title_mode' => 'nullable|in:default,hidden,custom',
             'header_title_text' => 'nullable|string|max:255',
             'audit_log_retention_days' => 'nullable|integer|min:0|max:36500',
@@ -89,6 +92,8 @@ class SettingController extends Controller
             'mail_from_name' => 'nullable|string|max:255',
         ], [
             'accent_color.regex' => 'Die Akzentfarbe muss ein Hex-Farbwert sein, z. B. #2563EB.',
+            'logo_height_header.*' => 'Die Banner-Höhe im Kopfbereich muss eine Zahl zwischen 16 und 96 sein.',
+            'logo_height_login.*' => 'Die Banner-Höhe auf der Anmeldeseite muss eine Zahl zwischen 24 und 240 sein.',
         ]);
 
         $data['maintenance_mode'] = $request->boolean('maintenance_mode') ? '1' : '0';
