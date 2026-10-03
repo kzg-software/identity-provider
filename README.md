@@ -31,6 +31,9 @@ ausgeliefert werden. Keine externen CDN.
 * Windows SSO über Kerberos. Den Handshake macht der Webserver, die App verarbeitet die durchgereichte Identität
 * OAuth 2.0 und OpenID Connect: Authorization Code mit PKCE, Client Credentials, Refresh Token, Discovery, JWKS, UserInfo, Token Revocation
 * SAML 2.0 Identity Provider mit signierten Assertions, Metadata pro Anwendung und Attribut Mapping
+* Single Logout: Back-Channel-Logout für OpenID Connect, SAML-Abmeldung an alle angemeldeten Service Provider
+* Zugriffsbeschränkung pro Anwendung nach IP-Bereich und Uhrzeit
+* SCIM 2.0: Benutzer und Gruppen werden automatisch in Zielanwendungen bereitgestellt
 * Rollen Mapping von AD Gruppen auf interne Rollen. Auch AD Konten können Administrator werden
 * Getrennter Administrationsbereich unter `/admin`, das persönliche Portal mit den freigegebenen Anwendungen liegt unter `/`
 * Datensicherung: das ganze System als eine verschlüsselte Datei sichern und wiederherstellen
@@ -257,6 +260,47 @@ Einen SP anbinden:
 
 Zertifikate liegen unter `/admin/saml-certificates`: Selbstsignierung, Rotation,
 Ablaufwarnung. Signierte AuthnRequests müssen über das POST Binding kommen.
+
+### Single Logout
+
+Meldet sich ein Benutzer im Portal oder bei einer Anwendung ab, beendet das System
+auch die Sitzungen in den übrigen Anwendungen, bei denen er sich über diese
+Portal Sitzung angemeldet hat.
+
+* OpenID Connect: Trägt man beim Provider eine Back-Channel Logout URL ein, schickt
+  das System dorthin einen signierten Logout Token (Server zu Server, nach OpenID
+  Connect Back-Channel Logout 1.0). Die Discovery weist das mit
+  `backchannel_logout_supported` aus.
+* SAML: Das System schickt jedem Service Provider mit hinterlegter SLO URL eine
+  signierte LogoutRequest (HTTP-Redirect Binding) über den Browser. Das geschieht
+  unsichtbar in einer Zwischenseite. Der Service Provider muss das Einbetten in
+  einen Frame erlauben, sonst erreicht ihn die Abmeldung nicht.
+
+Eine Sitzung, die ein Administrator oder der Benutzer in der Sitzungsübersicht
+beendet, löst ebenfalls den Back-Channel Logout aus. SAML kann dort nicht
+benachrichtigt werden, weil dafür kein Browser da ist.
+
+### Zugriffsbeschränkung nach Netzwerk und Uhrzeit
+
+Unter Anwendung, Tab Zugriff lassen sich erlaubte IP Adressen (einzeln oder als
+CIDR Netz, IPv4 und IPv6) und erlaubte Zeiten eintragen, z. B. `Mo-Fr 08:00-18:00`
+(eine Zeile pro Fenster, auch über Mitternacht möglich). Die Regeln gelten für alle
+Benutzer zusätzlich zu den Zugriffsregeln und für OIDC und SAML. Es zählt die
+Zeitzone des Systems. Hinter einem Reverse Proxy muss `TRUSTED_PROXIES` gesetzt
+sein, damit die echte Client IP ankommt.
+
+## SCIM Provisionierung
+
+Unter Anwendung, Tab Provisionierung trägt man die SCIM Basis URL und ein Bearer
+Token der Zielanwendung ein. Das System legt dann aktive Benutzer, die laut
+Zugriffsregeln auf die Anwendung zugreifen dürfen, per SCIM 2.0 dort an und hält
+sie aktuell. Optional werden Verzeichnisgruppen mit ihren Mitgliedern
+mitgeschickt. Verliert ein Benutzer den Zugriff oder wird gelöscht, wird sein Konto
+deaktiviert oder gelöscht, je nach Einstellung.
+
+Der Abgleich läuft alle 10 Minuten (`php artisan scim:sync`, vom Scheduler
+gestartet) und kurz nach Änderungen an Benutzern oder Zugriffsregeln. Auf der
+Seite gibt es außerdem "Verbindung testen" und "Jetzt synchronisieren".
 
 ## Sicherheit und Betrieb
 
