@@ -8,6 +8,7 @@ use App\Models\Application;
 use App\Models\AuditLog;
 use App\Models\OauthScope;
 use App\Models\Provider;
+use App\Support\SvgSanitizer;
 use App\Services\ProviderService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -139,14 +140,15 @@ class ApplicationController extends Controller
         if ($section === 'darstellung') {
             $data = $request->validate([
                 'visibility' => ['required', Rule::in([Application::VISIBILITY_PORTAL, Application::VISIBILITY_HIDDEN])],
-                'logo' => 'nullable|image|mimes:png,jpg,jpeg,gif,webp|max:5120',
+                'logo' => 'nullable|image:allow_svg|mimes:png,jpg,jpeg,gif,webp,svg|max:5120',
             ]);
 
             if ($request->hasFile('logo')) {
+                $newPath = SvgSanitizer::storeImage($request->file('logo'), 'app-logos');
                 if ($application->logo_path) {
                     Storage::disk('public')->delete($application->logo_path);
                 }
-                $application->logo_path = $request->file('logo')->store('app-logos', 'public');
+                $application->logo_path = $newPath;
             }
 
             $application->visibility = $data['visibility'];

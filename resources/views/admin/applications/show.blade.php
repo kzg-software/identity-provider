@@ -247,14 +247,14 @@
                 </x-select>
             </div>
             <div>
-                <x-input-label value="Icon / Logo (PNG, JPG, GIF, WebP – max. 5 MB)" />
+                <x-input-label value="Icon / Logo (PNG, JPG, GIF, WebP, SVG – max. 5 MB)" />
                 <div class="mt-1 flex items-center gap-4">
                     @if ($application->logo_path)
                         <img src="{{ \Illuminate\Support\Facades\Storage::disk('public')->url($application->logo_path) }}" alt="" class="h-12 w-12 rounded object-contain bg-gray-50">
                     @else
                         <span class="flex h-12 w-12 items-center justify-center rounded bg-laravel-50 text-laravel-600"><x-icon name="building" class="h-5 w-5" /></span>
                     @endif
-                    <input type="file" name="logo" accept="image/png,image/jpeg,image/gif,image/webp" class="text-sm">
+                    <input type="file" name="logo" accept="image/png,image/jpeg,image/gif,image/webp,image/svg+xml" class="text-sm">
                 </div>
                 @error('logo')<p class="mt-1 text-sm text-red-600">{{ $message }}</p>@enderror
             </div>

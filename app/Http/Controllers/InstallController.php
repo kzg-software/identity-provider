@@ -7,6 +7,7 @@ use App\Models\AuditLog;
 use App\Models\Directory;
 use App\Models\SystemSetting;
 use App\Models\User;
+use App\Support\SvgSanitizer;
 use App\Services\Backup\BackupException;
 use App\Services\Backup\RestoreService;
 use App\Support\Locales;
@@ -258,7 +259,7 @@ class InstallController extends Controller
             'timezone' => 'required|timezone',
             'locale' => ['required', 'string', Rule::in(array_keys(Locales::available()))],
             'session_lifetime' => 'required|integer|min:5',
-            'logo' => 'nullable|image|mimes:png,jpg,jpeg,gif,webp|max:2048',
+            'logo' => 'nullable|image:allow_svg|mimes:png,jpg,jpeg,gif,webp,svg|max:2048',
             'favicon' => 'nullable|file|mimes:png,jpg,jpeg,gif,webp,ico,bmp|max:1024',
             'mail_host' => 'nullable|string',
             'mail_port' => 'nullable|numeric',
@@ -274,7 +275,7 @@ class InstallController extends Controller
         SystemSetting::set('session_lifetime', (string) $data['session_lifetime']);
 
         if ($request->hasFile('logo')) {
-            SystemSetting::set('logo_path', $request->file('logo')->store('branding', 'public'));
+            SystemSetting::set('logo_path', SvgSanitizer::storeImage($request->file('logo'), 'branding'));
         }
 
         if ($request->hasFile('favicon')) {

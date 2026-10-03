@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Mail\SystemMail;
 use App\Models\AuditLog;
 use App\Models\SystemSetting;
+use App\Support\SvgSanitizer;
 use App\Support\AccentPalette;
 use App\Support\Locales;
 use App\Support\MailSettings;
@@ -170,16 +171,14 @@ class SettingController extends Controller
     {
         $this->guardAgainstOversizedUpload($request, 'logo');
 
-        // Bewusst kein SVG: eine SVG-Datei kann Skript enthalten und wird beim
-        // direkten Aufruf im Browser ausgeführt (Stored XSS auf der eigenen Domain).
-        $request->validate(['logo' => 'required|image|mimes:png,jpg,jpeg,gif,webp|max:5120'], [
+        $request->validate(['logo' => 'required|image:allow_svg|mimes:png,jpg,jpeg,gif,webp,svg|max:5120'], [
             'logo.required' => 'Bitte eine Bilddatei für das Banner auswählen.',
-            'logo.image' => 'Die Datei muss ein Bild sein (PNG, JPG, GIF oder WebP).',
-            'logo.mimes' => 'Erlaubt sind PNG, JPG, GIF oder WebP.',
+            'logo.image' => 'Die Datei muss ein Bild sein (PNG, JPG, GIF, WebP oder SVG).',
+            'logo.mimes' => 'Erlaubt sind PNG, JPG, GIF, WebP oder SVG.',
             'logo.max' => 'Das Banner darf höchstens 5 MB groß sein.',
         ]);
 
-        $this->replaceBrandingFile('logo_path', $request->file('logo'));
+        $this->replaceBrandingFile('logo_path', $request->file('logo'), sanitizeSvg: true);
 
         AuditLog::record('admin.settings_updated', $request->user(), ['logo' => 'uploaded']);
 
@@ -300,14 +299,18 @@ class SettingController extends Controller
         };
     }
 
-    private function replaceBrandingFile(string $settingKey, UploadedFile $file): void
+    private function replaceBrandingFile(string $settingKey, UploadedFile $file, bool $sanitizeSvg = false): void
     {
+        $path = $sanitizeSvg
+            ? SvgSanitizer::storeImage($file, 'branding')
+            : $file->store('branding', 'public');
+
         $existing = SystemSetting::get($settingKey);
         if ($existing) {
             Storage::disk('public')->delete($existing);
         }
 
-        SystemSetting::set($settingKey, $file->store('branding', 'public'));
+        SystemSetting::set($settingKey, $path);
     }
 
     private function deleteBrandingFile(string $settingKey): void
