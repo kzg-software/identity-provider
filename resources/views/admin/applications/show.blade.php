@@ -27,6 +27,7 @@
     'allgemein' => 'Allgemein',
     'provider' => 'Provider',
     'zugriff' => 'Zugriff',
+    'provisionierung' => 'Provisionierung',
     'darstellung' => 'Darstellung',
 ]" />
 
@@ -260,6 +261,97 @@
             </div>
         </x-card>
     </form>
+@endif
+
+@if ($tab === 'provisionierung')
+    @php $scim = $application->scimConnection; @endphp
+    @error('scim')<x-alert type="danger">{{ $message }}</x-alert>@enderror
+
+    <x-card title="Automatische Provisionierung (SCIM 2.0)"
+            description="Legt Benutzer und Gruppen in der Zielanwendung automatisch an, aktualisiert sie und entfernt sie wieder. Bereitgestellt werden aktive Benutzer, die laut Zugriffsregeln auf diese Anwendung zugreifen dürfen. Ohne Zugriffsregeln sind das alle aktiven Benutzer.">
+        <form method="POST" action="{{ route('admin.applications.scim.save', $application) }}" class="space-y-5">
+            @csrf
+            @method('PUT')
+            <div>
+                <x-input-label>SCIM-Basis-URL
+                    <x-field-info :required="true" example="https://app.example.de/scim/v2">
+                        Adresse der SCIM-Schnittstelle der Zielanwendung, ohne /Users am Ende.
+                    </x-field-info>
+                </x-input-label>
+                <x-input type="url" name="base_url" value="{{ old('base_url', $scim?->base_url) }}" required />
+                @error('base_url')<p class="mt-1 text-sm text-red-600">{{ $message }}</p>@enderror
+            </div>
+            <div>
+                <x-input-label>Bearer-Token
+                    <x-field-info :required="! $scim">
+                        Zugriffstoken, das die Zielanwendung für die SCIM-Schnittstelle ausgestellt hat. Wird verschlüsselt gespeichert und nicht wieder angezeigt.
+                    </x-field-info>
+                </x-input-label>
+                <x-input type="password" name="auth_token" autocomplete="off" placeholder="{{ $scim ? 'Unverändert lassen, um das Token zu behalten' : '' }}" :required="! $scim" />
+                @error('auth_token')<p class="mt-1 text-sm text-red-600">{{ $message }}</p>@enderror
+            </div>
+            <div class="flex flex-wrap gap-6">
+                <label class="flex cursor-pointer select-none items-center gap-2.5 text-sm text-gray-700">
+                    <x-checkbox name="sync_users" value="1" :checked="old('sync_users', $scim?->sync_users ?? true)" />Benutzer synchronisieren
+                </label>
+                <label class="flex cursor-pointer select-none items-center gap-2.5 text-sm text-gray-700">
+                    <x-checkbox name="sync_groups" value="1" :checked="old('sync_groups', $scim?->sync_groups ?? false)" />Gruppen synchronisieren (nur Verzeichnisgruppen)
+                </label>
+                <label class="flex cursor-pointer select-none items-center gap-2.5 text-sm text-gray-700">
+                    <x-checkbox name="is_active" value="1" :checked="old('is_active', $scim?->is_active ?? true)" />Verbindung aktiv
+                </label>
+            </div>
+            <div>
+                <x-input-label>Wenn ein Benutzer den Zugriff verliert oder gelöscht wird</x-input-label>
+                <x-select name="on_removal" class="!w-72">
+                    <option value="deactivate" @selected(old('on_removal', $scim?->on_removal ?? 'deactivate') === 'deactivate')>Konto in der Zielanwendung deaktivieren</option>
+                    <option value="delete" @selected(old('on_removal', $scim?->on_removal) === 'delete')>Konto in der Zielanwendung löschen</option>
+                </x-select>
+            </div>
+            <x-button type="submit" size="sm">Speichern</x-button>
+        </form>
+    </x-card>
+
+    @if ($scim)
+        <x-card title="Status" class="mt-6">
+            <dl class="grid grid-cols-1 gap-3 text-sm sm:grid-cols-3">
+                <div>
+                    <dt class="text-gray-500">Letzte Synchronisierung</dt>
+                    <dd class="text-gray-900">{{ $scim->last_synced_at?->format('d.m.Y H:i') ?? 'noch nie' }}</dd>
+                </div>
+                <div>
+                    <dt class="text-gray-500">Ergebnis</dt>
+                    <dd>
+                        @if ($scim->last_status === 'ok')<x-badge color="green">in Ordnung</x-badge>
+                        @elseif ($scim->last_status === 'error')<x-badge color="red">Fehler</x-badge>
+                        @else<x-badge>offen</x-badge>@endif
+                    </dd>
+                </div>
+                <div>
+                    <dt class="text-gray-500">Bereitgestellt</dt>
+                    <dd class="text-gray-900">
+                        {{ $scim->resources()->where('resource_type', 'user')->where('deactivated', false)->count() }} Benutzer,
+                        {{ $scim->resources()->where('resource_type', 'group')->count() }} Gruppen
+                    </dd>
+                </div>
+            </dl>
+            @if ($scim->last_error)
+                <pre class="mt-3 whitespace-pre-wrap rounded bg-red-50 p-3 text-xs text-red-700">{{ $scim->last_error }}</pre>
+            @endif
+            <div class="mt-4 flex flex-wrap items-center gap-2">
+                <form method="POST" action="{{ route('admin.applications.scim.test', $application) }}">
+                    @csrf
+                    <x-button type="submit" variant="secondary" size="sm">Verbindung testen</x-button>
+                </form>
+                <form method="POST" action="{{ route('admin.applications.scim.sync', $application) }}">
+                    @csrf
+                    <x-button type="submit" size="sm">Jetzt synchronisieren</x-button>
+                </form>
+                <x-confirm-form :action="route('admin.applications.scim.destroy', $application)" message="SCIM-Verbindung wirklich entfernen? Bereits angelegte Konten in der Zielanwendung bleiben bestehen." label="Verbindung entfernen" size="sm" />
+            </div>
+            <p class="mt-3 text-xs text-gray-400">Der Abgleich läuft automatisch alle 10 Minuten und kurz nach Änderungen an Benutzern oder Zugriffsregeln.</p>
+        </x-card>
+    @endif
 @endif
 
 @if ($tab === 'darstellung')

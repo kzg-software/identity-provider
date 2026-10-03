@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Mail\SystemMail;
+use App\Scim\ScimSyncService;
 use App\Support\NotificationCategories;
 use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
@@ -37,6 +38,13 @@ class User extends Authenticatable
         static::saving(function (User $user) {
             $user->is_admin = $user->hasRole('admin');
         });
+
+        static::saved(function (User $user) {
+            if ($user->wasRecentlyCreated || $user->wasChanged(['is_active', 'username', 'email', 'first_name', 'last_name', 'display_name', 'phone', 'position'])) {
+                ScimSyncService::markDirty();
+            }
+        });
+        static::deleted(fn () => ScimSyncService::markDirty());
     }
 
     protected function casts(): array

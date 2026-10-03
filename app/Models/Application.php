@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 #[Fillable(['provider_id', 'name', 'slug', 'description', 'logo_path', 'visibility', 'launch_url', 'category', 'login_mode', 'preferred_provider', 'consent_required', 'consent_mode', 'is_active', 'maintenance_mode', 'maintenance_message', 'maintenance_allow', 'allowed_ip_ranges', 'access_time_windows'])]
 class Application extends Model
@@ -49,6 +50,11 @@ class Application extends Model
     public function isVisibleInPortal(): bool
     {
         return ($this->visibility ?? self::VISIBILITY_PORTAL) === self::VISIBILITY_PORTAL;
+    }
+
+    public function scimConnection(): HasOne
+    {
+        return $this->hasOne(ScimConnection::class);
     }
 
     public function accessPolicies(): HasMany

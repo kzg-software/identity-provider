@@ -19,6 +19,10 @@ Schedule::command('directory:sync-delta')->everyTenMinutes()->withoutOverlapping
 // (das kann eine Delta-Abfrage nicht). --full auch fuer Delta-Verzeichnisse.
 Schedule::command('directory:sync-users --full')->daily()->withoutOverlapping();
 
+// Gleicht Benutzer und Gruppen per SCIM mit den Zielanwendungen ab. Aenderungen
+// an Benutzern und Zugriffsregeln loesen zusaetzlich einen zeitnahen Lauf aus.
+Schedule::command('scim:sync')->everyTenMinutes()->withoutOverlapping();
+
 // Entfernt Anwendungs-Sitzungen fuer Single Logout, deren Portal-Sitzung laengst abgelaufen ist.
 Schedule::call(fn () => \App\Models\SsoSession::query()->where('updated_at', '<', now()->subDays(2))->delete())
     ->daily()

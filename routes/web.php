@@ -10,6 +10,7 @@ use App\Http\Controllers\Admin\MailQueueController;
 use App\Http\Controllers\Admin\OidcKeyController;
 use App\Http\Controllers\Admin\ProviderController;
 use App\Http\Controllers\Admin\SamlCertificateController;
+use App\Http\Controllers\Admin\ScimController;
 use App\Http\Controllers\Admin\SessionController;
 use App\Http\Controllers\Admin\SettingController;
 use App\Http\Controllers\Admin\SystemStatusController;
@@ -230,6 +231,10 @@ Route::middleware('auth')->group(function () {
         Route::delete('applications/{application}/provider', [ApplicationController::class, 'detachProvider'])->name('applications.provider.detach');
         Route::post('applications/{application}/policies', [ApplicationController::class, 'storePolicy'])->name('applications.policies.store');
         Route::delete('applications/{application}/policies/{policy}', [ApplicationController::class, 'destroyPolicy'])->name('applications.policies.destroy');
+        Route::put('applications/{application}/scim', [ScimController::class, 'save'])->name('applications.scim.save');
+        Route::post('applications/{application}/scim/test', [ScimController::class, 'test'])->name('applications.scim.test');
+        Route::post('applications/{application}/scim/sync', [ScimController::class, 'sync'])->name('applications.scim.sync');
+        Route::delete('applications/{application}/scim', [ScimController::class, 'destroy'])->name('applications.scim.destroy');
 
         Route::get('providers', [ProviderController::class, 'index'])->name('providers.index');
         Route::get('providers/create', [ProviderController::class, 'create'])->name('providers.create');

@@ -8,6 +8,7 @@ use App\Models\Application;
 use App\Models\AuditLog;
 use App\Models\OauthScope;
 use App\Models\Provider;
+use App\Scim\ScimSyncService;
 use App\Services\ProviderService;
 use App\Support\AccessRestrictions;
 use App\Support\SvgSanitizer;
@@ -125,7 +126,7 @@ class ApplicationController extends Controller
 
     public function show(Request $request, Application $application): View
     {
-        $application->load(['provider.oauthClient.redirectUris', 'provider.samlServiceProvider.attributeMappings', 'accessPolicies']);
+        $application->load(['provider.oauthClient.redirectUris', 'provider.samlServiceProvider.attributeMappings', 'accessPolicies', 'scimConnection']);
 
         return view('admin.applications.show', [
             'application' => $application,
@@ -272,6 +273,7 @@ class ApplicationController extends Controller
         ]);
 
         AuditLog::record('oauth.access_policy_created', $request->user(), $data, $application);
+        ScimSyncService::markDirty();
 
         return redirect()->route('admin.applications.show', ['application' => $application, 'tab' => 'zugriff'])
             ->with('status', 'Zugriffsregel wurde angelegt.');
@@ -283,6 +285,7 @@ class ApplicationController extends Controller
         $policy->delete();
 
         AuditLog::record('oauth.access_policy_deleted', $request->user(), [], $application);
+        ScimSyncService::markDirty();
 
         return redirect()->route('admin.applications.show', ['application' => $application, 'tab' => 'zugriff'])
             ->with('status', 'Zugriffsregel wurde gelöscht.');
