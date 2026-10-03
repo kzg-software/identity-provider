@@ -54,4 +54,34 @@ class SvgLogoUploadTest extends TestCase
         $this->assertStringContainsString('<rect', $stored);
         $this->assertStringNotContainsStringIgnoringCase('script', $stored);
     }
+
+    public function test_favicon_and_login_background_accept_sanitized_svg(): void
+    {
+        Storage::fake('public');
+        SystemSetting::set('installed', '1');
+        $admin = User::factory()->create(['is_admin' => true, 'is_active' => true, 'auth_source' => 'local']);
+
+        $this->actingAs($admin)->post(route('admin.settings.favicon.upload'), [
+            'favicon' => UploadedFile::fake()->createWithContent('f.svg', self::EVIL),
+        ])->assertSessionHasNoErrors();
+        $this->actingAs($admin)->post(route('admin.settings.login-background.upload'), [
+            'login_background' => UploadedFile::fake()->createWithContent('b.svg', self::EVIL),
+        ])->assertSessionHasNoErrors();
+
+        foreach (['favicon_path', 'login_background_path'] as $key) {
+            $stored = Storage::disk('public')->get(SystemSetting::get($key));
+            $this->assertStringContainsString('<rect', $stored);
+            $this->assertStringNotContainsStringIgnoringCase('script', $stored);
+        }
+    }
+
+    public function test_image_settings_tab_renders_preview_inputs(): void
+    {
+        SystemSetting::set('installed', '1');
+        $admin = User::factory()->create(['is_admin' => true, 'is_active' => true, 'auth_source' => 'local']);
+
+        $this->actingAs($admin)->get(route('admin.settings.edit'))
+            ->assertOk()
+            ->assertSee('alt="Vorschau"', false);
+    }
 }

@@ -260,7 +260,7 @@ class InstallController extends Controller
             'locale' => ['required', 'string', Rule::in(array_keys(Locales::available()))],
             'session_lifetime' => 'required|integer|min:5',
             'logo' => 'nullable|image:allow_svg|mimes:png,jpg,jpeg,gif,webp,svg|max:2048',
-            'favicon' => 'nullable|file|mimes:png,jpg,jpeg,gif,webp,ico,bmp|max:1024',
+            'favicon' => 'nullable|file|mimes:png,jpg,jpeg,gif,webp,ico,bmp,svg|max:1024',
             'mail_host' => 'nullable|string',
             'mail_port' => 'nullable|numeric',
             'mail_username' => 'nullable|string',
@@ -279,7 +279,7 @@ class InstallController extends Controller
         }
 
         if ($request->hasFile('favicon')) {
-            SystemSetting::set('favicon_path', $request->file('favicon')->store('branding', 'public'));
+            SystemSetting::set('favicon_path', SvgSanitizer::storeImage($request->file('favicon'), 'branding', 'favicon'));
         }
 
         foreach (['mail_host', 'mail_port', 'mail_username', 'mail_password', 'mail_from_address'] as $key) {

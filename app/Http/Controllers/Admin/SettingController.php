@@ -178,7 +178,7 @@ class SettingController extends Controller
             'logo.max' => 'Das Banner darf höchstens 5 MB groß sein.',
         ]);
 
-        $this->replaceBrandingFile('logo_path', $request->file('logo'), sanitizeSvg: true);
+        $this->replaceBrandingFile('logo_path', $request->file('logo'), 'logo');
 
         AuditLog::record('admin.settings_updated', $request->user(), ['logo' => 'uploaded']);
 
@@ -198,13 +198,13 @@ class SettingController extends Controller
     {
         $this->guardAgainstOversizedUpload($request, 'favicon');
 
-        $request->validate(['favicon' => 'required|file|mimes:png,jpg,jpeg,gif,webp,ico,bmp|max:2048'], [
+        $request->validate(['favicon' => 'required|file|mimes:png,jpg,jpeg,gif,webp,ico,bmp,svg|max:2048'], [
             'favicon.required' => 'Bitte eine Bilddatei für das Favicon auswählen.',
-            'favicon.mimes' => 'Erlaubt sind PNG, JPG, GIF, WebP, BMP oder ICO.',
+            'favicon.mimes' => 'Erlaubt sind PNG, JPG, GIF, WebP, BMP, ICO oder SVG.',
             'favicon.max' => 'Das Favicon darf höchstens 2 MB groß sein.',
         ]);
 
-        $this->replaceBrandingFile('favicon_path', $request->file('favicon'));
+        $this->replaceBrandingFile('favicon_path', $request->file('favicon'), 'favicon');
 
         AuditLog::record('admin.settings_updated', $request->user(), ['favicon' => 'uploaded']);
 
@@ -224,14 +224,14 @@ class SettingController extends Controller
     {
         $this->guardAgainstOversizedUpload($request, 'login_background');
 
-        $request->validate(['login_background' => 'required|image|mimes:png,jpg,jpeg,gif,webp|max:8192'], [
+        $request->validate(['login_background' => 'required|image:allow_svg|mimes:png,jpg,jpeg,gif,webp,svg|max:8192'], [
             'login_background.required' => 'Bitte eine Bilddatei für den Login-Hintergrund auswählen.',
-            'login_background.image' => 'Die Datei muss ein Bild sein (PNG, JPG, GIF oder WebP).',
-            'login_background.mimes' => 'Erlaubt sind PNG, JPG, GIF oder WebP.',
+            'login_background.image' => 'Die Datei muss ein Bild sein (PNG, JPG, GIF, WebP oder SVG).',
+            'login_background.mimes' => 'Erlaubt sind PNG, JPG, GIF, WebP oder SVG.',
             'login_background.max' => 'Der Login-Hintergrund darf höchstens 8 MB groß sein.',
         ]);
 
-        $this->replaceBrandingFile('login_background_path', $request->file('login_background'));
+        $this->replaceBrandingFile('login_background_path', $request->file('login_background'), 'login_background');
 
         AuditLog::record('admin.settings_updated', $request->user(), ['login_background' => 'uploaded']);
 
@@ -299,11 +299,9 @@ class SettingController extends Controller
         };
     }
 
-    private function replaceBrandingFile(string $settingKey, UploadedFile $file, bool $sanitizeSvg = false): void
+    private function replaceBrandingFile(string $settingKey, UploadedFile $file, string $field): void
     {
-        $path = $sanitizeSvg
-            ? SvgSanitizer::storeImage($file, 'branding')
-            : $file->store('branding', 'public');
+        $path = SvgSanitizer::storeImage($file, 'branding', $field);
 
         $existing = SystemSetting::get($settingKey);
         if ($existing) {

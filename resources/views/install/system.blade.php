@@ -41,11 +41,11 @@
     <div class="grid grid-cols-2 gap-4">
         <div>
             <x-input-label value="Logo" />
-            <input type="file" name="logo" accept="image/*" class="block w-full text-sm text-gray-600 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-laravel-50 file:text-laravel-700 hover:file:bg-laravel-100">
+            <x-image-upload-input name="logo" />
         </div>
         <div>
             <x-input-label value="Favicon" />
-            <input type="file" name="favicon" accept="image/*,.ico,image/x-icon,image/vnd.microsoft.icon" class="block w-full text-sm text-gray-600 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-laravel-50 file:text-laravel-700 hover:file:bg-laravel-100">
+            <x-image-upload-input name="favicon" accept="image/*,.ico,image/x-icon,image/vnd.microsoft.icon" preview-class="h-10 w-10" />
         </div>
     </div>
 

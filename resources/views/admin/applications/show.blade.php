@@ -230,6 +230,7 @@
             <x-button type="submit" size="sm"><x-icon name="plus" class="h-4 w-4" />Hinzufügen</x-button>
         </form>
     </x-card>
+
 @endif
 
 @if ($tab === 'darstellung')
@@ -254,7 +255,7 @@
                     @else
                         <span class="flex h-12 w-12 items-center justify-center rounded bg-laravel-50 text-laravel-600"><x-icon name="building" class="h-5 w-5" /></span>
                     @endif
-                    <input type="file" name="logo" accept="image/png,image/jpeg,image/gif,image/webp,image/svg+xml" class="text-sm">
+                    <x-image-upload-input name="logo" accept="image/png,image/jpeg,image/gif,image/webp,image/svg+xml" preview-class="h-12 w-12" />
                 </div>
                 @error('logo')<p class="mt-1 text-sm text-red-600">{{ $message }}</p>@enderror
             </div>
