@@ -8,10 +8,12 @@ use App\Models\OauthClient;
 use App\Models\UserSession;
 use App\Oidc\IdTokenService;
 use App\Services\SessionTracker;
+use App\Services\SingleLogoutService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Cookie;
+use Illuminate\View\View;
 
 class LogoutController extends Controller
 {
@@ -29,15 +31,18 @@ class LogoutController extends Controller
      * lokale Sitzung und leiten anschliessend - sofern die Ziel-URL beim
      * Client hinterlegt ist - dorthin zurueck.
      */
-    public function __invoke(Request $request, SessionTracker $tracker): RedirectResponse
+    public function __invoke(Request $request, SessionTracker $tracker, SingleLogoutService $singleLogout): RedirectResponse|View
     {
         $postLogoutRedirectUri = $request->input('post_logout_redirect_uri');
         $state = $request->input('state');
 
         $client = $this->resolveClient($request);
+        $samlLogouts = [];
 
         if (Auth::guard('web')->check()) {
             $user = $request->user();
+
+            $samlLogouts = $singleLogout->terminate($user, $request->session()->getId(), exceptClientId: $client?->id);
 
             AuditLog::record('oauth.logout', $user, $client ? ['client' => $client->name] : []);
 
@@ -59,11 +64,15 @@ class LogoutController extends Controller
             if ($state !== null && $state !== '') {
                 $target .= (str_contains($target, '?') ? '&' : '?').'state='.rawurlencode($state);
             }
-
-            return redirect()->away($target);
+        } else {
+            $target = route('login', ['manual' => 1]);
         }
 
-        return redirect()->route('login', ['manual' => 1]);
+        if ($samlLogouts !== []) {
+            return $singleLogout->chainView($samlLogouts, $target);
+        }
+
+        return redirect()->away($target);
     }
 
     private function resolveClient(Request $request): ?OauthClient

@@ -9,6 +9,7 @@ use App\Models\AuditLog;
 use App\Models\User;
 use App\Models\UserSession;
 use App\Services\SessionTracker;
+use App\Services\SingleLogoutService;
 use App\Support\SecuritySettings;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -127,9 +128,13 @@ class LoginController extends Controller
         return $this->completion->handle($request, $result['user'], 'active_directory');
     }
 
-    public function logout(Request $request, SessionTracker $tracker): RedirectResponse
+    public function logout(Request $request, SessionTracker $tracker, SingleLogoutService $singleLogout): RedirectResponse|View
     {
         AuditLog::record('logout', $request->user());
+
+        $samlLogouts = $request->user()
+            ? $singleLogout->terminate($request->user(), $request->session()->getId())
+            : [];
 
         // Must happen BEFORE invalidate() rotates/destroys the session - the
         // `user_sessions` tracking row otherwise never gets marked revoked,
@@ -146,6 +151,10 @@ class LoginController extends Controller
         // Prevents /auth/negotiate from silently logging the user straight
         // back in on the next page load after an explicit logout.
         Cookie::queue('auth_manual', '1', 60 * 8);
+
+        if ($samlLogouts !== []) {
+            return $singleLogout->chainView($samlLogouts, route('login', ['manual' => 1]));
+        }
 
         return redirect()->route('login', ['manual' => 1]);
     }

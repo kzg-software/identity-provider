@@ -57,6 +57,7 @@ class ProviderService
             'id_token_signed_response_alg' => $data['id_token_signed_response_alg'] ?? 'RS256',
             'pkce_required' => $data['pkce_required'] ?? true,
             'secret_required' => $data['secret_required'] ?? true,
+            'backchannel_logout_uri' => $data['backchannel_logout_uri'] ?? null,
             'is_active' => true,
         ]);
 
@@ -86,6 +87,10 @@ class ProviderService
             'id_token_lifetime' => $data['id_token_lifetime'] ?? null,
             'id_token_signed_response_alg' => $data['id_token_signed_response_alg'] ?? null,
         ], fn ($v) => $v !== null));
+
+        if (array_key_exists('backchannel_logout_uri', $data)) {
+            $client->backchannel_logout_uri = $data['backchannel_logout_uri'] ?: null;
+        }
 
         foreach (['pkce_required', 'secret_required', 'is_active'] as $flag) {
             if (array_key_exists($flag, $data)) {

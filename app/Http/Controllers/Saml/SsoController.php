@@ -7,16 +7,18 @@ use App\Models\AuditLog;
 use App\Models\SamlServiceProvider;
 use App\Saml\SamlIdpService;
 use App\Services\AccessPolicyEvaluator;
+use App\Services\SingleLogoutService;
 use App\Support\AccessRestrictions;
 use App\Support\MaintenanceGate;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Str;
 use Illuminate\View\View;
 
 class SsoController extends Controller
 {
-    public function __construct(private readonly SamlIdpService $saml) {}
+    public function __construct(private readonly SamlIdpService $saml, private readonly SingleLogoutService $logout) {}
 
     /**
      * GET/POST /saml/sso — receives an AuthnRequest (HTTP-Redirect or HTTP-POST binding).
@@ -132,7 +134,10 @@ class SsoController extends Controller
         }
 
         $attributes = $this->saml->mapAttributes($sp, $user);
-        $samlResponse = $this->saml->buildSignedResponse($sp, $user, $acsUrl, $requestId, $attributes);
+        $nameId = $this->saml->resolveNameId($sp, $user);
+        $sessionIndex = '_'.Str::uuid();
+        $samlResponse = $this->saml->buildSignedResponse($sp, $user, $acsUrl, $requestId, $attributes, $nameId, $sessionIndex);
+        $this->logout->recordSaml($user, session()->getId(), $sp, $nameId, $sessionIndex);
 
         AuditLog::record('saml.sso.success', $user, ['sp' => $sp->entity_id], $sp->application);
 

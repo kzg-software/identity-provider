@@ -13,6 +13,7 @@ use App\Oidc\NonceContext;
 use App\Oidc\Psr7Bridge;
 use App\Oidc\Repositories\AuthCodeRepository;
 use App\Services\AccessPolicyEvaluator;
+use App\Services\SingleLogoutService;
 use App\Support\AccessRestrictions;
 use App\Support\MaintenanceGate;
 use Illuminate\Http\RedirectResponse;
@@ -161,6 +162,7 @@ class AuthorizationController extends Controller
 
         if ($authRequest->isAuthorizationApproved()) {
             AuditLog::record('oauth.authorize.success', $user, ['scopes' => $scopes], $application);
+            app(SingleLogoutService::class)->recordOidc($user, session()->getId(), $client);
         }
 
         $laravelResponse = Psr7Bridge::toLaravelResponse($psrResponse);

@@ -73,6 +73,7 @@ class ApplicationController extends Controller
             $providerData = $request->validate([
                 'redirect_uris' => 'required|string',
                 'logout_redirect_uris' => 'nullable|string',
+                'backchannel_logout_uri' => 'nullable|url|max:2048',
                 'scopes' => 'array',
                 'scopes.*' => 'string|exists:oauth_scopes,key',
                 'grant_types' => 'array',

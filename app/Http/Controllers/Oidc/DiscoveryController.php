@@ -26,6 +26,8 @@ class DiscoveryController extends Controller
             'jwks_uri' => $issuer.'/.well-known/jwks.json',
             'revocation_endpoint' => $issuer.'/oauth/revoke',
             'end_session_endpoint' => $issuer.'/oauth/logout',
+            'backchannel_logout_supported' => true,
+            'backchannel_logout_session_supported' => false,
             'scopes_supported' => $scopes,
             'response_types_supported' => ['code'],
             'response_modes_supported' => ['query'],

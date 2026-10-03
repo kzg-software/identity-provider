@@ -6,13 +6,14 @@ use App\Http\Controllers\Controller;
 use App\Models\AuditLog;
 use App\Models\SamlServiceProvider;
 use App\Saml\SamlIdpService;
+use App\Services\SingleLogoutService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\View\View;
 
 class SloController extends Controller
 {
-    public function __construct(private readonly SamlIdpService $saml) {}
+    public function __construct(private readonly SamlIdpService $saml, private readonly SingleLogoutService $singleLogout) {}
 
     /**
      * GET/POST /saml/slo — SP-initiated Single Logout: ends the local IdP
@@ -63,6 +64,10 @@ class SloController extends Controller
         $user = Auth::user();
         AuditLog::record('saml.slo.request', $user, ['sp' => $sp?->entity_id], $sp?->application);
 
+        $samlLogouts = $user
+            ? $this->singleLogout->terminate($user, $request->session()->getId(), exceptSamlSpId: $sp?->id)
+            : [];
+
         Auth::guard('web')->logout();
         $request->session()->invalidate();
         $request->session()->regenerateToken();
@@ -70,10 +75,19 @@ class SloController extends Controller
         $destination = $sp?->slo_url ?: url('/login');
         $logoutResponse = $this->saml->buildLogoutResponse($parsed['id'], $destination);
 
+        $relayState = $request->query('RelayState') ?? $request->input('RelayState');
+
+        if ($samlLogouts !== []) {
+            return $this->singleLogout->chainView($samlLogouts, null, [
+                'action' => $destination,
+                'fields' => array_filter(['SAMLResponse' => $logoutResponse, 'RelayState' => $relayState], fn ($v) => ! empty($v)),
+            ]);
+        }
+
         return view('saml.auto_submit', [
             'acsUrl' => $destination,
             'samlResponse' => $logoutResponse,
-            'relayState' => $request->query('RelayState') ?? $request->input('RelayState'),
+            'relayState' => $relayState,
             'paramName' => 'SAMLResponse',
         ]);
     }

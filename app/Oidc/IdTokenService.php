@@ -38,6 +38,27 @@ class IdTokenService
         return JWT::encode($payload, $key->private_key_encrypted, 'RS256', $key->kid);
     }
 
+    /**
+     * Logout Token nach OpenID Connect Back-Channel Logout 1.0.
+     */
+    public function issueLogoutToken(User $user, OauthClient $client): string
+    {
+        $key = $this->keys->activeKey();
+        $now = time();
+
+        $payload = [
+            'iss' => rtrim(config('app.url'), '/'),
+            'sub' => (string) $user->id,
+            'aud' => $client->client_id,
+            'iat' => $now,
+            'exp' => $now + 120,
+            'jti' => (string) \Illuminate\Support\Str::uuid(),
+            'events' => ['http://schemas.openid.net/event/backchannel-logout' => new \stdClass],
+        ];
+
+        return JWT::encode($payload, $key->private_key_encrypted, 'RS256', $key->kid);
+    }
+
     public function claimsForScopes(User $user, array $scopes): array
     {
         $claims = [];

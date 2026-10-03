@@ -19,6 +19,11 @@ Schedule::command('directory:sync-delta')->everyTenMinutes()->withoutOverlapping
 // (das kann eine Delta-Abfrage nicht). --full auch fuer Delta-Verzeichnisse.
 Schedule::command('directory:sync-users --full')->daily()->withoutOverlapping();
 
+// Entfernt Anwendungs-Sitzungen fuer Single Logout, deren Portal-Sitzung laengst abgelaufen ist.
+Schedule::call(fn () => \App\Models\SsoSession::query()->where('updated_at', '<', now()->subDays(2))->delete())
+    ->daily()
+    ->name('sso-sessions-prune');
+
 // Räumt den Audit-Log gemäß der in den Systemeinstellungen gesetzten
 // Aufbewahrungsfrist auf (ohne Frist passiert nichts).
 Schedule::command('audit-log:prune')->dailyAt('03:20')->withoutOverlapping();

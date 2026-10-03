@@ -116,6 +116,14 @@
                     <x-textarea name="logout_redirect_uris" rows="2">{{ $client->redirectUris->where('type', 'logout')->pluck('uri')->implode("\n") }}</x-textarea>
                 </div>
                 <div>
+                    <x-input-label>Back-Channel Logout URL (optional)
+                        <x-field-info example="https://app.example.de/logout/backchannel">
+                            Beim Abmelden sendet das System einen signierten Logout Token (OpenID Connect Back-Channel Logout) an diese Adresse, damit die Anwendung die Sitzung des Benutzers beendet.
+                        </x-field-info>
+                    </x-input-label>
+                    <x-input type="url" name="backchannel_logout_uri" value="{{ $client->backchannel_logout_uri }}" />
+                </div>
+                <div>
                     <x-input-label>Grant Types</x-input-label>
                     <div class="mt-1 flex flex-wrap gap-4">
                         @foreach (['authorization_code' => 'Normaler Login', 'refresh_token' => 'Angemeldet bleiben', 'client_credentials' => 'Server zu Server'] as $g => $label)

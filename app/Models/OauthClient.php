@@ -13,7 +13,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
     'provider_id', 'name', 'client_id', 'client_secret',
     'allowed_grant_types', 'allowed_response_types', 'allowed_scopes',
     'access_token_lifetime', 'refresh_token_lifetime', 'id_token_lifetime',
-    'id_token_signed_response_alg', 'pkce_required', 'secret_required', 'is_active',
+    'id_token_signed_response_alg', 'pkce_required', 'secret_required', 'is_active', 'backchannel_logout_uri',
 ])]
 #[Hidden(['client_secret'])]
 class OauthClient extends Model

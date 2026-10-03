@@ -84,6 +84,15 @@
         </div>
 
         <div>
+            <x-input-label>Back-Channel Logout URL (optional)
+            <x-field-info example="https://app.example.de/logout/backchannel">
+                Beim Abmelden sendet das System einen signierten Logout Token (OpenID Connect Back-Channel Logout) an diese Adresse, damit die Anwendung die Sitzung des Benutzers beendet.
+            </x-field-info>
+            </x-input-label>
+            <x-input type="url" name="backchannel_logout_uri" value="{{ old('backchannel_logout_uri', $client?->backchannel_logout_uri) }}" />
+        </div>
+
+        <div>
             <x-input-label>Response Types</x-input-label>
             <div class="mt-1 flex flex-wrap gap-4">
                 @foreach (['code' => 'code', 'id_token' => 'id_token', 'token' => 'token'] as $value => $label)

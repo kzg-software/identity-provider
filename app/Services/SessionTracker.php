@@ -64,6 +64,10 @@ class SessionTracker
     {
         $userSession->forceFill(['revoked_at' => now()])->save();
 
+        if ($userSession->user) {
+            app(SingleLogoutService::class)->terminate($userSession->user, $userSession->session_id);
+        }
+
         DB::table('sessions')->where('id', $userSession->session_id)->delete();
     }
 
@@ -78,6 +82,10 @@ class SessionTracker
         $sessionIds = $query->pluck('session_id');
 
         $query->update(['revoked_at' => now()]);
+
+        if ($sessionIds->isNotEmpty()) {
+            app(SingleLogoutService::class)->terminate($user, $sessionIds->all());
+        }
 
         if ($sessionIds->isNotEmpty()) {
             DB::table('sessions')->whereIn('id', $sessionIds)->delete();

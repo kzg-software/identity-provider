@@ -151,6 +151,7 @@ class ProviderController extends Controller
             'name' => ($creating ? 'required' : 'sometimes').'|string|max:255',
             'redirect_uris' => ($creating ? 'required' : 'sometimes').'|string',
             'logout_redirect_uris' => 'nullable|string',
+            'backchannel_logout_uri' => 'nullable|url|max:2048',
             'scopes' => 'sometimes|array',
             'scopes.*' => 'string|exists:oauth_scopes,key',
             'grant_types' => 'sometimes|array',

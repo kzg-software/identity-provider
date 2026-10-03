@@ -115,7 +115,7 @@ class SamlIdpService
      * Build a signed <samlp:Response> containing a signed <saml:Assertion> and
      * return it base64-encoded, ready for the ACS auto-submit form.
      */
-    public function buildSignedResponse(SamlServiceProvider $sp, User $user, string $acsUrl, ?string $inResponseTo, array $attributes): string
+    public function buildSignedResponse(SamlServiceProvider $sp, User $user, string $acsUrl, ?string $inResponseTo, array $attributes, ?string $nameId = null, ?string $sessionIndex = null): string
     {
         $cert = $this->certificates->activeSigningCertificate();
 
@@ -124,7 +124,8 @@ class SamlIdpService
         $issueInstant = now()->toIso8601ZuluString();
         $notOnOrAfter = now()->addMinutes(5)->toIso8601ZuluString();
         $sessionNotOnOrAfter = now()->addSeconds($sp->sessionLifetimeSeconds())->toIso8601ZuluString();
-        $nameId = $this->resolveNameId($sp, $user);
+        $nameId ??= $this->resolveNameId($sp, $user);
+        $sessionIndex ??= '_'.Str::uuid();
         $issuer = $this->entityId();
 
         $attributeStatements = '';
@@ -153,7 +154,7 @@ class SamlIdpService
       <saml:Audience>{$sp->entity_id}</saml:Audience>
     </saml:AudienceRestriction>
   </saml:Conditions>
-  <saml:AuthnStatement AuthnInstant="{$issueInstant}" SessionNotOnOrAfter="{$sessionNotOnOrAfter}">
+  <saml:AuthnStatement AuthnInstant="{$issueInstant}" SessionIndex="{$sessionIndex}" SessionNotOnOrAfter="{$sessionNotOnOrAfter}">
     <saml:AuthnContext>
       <saml:AuthnContextClassRef>urn:oasis:names:tc:SAML:2.0:ac:classes:PasswordProtectedTransport</saml:AuthnContextClassRef>
     </saml:AuthnContext>
@@ -288,6 +289,46 @@ XML;
         $signed = XmlSecurity::sign($dom, $cert->private_key_encrypted, $cert->certificate);
 
         return base64_encode($signed);
+    }
+
+    /**
+     * Baut eine LogoutRequest an einen Service Provider als HTTP-Redirect-URL
+     * (deflate, Base64, Query-Signatur nach SAML-Bindings Abschnitt 3.4.4.1).
+     */
+    public function buildLogoutRequestUrl(SamlServiceProvider $sp, ?string $nameId, ?string $sessionIndex, ?string $relayState = null): string
+    {
+        $cert = $this->certificates->activeSigningCertificate();
+        $id = '_'.Str::uuid();
+        $issueInstant = now()->toIso8601ZuluString();
+        $notOnOrAfter = now()->addMinutes(5)->toIso8601ZuluString();
+        $issuer = htmlspecialchars($this->entityId(), ENT_XML1);
+        $destination = htmlspecialchars((string) $sp->slo_url, ENT_XML1);
+        $format = htmlspecialchars((string) $sp->name_id_format, ENT_XML1);
+        $nameIdXml = htmlspecialchars((string) $nameId, ENT_XML1);
+        $sessionIndexXml = $sessionIndex ? '<samlp:SessionIndex>'.htmlspecialchars($sessionIndex, ENT_XML1).'</samlp:SessionIndex>' : '';
+
+        $xml = <<<XML
+<samlp:LogoutRequest xmlns:samlp="urn:oasis:names:tc:SAML:2.0:protocol" xmlns:saml="urn:oasis:names:tc:SAML:2.0:assertion" ID="{$id}" Version="2.0" IssueInstant="{$issueInstant}" Destination="{$destination}" NotOnOrAfter="{$notOnOrAfter}">
+  <saml:Issuer>{$issuer}</saml:Issuer>
+  <saml:NameID Format="{$format}">{$nameIdXml}</saml:NameID>
+  {$sessionIndexXml}
+</samlp:LogoutRequest>
+XML;
+
+        $query = 'SAMLRequest='.urlencode(base64_encode(gzdeflate($xml)));
+        if ($relayState !== null && $relayState !== '') {
+            $query .= '&RelayState='.urlencode($relayState);
+        }
+        $query .= '&SigAlg='.urlencode('http://www.w3.org/2001/04/xmldsig-more#rsa-sha256');
+
+        $signature = '';
+        if (openssl_sign($query, $signature, $cert->private_key_encrypted, OPENSSL_ALGO_SHA256)) {
+            $query .= '&Signature='.urlencode(base64_encode($signature));
+        }
+
+        $base = (string) $sp->slo_url;
+
+        return $base.(str_contains($base, '?') ? '&' : '?').$query;
     }
 
     private function stripPem(string $pem): string
