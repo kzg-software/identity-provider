@@ -21,7 +21,7 @@ Es gibt drei Wege. Alle drei sind vollständig unterstützt.
 
 # Weg 1: Docker (empfohlen)
 
-Ein einziges Image enthält PHP 8.4, nginx und supervisor. Über die Variable
+Ein einziges Image enthält PHP 8.5, nginx und supervisor. Über die Variable
 `CONTAINER_ROLE` übernimmt derselbe Container eine Rolle:
 
 | `CONTAINER_ROLE` | Aufgabe |

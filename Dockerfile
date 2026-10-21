@@ -1,7 +1,7 @@
 # syntax=docker/dockerfile:1
 #
 # Ein einzelnes, in sich geschlossenes Image für das Auth-System.
-# Enthält PHP 8.4 (FPM) + nginx + supervisor. Über die Umgebungsvariable
+# Enthält PHP 8.5 (FPM) + nginx + supervisor. Über die Umgebungsvariable
 # CONTAINER_ROLE übernimmt derselbe Container eine von drei Rollen:
 #
 #   app        -> nginx + php-fpm (Weboberfläche)        [Default]
@@ -37,7 +37,8 @@ RUN composer dump-autoload --no-dev --optimize --no-scripts --no-interaction --i
 ########################################################################
 # 2) Laufzeit-Image
 ########################################################################
-FROM php:8.4-fpm-bookworm AS runtime
+# PHP 8.5.12 behebt CVE-2026-109618 / CVE-2026-109619.
+FROM php:8.5.12-fpm-bookworm AS runtime
 
 # Release-Stand (wird von der CI auf den Git-Tag gesetzt, z. B. "v1.4.2";
 # bei allen anderen Builds "dev"). Wird im Footer angezeigt und für die
