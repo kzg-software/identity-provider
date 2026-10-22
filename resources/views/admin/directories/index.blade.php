@@ -16,7 +16,11 @@
         @forelse ($directories as $directory)
             <tr class="hover:bg-gray-50">
                 <td class="px-4 py-2">
-                    <a href="{{ route('admin.directories.show', $directory) }}" class="font-medium text-laravel-600 hover:text-laravel-700">{{ $directory->name }}</a>
+                    @php($health = \App\Directory\DirectoryHealth::for($directory))
+                    <span class="inline-flex items-center gap-2">
+                        <x-status-dot :color="$health['color']" :title="$health['title']">{{ $health['reason'] }}</x-status-dot>
+                        <a href="{{ route('admin.directories.show', $directory) }}" class="font-medium text-laravel-600 hover:text-laravel-700">{{ $directory->name }}</a>
+                    </span>
                 </td>
                 <td class="px-4 py-2"><x-badge>{{ $directory->type }}</x-badge></td>
                 <td class="px-4 py-2 text-gray-600">{{ $directory->domain }}</td>
