@@ -71,8 +71,11 @@
                 '{{ route('login.passkey.verify') }}',
                 '{{ csrf_token() }}'
             ).then(function (res) {
-                if (res.redirected) { window.location.href = res.url; return; }
-                if (res.ok) { window.location.href = '{{ route('dashboard') }}'; return; }
+                if (res.ok) {
+                    return res.json().catch(function () { return {}; }).then(function (data) {
+                        window.location.href = (data && data.redirect) || '{{ route('dashboard') }}';
+                    });
+                }
                 return res.json().then(function (data) {
                     var msg = data && data.errors && data.errors.username ? data.errors.username[0]
                         : (data && data.message ? data.message : 'Die Anmeldung mit dem Passkey ist fehlgeschlagen.');

@@ -145,6 +145,31 @@ class WebauthnPasskeyTest extends TestCase
         $this->assertAuthenticatedAs($user->fresh());
     }
 
+    public function test_passwordless_login_via_fetch_returns_intended_url_as_json(): void
+    {
+        $user = $this->userWithPasskey();
+        $intended = url('/oauth/authorize?client_id=abc&response_type=code');
+
+        $this->withSession(['url.intended' => $intended])
+            ->postJson(route('login.passkey.verify'), ['credential_id' => 'pk-local'])
+            ->assertOk()
+            ->assertExactJson(['redirect' => $intended]);
+
+        $this->assertAuthenticatedAs($user->fresh());
+    }
+
+    public function test_passwordless_login_via_fetch_returns_validation_errors_as_json(): void
+    {
+        $user = $this->userWithPasskey();
+        $user->forceFill(['is_active' => false])->save();
+
+        $this->postJson(route('login.passkey.verify'), ['credential_id' => 'pk-local'])
+            ->assertStatus(422)
+            ->assertJsonValidationErrors('username');
+
+        $this->assertGuest();
+    }
+
     public function test_passwordless_login_disabled_for_local_returns_error(): void
     {
         SystemSetting::set('passkey_passwordless_local_enabled', '0');
@@ -202,6 +227,22 @@ class WebauthnPasskeyTest extends TestCase
         $this->assertGuest();
 
         $this->post(route('two-factor.webauthn'), ['credential_id' => 'pk-local'])->assertRedirect();
+        $this->assertAuthenticatedAs($user->fresh());
+    }
+
+    public function test_passkey_second_factor_via_fetch_returns_intended_url_as_json(): void
+    {
+        $user = $this->userWithPasskey();
+        $intended = url('/oauth/authorize?client_id=abc&response_type=code');
+
+        $this->withSession(['url.intended' => $intended])
+            ->post(route('login.attempt'), ['username' => $user->username, 'password' => 'Password123!'])
+            ->assertRedirect(route('two-factor.challenge'));
+
+        $this->postJson(route('two-factor.webauthn'), ['credential_id' => 'pk-local'])
+            ->assertOk()
+            ->assertExactJson(['redirect' => $intended]);
+
         $this->assertAuthenticatedAs($user->fresh());
     }
 

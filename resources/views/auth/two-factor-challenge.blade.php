@@ -114,8 +114,11 @@
                 '{{ csrf_token() }}',
                 { trust_device: trust ? '1' : '0' }
             ).then(function (res) {
-                if (res.redirected) { window.location.href = res.url; return; }
-                if (res.ok) { window.location.href = '{{ route('dashboard') }}'; return; }
+                if (res.ok) {
+                    return res.json().catch(function () { return {}; }).then(function (data) {
+                        window.location.href = (data && data.redirect) || '{{ route('dashboard') }}';
+                    });
+                }
                 return res.json().then(function (data) {
                     throw new Error(data && data.message ? data.message : 'failed');
                 });

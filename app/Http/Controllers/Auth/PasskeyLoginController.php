@@ -32,7 +32,7 @@ class PasskeyLoginController extends Controller
         return response()->json($this->webauthn->assertionOptions(null));
     }
 
-    public function verify(Request $request): RedirectResponse
+    public function verify(Request $request): RedirectResponse|JsonResponse
     {
         abort_unless(SecuritySettings::passwordlessAnyEnabled(), 404);
 
@@ -57,6 +57,6 @@ class PasskeyLoginController extends Controller
             'passwordless' => true,
         ]);
 
-        return $this->completion->finalize($request, $user, 'passkey');
+        return $this->completion->respond($request, $this->completion->finalize($request, $user, 'passkey'));
     }
 }

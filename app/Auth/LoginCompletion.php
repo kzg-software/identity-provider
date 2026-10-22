@@ -5,6 +5,7 @@ namespace App\Auth;
 use App\Models\AuditLog;
 use App\Models\User;
 use App\Services\SessionTracker;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -76,5 +77,15 @@ class LoginCompletion
         $home = $user->is_admin ? route('admin.dashboard') : route('dashboard');
 
         return redirect()->intended($home);
+    }
+
+    /** Bei fetch()-Anfragen (Passkey) das Ziel als JSON statt als Weiterleitung. */
+    public function respond(Request $request, RedirectResponse $redirect): RedirectResponse|JsonResponse
+    {
+        if (! $request->expectsJson()) {
+            return $redirect;
+        }
+
+        return response()->json(['redirect' => $redirect->getTargetUrl()]);
     }
 }

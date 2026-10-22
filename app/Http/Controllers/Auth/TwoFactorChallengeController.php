@@ -63,7 +63,7 @@ class TwoFactorChallengeController extends Controller
         return response()->json($this->webauthn->assertionOptions($user));
     }
 
-    public function verifyWebauthn(Request $request): RedirectResponse
+    public function verifyWebauthn(Request $request): RedirectResponse|JsonResponse
     {
         $user = $this->requirePendingUser();
 
@@ -80,7 +80,10 @@ class TwoFactorChallengeController extends Controller
 
         $this->rememberDeviceIfRequested($request, $user);
 
-        return $this->completion->finalize($request, $user, TwoFactorChallenge::method().'+passkey');
+        return $this->completion->respond(
+            $request,
+            $this->completion->finalize($request, $user, TwoFactorChallenge::method().'+passkey'),
+        );
     }
 
     public function verifyTotp(Request $request): RedirectResponse
