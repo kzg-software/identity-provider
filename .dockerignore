@@ -13,6 +13,7 @@ storage/framework/cache/data/*
 storage/framework/sessions/*
 storage/framework/views/*
 storage/app/public/*
+public/storage
 bootstrap/cache/*.php
 database/*.sqlite
 database/*.sqlite-journal
