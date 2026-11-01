@@ -2,7 +2,6 @@
 
 namespace App\Workflow\Nodes;
 
-use App\Services\AccessPolicyEvaluator;
 use App\Support\AccessRestrictions;
 use App\Workflow\NodeResult;
 use App\Workflow\WorkflowContext;
@@ -26,7 +25,10 @@ class RestrictionCheck extends CheckNode
 
     public function run(array $config, WorkflowContext $context): NodeResult
     {
-        if ($violation = AccessPolicyEvaluator::restrictionViolation($context->applicationId)) {
+        $application = $context->application();
+        $violation = $application ? AccessRestrictions::violation($application, $context->ip(), $context->now()) : null;
+
+        if ($violation) {
             return $this->block($context, 'restricted', ['reason' => $violation], AccessRestrictions::message($violation));
         }
 

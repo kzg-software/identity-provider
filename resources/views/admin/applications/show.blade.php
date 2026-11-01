@@ -28,8 +28,40 @@
     'provider' => 'Provider',
     'zugriff' => 'Zugriff',
     'provisionierung' => 'Provisionierung',
+    'workflow' => 'Workflow',
     'darstellung' => 'Darstellung',
 ]" />
+
+@if ($tab === 'workflow')
+    @php
+        $appWorkflows = \App\Models\Workflow::query()->where('application_id', $application->id)->whereIn('phase', ['login', 'authorize'])->get()->keyBy('phase');
+    @endphp
+    <div class="space-y-6">
+        @foreach (['authorize' => 'Läuft, wenn ein angemeldetes Konto diese Anwendung öffnet: z. B. nur bestimmte Gruppen, Hinweis vor dem ersten Öffnen, zweiter Faktor nötig.', 'login' => 'Läuft bei einer Anmeldung, die von dieser Anwendung ausgeht, z. B. Nutzungsbedingungen nur für diese Anwendung.'] as $phase => $help)
+            @php $own = $appWorkflows->get($phase); @endphp
+            <x-card :title="\App\Models\Workflow::phaseLabel($phase)" :description="$help">
+                @if ($own)
+                    <div class="flex flex-wrap items-center justify-between gap-3">
+                        <div>
+                            <p class="font-medium text-gray-900">{{ $own->name }}</p>
+                            <p class="text-sm text-gray-500">Eigener Ablauf · {{ $own->is_active ? 'aktiv, ersetzt den globalen Ablauf' : 'inaktiv, es gilt der globale Ablauf' }}</p>
+                        </div>
+                        <x-button tag="a" href="{{ route('admin.workflows.edit', $own) }}" size="sm"><x-icon name="pencil" class="h-4 w-4" />Bearbeiten</x-button>
+                    </div>
+                @else
+                    <div class="flex flex-wrap items-center justify-between gap-3">
+                        <p class="text-sm text-gray-500">Es gilt der globale Ablauf.</p>
+                        <form method="POST" action="{{ route('admin.applications.workflows.store', $application) }}">
+                            @csrf
+                            <input type="hidden" name="phase" value="{{ $phase }}">
+                            <x-button type="submit" variant="secondary" size="sm"><x-icon name="plus" class="h-4 w-4" />Eigenen Ablauf anlegen</x-button>
+                        </form>
+                    </div>
+                @endif
+            </x-card>
+        @endforeach
+    </div>
+@endif
 
 @if ($tab === 'allgemein')
     <x-card title="Grunddaten" description="Name und Beschreibung sieht auch der Benutzer auf der Zustimmungsseite.">
@@ -73,7 +105,7 @@
             </div>
             <div>
                 <x-input-label>Nach Daten fragen (Zustimmung)
-                    <x-field-info>Wie oft der Benutzer der Datenweitergabe an diese Anwendung zustimmen muss.</x-field-info>
+                    <x-field-info>Wie oft der Benutzer der Datenweitergabe an diese Anwendung zustimmen muss. Gilt nur, solange der Zugriffs-Workflow den Baustein „Einwilligung einholen“ enthält (im Standard der Fall).</x-field-info>
                 </x-input-label>
                 <x-select name="consent_mode">
                     @foreach (['first_time' => 'Nur beim ersten Mal fragen', 'always' => 'Immer fragen', 'on_scope_change' => 'Erneut fragen bei geänderten Berechtigungen', 'skip' => 'Nie fragen'] as $value => $label)

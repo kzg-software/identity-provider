@@ -26,6 +26,7 @@ class TrustedDeviceCondition extends ConditionNode
     {
         $user = $context->user();
 
-        return $user !== null && app(TrustedDevices::class)->isTrusted($user, request());
+        // Im Testlauf gibt es kein Gerät; „isTrusted“ würde außerdem den Eintrag aktualisieren.
+        return $user !== null && ! $context->dryRun && app(TrustedDevices::class)->isTrusted($user, request());
     }
 }

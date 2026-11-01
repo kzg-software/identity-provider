@@ -28,7 +28,9 @@ abstract class ActionNode extends NodeType
 
     public function run(array $config, WorkflowContext $context): NodeResult
     {
-        $this->perform($this->withDefaults($config), $context);
+        if (! $context->dryRun) {
+            $this->perform($this->withDefaults($config), $context);
+        }
 
         return NodeResult::next();
     }

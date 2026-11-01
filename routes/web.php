@@ -16,6 +16,7 @@ use App\Http\Controllers\Admin\SettingController;
 use App\Http\Controllers\Admin\SystemStatusController;
 use App\Http\Controllers\Admin\SystemUpdateController;
 use App\Http\Controllers\Admin\UserController;
+use App\Http\Controllers\Admin\WorkflowController;
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\Auth\NegotiateController;
 use App\Http\Controllers\Auth\WorkflowFlowController;
@@ -227,6 +228,16 @@ Route::middleware('auth')->group(function () {
         Route::get('group-role-mappings', [GroupRoleMappingController::class, 'index'])->name('group-role-mappings.index');
         Route::post('group-role-mappings', [GroupRoleMappingController::class, 'store'])->name('group-role-mappings.store');
         Route::delete('group-role-mappings/{groupRoleMapping}', [GroupRoleMappingController::class, 'destroy'])->name('group-role-mappings.destroy');
+
+        Route::get('workflows', [WorkflowController::class, 'index'])->name('workflows.index');
+        Route::post('workflows/events', [WorkflowController::class, 'storeEvent'])->name('workflows.events.store');
+        Route::get('workflows/{workflow}', [WorkflowController::class, 'edit'])->name('workflows.edit');
+        Route::put('workflows/{workflow}', [WorkflowController::class, 'update'])->name('workflows.update');
+        Route::delete('workflows/{workflow}', [WorkflowController::class, 'destroy'])->name('workflows.destroy');
+        Route::post('workflows/{workflow}/reset', [WorkflowController::class, 'reset'])->name('workflows.reset');
+        Route::post('workflows/{workflow}/simulate', [WorkflowController::class, 'simulate'])->name('workflows.simulate');
+        Route::post('workflows/{workflow}/versions/{version}/restore', [WorkflowController::class, 'restore'])->name('workflows.restore');
+        Route::post('applications/{application}/workflows', [WorkflowController::class, 'storeForApplication'])->name('applications.workflows.store');
 
         Route::get('applications', [ApplicationController::class, 'index'])->name('applications.index');
         Route::get('applications/create', [ApplicationController::class, 'create'])->name('applications.create');

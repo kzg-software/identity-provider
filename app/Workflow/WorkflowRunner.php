@@ -204,6 +204,71 @@ class WorkflowRunner
         }
     }
 
+    /**
+     * Testlauf für den Editor: läuft ohne Seiteneffekte durch den Graphen.
+     * Interaktionen gelten als vom Nutzer erfolgreich abgeschlossen (erster
+     * Ausgang des Bausteins).
+     *
+     * @return array{outcome: string, message: string|null, steps: list<array{node: string, label: string, output: string|null, note: string|null}>}
+     */
+    public function simulate(Workflow $workflow, WorkflowContext $context): array
+    {
+        $context->dryRun = true;
+        $nodes = collect($workflow->graph['nodes'] ?? [])->keyBy('id');
+        $edges = collect($workflow->graph['edges'] ?? []);
+        $steps = [];
+
+        $nodeId = $nodes->first(fn ($node) => $this->registry->get($node['type'] ?? '')?->isEntry())['id'] ?? null;
+
+        for ($i = 0; $nodeId !== null && $i < self::MAX_STEPS; $i++) {
+            $node = $nodes->get($nodeId);
+            $type = $node ? $this->registry->get($node['type'] ?? '') : null;
+
+            if (! $type) {
+                return ['outcome' => 'error', 'message' => "Unbekannter Baustein „{$nodeId}“.", 'steps' => $steps];
+            }
+
+            $context->currentNode = $nodeId;
+            $config = (array) ($node['config'] ?? []);
+
+            try {
+                $result = $type->run($config, $context);
+            } catch (Throwable $e) {
+                return ['outcome' => 'error', 'message' => $e->getMessage(), 'steps' => $steps];
+            }
+
+            $note = null;
+            $output = $result->output;
+
+            if ($result->isInteract()) {
+                $output = array_key_first($type->outputs($config));
+                $note = match ($result->interaction) {
+                    'two_factor' => 'Zwei-Faktor-Abfrage (im Test als bestanden angenommen)',
+                    'oidc_consent' => 'Einwilligungsseite (im Test als erteilt angenommen)',
+                    default => 'Seite wird angezeigt (im Test als bestätigt angenommen)',
+                };
+            }
+
+            $steps[] = ['node' => $nodeId, 'label' => $type->label(), 'output' => $output, 'note' => $note];
+
+            if ($result->isAllow() || $result->isDeny()) {
+                return [
+                    'outcome' => $result->isAllow() ? 'allow' : 'deny',
+                    'message' => $result->message,
+                    'steps' => $steps,
+                ];
+            }
+
+            $nodeId = $edges->first(fn ($e) => $e['from'] === $nodeId && $e['output'] === $output)['to'] ?? null;
+
+            if ($nodeId === null) {
+                return ['outcome' => 'error', 'message' => "Ausgang „{$output}“ von „{$type->label()}“ ist nicht verbunden.", 'steps' => $steps];
+            }
+        }
+
+        return ['outcome' => 'error', 'message' => 'Kein Start-Baustein oder zu viele Schritte.', 'steps' => $steps];
+    }
+
     private function fail(Workflow $workflow, WorkflowContext $context, string $reason, array $path = []): NodeResult
     {
         $this->forget($context->phase);

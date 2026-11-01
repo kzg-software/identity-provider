@@ -36,7 +36,7 @@ class IpRangeCondition extends ConditionNode
 
     protected function matches(array $config, WorkflowContext $context): bool
     {
-        return AccessRestrictions::ipAllowed($context->data['ip'] ?? request()->ip(), implode("\n", self::lines($config['ranges'] ?? '')));
+        return AccessRestrictions::ipAllowed($context->ip(), implode("\n", self::lines($config['ranges'] ?? '')));
     }
 
     public function validate(array $config): array

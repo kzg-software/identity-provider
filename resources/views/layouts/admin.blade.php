@@ -10,6 +10,7 @@
             ['route' => 'admin.users.index', 'match' => 'admin.users.*', 'label' => 'Benutzer', 'icon' => 'users'],
             ['route' => 'admin.directories.index', 'match' => 'admin.directories.*', 'label' => 'Verzeichnisse', 'icon' => 'server'],
             ['route' => 'admin.group-role-mappings.index', 'match' => 'admin.group-role-mappings.*', 'label' => 'Rollen-Mapping', 'icon' => 'signpost'],
+            ['route' => 'admin.workflows.index', 'match' => 'admin.workflows.*', 'label' => 'Workflows', 'icon' => 'arrow-path'],
         ]],
         ['label' => 'Anwendungen', 'items' => [
             ['route' => 'admin.applications.index', 'match' => 'admin.applications.*', 'label' => 'Anwendungen', 'icon' => 'building'],

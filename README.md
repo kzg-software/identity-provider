@@ -38,6 +38,7 @@ braucht. Kein Node, kein Build-Schritt, keine externen CDNs.
 - Single Logout: Wer sich abmeldet, ist überall abgemeldet
 - SCIM 2.0: Benutzer und Gruppen werden in Zielanwendungen angelegt und aktuell gehalten
 - Zugriff pro Anwendung nach Gruppe, Benutzer, IP-Bereich und Uhrzeit
+- Workflows: Login und Zugriff im visuellen Editor selbst gestalten, z. B. Hinweise, Nutzungsbedingungen, zweiter Faktor nur für bestimmte Anwendungen
 
 **Verwaltung**
 
@@ -276,6 +277,41 @@ AuthnRequests müssen über das POST-Binding kommen.
 - **SCIM:** Im Tab *Provisionierung* SCIM-URL und Token der Zielanwendung
   eintragen. Benutzer mit Zugriff werden dort angelegt, wer den Zugriff verliert,
   wird deaktiviert oder gelöscht. Der Abgleich läuft alle 10 Minuten.
+
+### Workflows
+
+Unter *Administration → Workflows* legt man im Flow-Editor fest, was passiert.
+Bausteine zieht man auf die Fläche und verbindet sie dann. Es gibt drei Arten:
+
+- **Login:** Läuft nach der Erstprüfung (Passwort, Passkey, Windows-Anmeldung),
+  bevor das Konto angemeldet ist. Bausteine sind zum Beispiel Zwei-Faktor
+  verlangen, Hinweis anzeigen, Nutzungsbedingungen oder Bedingungen wie Gruppe,
+  Rolle, IP-Bereich und Uhrzeit.
+- **Zugriff (Authorize/SSO):** Läuft, wenn ein angemeldetes Konto eine OIDC-
+  oder SAML-Anwendung öffnet. Hier gibt es Wartung, Netz und Uhrzeit,
+  Zugriffsrichtlinien, Einwilligung und „Mit zweitem Faktor angemeldet“.
+- **Ereignisse:** Laufen im Hintergrund nach Ereignissen wie „Anmeldung
+  fehlgeschlagen“ oder „neues Gerät“. Möglich sind Benachrichtigungen, ein
+  Webhook (signiert mit HMAC-SHA256 im Header `X-Signature`), das Deaktivieren
+  des Kontos oder das Beenden aller Sitzungen.
+
+Die mitgelieferten Standard-Abläufe entsprechen dem bisherigen Verhalten. Eine
+Anwendung kann im Tab *Workflow* einen eigenen Ablauf bekommen, der den
+globalen ersetzt.
+
+Vor dem Speichern prüft der Editor den Ablauf: Jeder Ausgang muss verbunden
+sein, Schleifen sind nicht erlaubt, und mindestens ein Weg muss bei „Erlauben“
+enden. Mit dem *Testlauf* spielt man einen Ablauf für ein Konto durch, ohne dass
+etwas ausgelöst wird. Bei einem Fehler im Ablauf wird der Zugriff abgelehnt.
+
+Notfall, falls sich niemand mehr anmelden kann:
+
+```bash
+php artisan workflow:reset
+```
+
+Der Befehl setzt die Standard-Abläufe zurück und deaktiviert die Abläufe der
+Anwendungen. Mit `--phase=login` oder `--app=<ID>` lässt er sich eingrenzen.
 
 ## Active Directory und Windows-Anmeldung
 

@@ -74,6 +74,10 @@ class TwoFactorNode extends NodeType
             return NodeResult::next('nicht_eingerichtet');
         }
 
+        if ($context->dryRun) {
+            return NodeResult::interact('two_factor');
+        }
+
         if ($config['skip_trusted'] && app(TrustedDevices::class)->isTrusted($user, request())) {
             AuditLog::record('login.2fa_skipped_trusted_device', $user, ['method' => $context->method]);
 

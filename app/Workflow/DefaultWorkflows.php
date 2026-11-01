@@ -35,9 +35,9 @@ class DefaultWorkflows
     {
         return [
             'nodes' => [
-                self::node('start', 'start', 40, 160),
-                self::node('mfa', 'two_factor', 300, 140, ['skip_trusted' => true, 'passkey_counts' => true, 'windows_counts' => true]),
-                self::node('allow', 'allow', 600, 160),
+                self::node('start', 'start', 40, 80),
+                self::node('mfa', 'two_factor', 320, 60, ['skip_trusted' => true, 'passkey_counts' => true, 'windows_counts' => true]),
+                self::node('allow', 'allow', 640, 80),
             ],
             'edges' => [
                 self::edge('start', 'weiter', 'mfa'),
@@ -56,13 +56,13 @@ class DefaultWorkflows
     {
         return [
             'nodes' => [
-                self::node('start', 'start', 40, 120),
-                self::node('maintenance', 'check.maintenance', 240, 100),
-                self::node('restrictions', 'check.restrictions', 480, 100),
-                self::node('policies', 'check.policies', 720, 100),
-                self::node('consent', 'consent', 960, 120),
-                self::node('allow', 'allow', 1200, 120),
-                self::node('deny', 'deny', 720, 340, ['message' => '']),
+                self::node('start', 'start', 40, 60),
+                self::node('maintenance', 'check.maintenance', 300, 40),
+                self::node('restrictions', 'check.restrictions', 560, 40),
+                self::node('policies', 'check.policies', 820, 40),
+                self::node('consent', 'consent', 560, 280),
+                self::node('allow', 'allow', 820, 300),
+                self::node('deny', 'deny', 1080, 170, ['message' => '']),
             ],
             'edges' => [
                 self::edge('start', 'weiter', 'maintenance'),

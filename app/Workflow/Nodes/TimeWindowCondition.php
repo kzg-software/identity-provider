@@ -36,7 +36,7 @@ class TimeWindowCondition extends ConditionNode
 
     protected function matches(array $config, WorkflowContext $context): bool
     {
-        return AccessRestrictions::timeAllowed(now(), implode("\n", self::lines($config['windows'] ?? '')));
+        return AccessRestrictions::timeAllowed($context->now(), implode("\n", self::lines($config['windows'] ?? '')));
     }
 
     public function validate(array $config): array

@@ -4,6 +4,8 @@ namespace App\Workflow;
 
 use App\Models\Application;
 use App\Models\User;
+use Carbon\CarbonInterface;
+use Illuminate\Support\Carbon;
 
 /**
  * Alles, was Bausteine über den laufenden Vorgang wissen dürfen. Wird bei
@@ -20,6 +22,9 @@ class WorkflowContext
 
     /** vom Runner vor jedem Baustein gesetzt */
     public string $currentNode = '';
+
+    /** Testlauf im Editor: keine Seiteneffekte (Audit, Mails, Zwei-Faktor, …) */
+    public bool $dryRun = false;
 
     /**
      * @param  string|null  $method  Erstmethode, z. B. local, active_directory, passkey, windows_sso (+ zweiter Faktor)
@@ -67,6 +72,18 @@ class WorkflowContext
         }
 
         return $this->applicationModel;
+    }
+
+    /** IP des Vorgangs (bei Ereignissen und im Testlauf aus den Daten). */
+    public function ip(): ?string
+    {
+        return $this->data['ip'] ?? request()->ip();
+    }
+
+    /** Zeitpunkt des Vorgangs (im Testlauf frei wählbar). */
+    public function now(): CarbonInterface
+    {
+        return isset($this->data['now']) ? Carbon::parse($this->data['now']) : now();
     }
 
     public function flag(string $key): bool

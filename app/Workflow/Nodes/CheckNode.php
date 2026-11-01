@@ -31,7 +31,10 @@ abstract class CheckNode extends NodeType
 
     protected function block(WorkflowContext $context, string $auditSuffix, array $meta, string $message, int $status = 403): NodeResult
     {
-        AuditLog::record($context->auditEvent($auditSuffix), $context->user(), $context->auditMeta($meta), $context->application());
+        if (! $context->dryRun) {
+            AuditLog::record($context->auditEvent($auditSuffix), $context->user(), $context->auditMeta($meta), $context->application());
+        }
+
         $context->setDenial($message, $status);
 
         return NodeResult::next('blockiert');
