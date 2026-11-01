@@ -57,6 +57,6 @@ class PasskeyLoginController extends Controller
             'passwordless' => true,
         ]);
 
-        return $this->completion->respond($request, $this->completion->finalize($request, $user, 'passkey'));
+        return $this->completion->respond($request, $this->completion->handle($request, $user, 'passkey'));
     }
 }

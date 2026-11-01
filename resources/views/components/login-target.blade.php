@@ -1,7 +1,7 @@
-@props(['hint' => 'Melde dich an, um fortzufahren.'])
+@props(['hint' => 'Melde dich an, um fortzufahren.', 'application' => null])
 
 @php
-    $targetApplication = \App\Auth\LoginTarget::application(request());
+    $targetApplication = $application ?? \App\Auth\LoginTarget::application(request());
     $targetLogoUrl = $targetApplication?->logo_path
         ? \Illuminate\Support\Facades\Storage::disk('public')->url($targetApplication->logo_path)
         : null;

@@ -12,10 +12,11 @@ use App\Oidc\Entities\UserEntity;
 use App\Oidc\NonceContext;
 use App\Oidc\Psr7Bridge;
 use App\Oidc\Repositories\AuthCodeRepository;
-use App\Services\AccessPolicyEvaluator;
 use App\Services\SingleLogoutService;
-use App\Support\AccessRestrictions;
-use App\Support\MaintenanceGate;
+use App\Workflow\NodeResult;
+use App\Workflow\WorkflowContext;
+use App\Workflow\WorkflowResolver;
+use App\Workflow\WorkflowRunner;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -29,6 +30,7 @@ class AuthorizationController extends Controller
     public function __construct(
         private readonly AuthorizationServer $server,
         private readonly AuthCodeRepository $authCodeRepository,
+        private readonly WorkflowRunner $runner,
     ) {}
 
     /**
@@ -65,21 +67,6 @@ class AuthorizationController extends Controller
 
         $user = Auth::user();
 
-        if (MaintenanceGate::applicationBlockedFor($application, $user)) {
-            AuditLog::record('oauth.authorize.maintenance', $user, ['application' => $application->name], $application);
-            abort(503, MaintenanceGate::applicationMessage($application));
-        }
-
-        if ($violation = AccessPolicyEvaluator::restrictionViolation($application->id)) {
-            AuditLog::record('oauth.authorize.restricted', $user, ['application' => $application->name, 'reason' => $violation], $application);
-            abort(403, AccessRestrictions::message($violation));
-        }
-
-        if (! $this->userMayAccess($application, $user)) {
-            AuditLog::record('oauth.authorize.denied', $user, ['application' => $application->name], $application);
-            abort(403, 'Sie sind nicht berechtigt, diese Anwendung zu nutzen.');
-        }
-
         $requestedScopes = array_map(fn ($s) => $s->getIdentifier(), $authRequest->getScopes());
 
         // Only scopes the client is actually allowed to receive are shown / consented to.
@@ -92,20 +79,45 @@ class AuthorizationController extends Controller
 
         $authRequest->setUser(new UserEntity((string) $user->id));
 
-        if ($this->consentSatisfied($application, $client, $user, $requestedScopes)) {
+        // Wartung, Netzwerk/Uhrzeit, Richtlinien, Einwilligung usw. entscheidet
+        // der Authorize-Workflow (global oder der Anwendung).
+        $context = WorkflowContext::forAuthorize($user, $application, 'oidc', (string) session('auth.method', $user->last_login_method), [
+            'client_id' => $client->id,
+            'scopes' => $requestedScopes,
+            'audit_prefix' => 'oauth.authorize',
+            'audit_meta' => ['application' => $application->name],
+        ]);
+
+        $result = $this->runner->start(WorkflowResolver::for('authorize', $application), $context);
+
+        return $this->conclude($request, $result, $authRequest, $nonce, $client, $user, $requestedScopes, $application);
+    }
+
+    private function conclude(Request $request, NodeResult $result, AuthorizationRequest $authRequest, ?string $nonce, OauthClient $client, $user, array $scopes, Application $application): RedirectResponse|View
+    {
+        if ($result->isAllow()) {
             $authRequest->setAuthorizationApproved(true);
 
-            return $this->complete($authRequest, $nonce, $client, $user, $requestedScopes, $application);
+            return $this->complete($authRequest, $nonce, $client, $user, $scopes, $application);
         }
 
+        if ($result->isDeny()) {
+            abort($result->status, (string) $result->message);
+        }
+
+        // Interaktion: Anfrage parken, nach der Interaktion geht es weiter.
         $request->session()->put('oidc.pending_auth_request', serialize($authRequest));
         $request->session()->put('oidc.pending_nonce', $nonce);
 
-        return view('oidc.consent', [
-            'application' => $application,
-            'client' => $client,
-            'scopes' => OauthScope::query()->whereIn('key', $requestedScopes)->get(),
-        ]);
+        if ($result->interaction === 'oidc_consent') {
+            return view('oidc.consent', [
+                'application' => $application,
+                'client' => $client,
+                'scopes' => OauthScope::query()->whereIn('key', $scopes)->get(),
+            ]);
+        }
+
+        return redirect()->route('workflow.continue');
     }
 
     /**
@@ -131,22 +143,54 @@ class AuthorizationController extends Controller
         $user = Auth::user();
         $scopes = array_map(fn ($s) => $s->getIdentifier(), $authRequest->getScopes());
 
-        $approved = $request->input('decision') === 'allow';
-        $authRequest->setAuthorizationApproved($approved);
-
-        if ($approved) {
-            if ($request->boolean('remember')) {
-                OauthConsent::updateOrCreate(
-                    ['user_id' => $user->id, 'oauth_client_id' => $client->id],
-                    ['scopes' => $scopes, 'granted_at' => now(), 'revoked_at' => null]
-                );
-            }
-            AuditLog::record('oauth.consent.granted', $user, ['scopes' => $scopes, 'remembered' => $request->boolean('remember')], $client->application);
-        } else {
+        if ($request->input('decision') !== 'allow') {
+            $this->runner->forget('authorize');
             AuditLog::record('oauth.consent.denied', $user, ['scopes' => $scopes], $client->application);
+            $authRequest->setAuthorizationApproved(false);
+
+            return $this->complete($authRequest, $nonce, $client, $user, $scopes, $client->application);
         }
 
-        return $this->complete($authRequest, $nonce, $client, $user, $scopes, $client->application);
+        if ($request->boolean('remember')) {
+            OauthConsent::updateOrCreate(
+                ['user_id' => $user->id, 'oauth_client_id' => $client->id],
+                ['scopes' => $scopes, 'granted_at' => now(), 'revoked_at' => null]
+            );
+        }
+        AuditLog::record('oauth.consent.granted', $user, ['scopes' => $scopes, 'remembered' => $request->boolean('remember')], $client->application);
+
+        // Der Workflow läuft hinter dem Einwilligungs-Baustein weiter.
+        $result = $this->runner->resume('authorize', fn (WorkflowContext $context) => $context->setFlag('consent_given'));
+
+        if (! $result) {
+            abort(400, 'Die Autorisierungsanfrage ist abgelaufen. Bitte erneut starten.');
+        }
+
+        return $this->conclude($request, $result, $authRequest, $nonce, $client, $user, $scopes, $client->application);
+    }
+
+    /**
+     * GET /oauth/authorize/resume – Rücksprung nach einer Workflow-Interaktion
+     * (z. B. Hinweis oder Nutzungsbedingungen) mit der geparkten Anfrage.
+     */
+    public function resume(Request $request): RedirectResponse|View
+    {
+        $authRequest = $request->session()->get('oidc.pending_auth_request')
+            ? unserialize($request->session()->get('oidc.pending_auth_request'))
+            : null;
+        $nonce = $request->session()->get('oidc.pending_nonce');
+        $request->session()->forget(['oidc.pending_auth_request', 'oidc.pending_nonce']);
+
+        $result = $authRequest instanceof AuthorizationRequest ? $this->runner->resume('authorize') : null;
+
+        if (! $result) {
+            abort(400, 'Die Autorisierungsanfrage ist abgelaufen. Bitte erneut starten.');
+        }
+
+        $client = OauthClient::query()->where('client_id', $authRequest->getClient()->getIdentifier())->with('provider.application')->firstOrFail();
+        $scopes = array_map(fn ($s) => $s->getIdentifier(), $authRequest->getScopes());
+
+        return $this->conclude($request, $result, $authRequest, $nonce, $client, Auth::user(), $scopes, $client->application);
     }
 
     private function complete(AuthorizationRequest $authRequest, ?string $nonce, OauthClient $client, $user, array $scopes, Application $application): RedirectResponse
@@ -168,39 +212,6 @@ class AuthorizationController extends Controller
         $laravelResponse = Psr7Bridge::toLaravelResponse($psrResponse);
 
         return redirect($laravelResponse->headers->get('Location'));
-    }
-
-    private function consentSatisfied(Application $application, OauthClient $client, $user, array $requestedScopes): bool
-    {
-        if (! $application->consent_required || $application->consent_mode === 'skip') {
-            return true;
-        }
-
-        $consent = OauthConsent::query()
-            ->where('user_id', $user->id)
-            ->where('oauth_client_id', $client->id)
-            ->whereNull('revoked_at')
-            ->first();
-
-        if (! $consent) {
-            return false;
-        }
-
-        if ($application->consent_mode === 'always') {
-            return false;
-        }
-
-        if ($application->consent_mode === 'on_scope_change') {
-            return empty(array_diff($requestedScopes, $consent->scopes ?? []));
-        }
-
-        // consent_mode === 'first_time' (default): once granted, never ask again.
-        return true;
-    }
-
-    private function userMayAccess(Application $application, $user): bool
-    {
-        return AccessPolicyEvaluator::mayAccess($application, $user);
     }
 
     private function renderOAuthError(OAuthServerException $exception): RedirectResponse

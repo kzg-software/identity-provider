@@ -82,7 +82,7 @@ class TwoFactorChallengeController extends Controller
 
         return $this->completion->respond(
             $request,
-            $this->completion->finalize($request, $user, TwoFactorChallenge::method().'+passkey'),
+            $this->completion->resumeAfterSecondFactor($request, $user, 'passkey'),
         );
     }
 
@@ -104,7 +104,7 @@ class TwoFactorChallengeController extends Controller
 
         $this->rememberDeviceIfRequested($request, $user);
 
-        return $this->completion->finalize($request, $user, TwoFactorChallenge::method().'+totp');
+        return $this->completion->resumeAfterSecondFactor($request, $user, 'totp');
     }
 
     public function verifyRecovery(Request $request): RedirectResponse
@@ -125,7 +125,7 @@ class TwoFactorChallengeController extends Controller
 
         $remaining = count($user->twoFactor->recoveryCodes());
 
-        return $this->completion->finalize($request, $user, TwoFactorChallenge::method().'+recovery')
+        return $this->completion->resumeAfterSecondFactor($request, $user, 'recovery')
             ->with('status', "Wiederherstellungscode verwendet. Noch {$remaining} übrig.");
     }
 

@@ -6,10 +6,11 @@ use App\Http\Controllers\Controller;
 use App\Models\AuditLog;
 use App\Models\SamlServiceProvider;
 use App\Saml\SamlIdpService;
-use App\Services\AccessPolicyEvaluator;
 use App\Services\SingleLogoutService;
-use App\Support\AccessRestrictions;
-use App\Support\MaintenanceGate;
+use App\Workflow\NodeResult;
+use App\Workflow\WorkflowContext;
+use App\Workflow\WorkflowResolver;
+use App\Workflow\WorkflowRunner;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -18,7 +19,11 @@ use Illuminate\View\View;
 
 class SsoController extends Controller
 {
-    public function __construct(private readonly SamlIdpService $saml, private readonly SingleLogoutService $logout) {}
+    public function __construct(
+        private readonly SamlIdpService $saml,
+        private readonly SingleLogoutService $logout,
+        private readonly WorkflowRunner $runner,
+    ) {}
 
     /**
      * GET/POST /saml/sso — receives an AuthnRequest (HTTP-Redirect or HTTP-POST binding).
@@ -118,20 +123,57 @@ class SsoController extends Controller
     {
         $user = Auth::user();
 
-        if ($sp->application && MaintenanceGate::applicationBlockedFor($sp->application, $user)) {
-            AuditLog::record('saml.sso.maintenance', $user, ['sp' => $sp->entity_id], $sp->application);
-            abort(503, MaintenanceGate::applicationMessage($sp->application));
+        $context = WorkflowContext::forAuthorize($user, $sp->application, 'saml', (string) session('auth.method', $user->last_login_method), [
+            'sp_id' => $sp->id,
+            'audit_prefix' => 'saml.sso',
+            'audit_meta' => ['sp' => $sp->entity_id],
+        ]);
+
+        $result = $this->runner->start(WorkflowResolver::for('authorize', $sp->application), $context);
+
+        return $this->conclude($result, $sp, $requestId, $acsUrl, $relayState);
+    }
+
+    /**
+     * GET /saml/sso/continue – Rücksprung nach einer Workflow-Interaktion.
+     */
+    public function continue(Request $request): RedirectResponse|View
+    {
+        $pending = $request->session()->pull('saml.workflow_pending');
+        $result = $pending ? $this->runner->resume('authorize') : null;
+
+        if (! $result) {
+            abort(400, 'Die SAML-Anfrage ist abgelaufen. Bitte erneut starten.');
         }
 
-        if ($violation = AccessPolicyEvaluator::restrictionViolation($sp->application?->id)) {
-            AuditLog::record('saml.sso.restricted', $user, ['sp' => $sp->entity_id, 'reason' => $violation], $sp->application);
-            abort(403, AccessRestrictions::message($violation));
+        $sp = SamlServiceProvider::query()->findOrFail($pending['sp_id']);
+
+        return $this->conclude($result, $sp, $pending['request_id'], $pending['acs_url'], $pending['relay_state']);
+    }
+
+    private function conclude(NodeResult $result, SamlServiceProvider $sp, string $requestId, string $acsUrl, ?string $relayState): View|RedirectResponse
+    {
+        if ($result->isDeny()) {
+            abort($result->status, (string) $result->message);
         }
 
-        if (! $this->userMayAccess($sp, $user)) {
-            AuditLog::record('saml.sso.denied', $user, ['sp' => $sp->entity_id], $sp->application);
-            abort(403, 'Sie sind nicht berechtigt, diese Anwendung zu nutzen.');
+        if ($result->isInteract()) {
+            session()->put('saml.workflow_pending', [
+                'sp_id' => $sp->id,
+                'request_id' => $requestId,
+                'acs_url' => $acsUrl,
+                'relay_state' => $relayState,
+            ]);
+
+            return redirect()->route('workflow.continue');
         }
+
+        return $this->issueResponse($sp, $requestId, $acsUrl, $relayState);
+    }
+
+    private function issueResponse(SamlServiceProvider $sp, string $requestId, string $acsUrl, ?string $relayState): View
+    {
+        $user = Auth::user();
 
         $attributes = $this->saml->mapAttributes($sp, $user);
         $nameId = $this->saml->resolveNameId($sp, $user);
@@ -154,10 +196,5 @@ class SsoController extends Controller
         // params), not the XML itself. We require SP-signed requests to use the
         // POST binding, which we can verify directly against the XML.
         return false;
-    }
-
-    private function userMayAccess(SamlServiceProvider $sp, $user): bool
-    {
-        return AccessPolicyEvaluator::mayAccessApplication($sp->application?->id, $user);
     }
 }

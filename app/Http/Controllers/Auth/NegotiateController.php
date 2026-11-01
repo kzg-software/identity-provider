@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Auth;
 
+use App\Auth\LoginCompletion;
 use App\Auth\NtlmHandshake;
 use App\Directory\DirectoryConnectionResolver;
 use App\Directory\DirectoryResolver;
@@ -155,6 +156,18 @@ class NegotiateController extends Controller
             }
 
             RateLimiter::clear($throttleKey);
+
+            // Der Login-Workflow entscheidet auch bei der Windows-Anmeldung.
+            $completion = app(LoginCompletion::class);
+            $result = $completion->gate($request, $user, 'windows_sso_ntlm');
+
+            if ($result->isDeny()) {
+                return response()->json(['error' => 'workflow_denied', 'message' => $result->message], 403);
+            }
+
+            if ($result->isInteract()) {
+                return response()->json(['success' => true, 'redirect' => $completion->conclude($request, $result)->getTargetUrl()]);
+            }
 
             $request->session()->regenerate();
             Auth::guard('web')->login($user);

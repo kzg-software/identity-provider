@@ -2,6 +2,7 @@
 
 namespace App\Http\Middleware;
 
+use App\Auth\LoginCompletion;
 use App\Directory\DirectoryConnectionResolver;
 use App\Directory\DirectoryResolver;
 use App\Directory\DirectorySyncService;
@@ -60,24 +61,35 @@ class WindowsSsoAuthenticate
             return $next($request);
         }
 
+        // Läuft gerade ein Login-Workflow (z. B. Zwei-Faktor) oder hat der
+        // Workflow diese Sitzung schon abgelehnt, nicht erneut versuchen.
+        if (app(LoginCompletion::class)->hasPendingWorkflow() || $request->session()->get('workflow.sso_denied')) {
+            return $next($request);
+        }
+
         try {
-            $this->authenticateFromRemoteUser($request, (string) $remoteUser);
+            $response = $this->authenticateFromRemoteUser($request, (string) $remoteUser);
         } catch (Throwable $e) {
             // Windows-SSO darf nie die App zum Absturz bringen; fällt auf normalen Login zurück.
             Log::warning('Windows-SSO-Login fehlgeschlagen', ['remote_user' => $remoteUser, 'error' => $e->getMessage()]);
+            $response = null;
         }
 
-        return $next($request);
+        return $response ?? $next($request);
     }
 
-    private function authenticateFromRemoteUser(Request $request, string $remoteUser): void
+    /**
+     * Meldet an, wenn Verzeichnis und Login-Workflow es zulassen. Gibt eine
+     * Antwort zurück, wenn der Workflow eine Eingabe braucht (z. B. Hinweis).
+     */
+    private function authenticateFromRemoteUser(Request $request, string $remoteUser): ?Response
     {
         [$netbiosOrUpnSuffix, $samAccountName] = DirectoryResolver::parseDomainQualifiedUsername($remoteUser);
 
         $directory = DirectoryResolver::resolveSingle($netbiosOrUpnSuffix);
 
         if (! $directory || ! $directory->is_active) {
-            return;
+            return null;
         }
 
         DirectoryConnectionResolver::connect($directory);
@@ -89,18 +101,31 @@ class WindowsSsoAuthenticate
             ->first();
 
         if (! $ldapUser) {
-            return;
+            return null;
         }
 
         // Verzeichnis auf Mitglieder bestimmter Gruppen beschränkt?
         if (! GroupMembershipFilter::allows($directory, $connectionName, $ldapUser)) {
-            return;
+            return null;
         }
 
         $user = (new DirectorySyncService)->syncSingleUser($directory, $connectionName, $ldapUser);
 
         if (! $user || ! $user->is_active) {
-            return;
+            return null;
+        }
+
+        $completion = app(LoginCompletion::class);
+        $result = $completion->gate($request, $user, 'windows_sso');
+
+        if ($result->isDeny()) {
+            $request->session()->put('workflow.sso_denied', true);
+
+            return null;
+        }
+
+        if ($result->isInteract()) {
+            return $completion->conclude($request, $result);
         }
 
         $user->forceFill([
@@ -114,5 +139,7 @@ class WindowsSsoAuthenticate
         AuditLog::record('login.windows_sso', $user, ['remote_user' => $remoteUser]);
 
         app(SessionTracker::class)->record($user, $request, 'windows_sso');
+
+        return null;
     }
 }

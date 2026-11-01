@@ -18,6 +18,7 @@ use App\Http\Controllers\Admin\SystemUpdateController;
 use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\Auth\NegotiateController;
+use App\Http\Controllers\Auth\WorkflowFlowController;
 use App\Http\Controllers\Auth\PasskeyLoginController;
 use App\Http\Controllers\Auth\PasswordResetController;
 use App\Http\Controllers\Auth\TwoFactorChallengeController;
@@ -46,11 +47,13 @@ Route::get('saml/metadata', [MetadataController::class, 'global'])->name('saml.m
 Route::get('saml/{application}/metadata', [MetadataController::class, 'forApplication'])->name('saml.metadata.application');
 Route::match(['get', 'post'], 'saml/sso', [SsoController::class, 'handle'])->middleware('throttle:30,1')->name('saml.sso');
 Route::get('saml/sso/resume', [SsoController::class, 'resume'])->middleware('auth')->name('saml.sso.resume');
+Route::get('saml/sso/continue', [SsoController::class, 'continue'])->middleware('auth')->name('saml.sso.continue');
 Route::match(['get', 'post'], 'saml/slo', [SloController::class, 'handle'])->middleware('throttle:30,1')->name('saml.slo');
 
 Route::prefix('oauth')->name('oauth.')->group(function () {
     Route::get('authorize', [AuthorizationController::class, 'authorize'])->name('authorize');
     Route::post('authorize/decision', [AuthorizationController::class, 'decision'])->middleware('auth')->name('authorize.decision');
+    Route::get('authorize/resume', [AuthorizationController::class, 'resume'])->middleware('auth')->name('authorize.resume');
     Route::post('token', [TokenController::class, 'issue'])->middleware('throttle:30,1')->name('token');
     Route::post('revoke', [TokenController::class, 'revoke'])->middleware('throttle:30,1')->name('revoke');
     Route::match(['get', 'post'], 'userinfo', UserInfoController::class)->middleware('oauth_token')->name('userinfo');
@@ -88,6 +91,10 @@ Route::prefix('install')->name('install.')->group(function () {
 });
 
 Route::get('auth/negotiate', NegotiateController::class)->name('auth.negotiate');
+
+// Seiten interaktiver Workflow-Bausteine (Hinweis, Nutzungsbedingungen, …)
+Route::get('flow/continue', [WorkflowFlowController::class, 'show'])->name('workflow.continue');
+Route::post('flow/continue', [WorkflowFlowController::class, 'submit'])->middleware('throttle:30,1')->name('workflow.submit');
 
 Route::middleware('guest')->group(function () {
     Route::get('login', [LoginController::class, 'show'])->name('login');
