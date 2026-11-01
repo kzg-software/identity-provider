@@ -290,6 +290,8 @@ XML;
         $this->get('/saml/sso?'.http_build_query(['SAMLRequest' => $encoded]))
             ->assertRedirect(route('login'));
 
+        $this->get(route('login'))->assertOk()->assertSee('Weiter zu Demo SAML SP');
+
         $this->post(route('login.attempt'), ['username' => 'asmith', 'password' => 'Password123!'])
             ->assertRedirect(route('saml.sso.resume'));
 

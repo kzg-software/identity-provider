@@ -192,6 +192,30 @@ class OidcProviderTest extends TestCase
         ]))->assertRedirect(route('login'));
     }
 
+    public function test_login_page_names_the_application_being_signed_in_to(): void
+    {
+        [$application, $client] = $this->createApp(['name' => 'Gitea']);
+        SystemSetting::set('installed', '1');
+        [, $challenge] = $this->pkcePair();
+
+        $this->get(route('login'))->assertOk()->assertDontSee('data-login-target', false);
+
+        $this->get(route('oauth.authorize', [
+            'client_id' => $client->client_id,
+            'redirect_uri' => 'https://client.example.test/callback',
+            'response_type' => 'code',
+            'scope' => 'openid',
+            'code_challenge' => $challenge,
+            'code_challenge_method' => 'S256',
+        ]))->assertRedirect(route('login'));
+
+        $this->get(route('login'))->assertOk()->assertSee('Weiter zu Gitea');
+
+        $application->update(['is_active' => false]);
+
+        $this->get(route('login'))->assertOk()->assertDontSee('Weiter zu Gitea');
+    }
+
     public function test_pkce_is_enforced_when_required(): void
     {
         [$application, $client] = $this->createApp();

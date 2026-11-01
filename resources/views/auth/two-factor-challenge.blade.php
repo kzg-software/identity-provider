@@ -12,7 +12,9 @@
 @endphp
 <div x-data="{ tab: '{{ $initialTab }}', loading: false, trust: false }"
      x-on:pageshow.window="loading = false">
-    <h1 class="text-lg font-semibold text-gray-900 mb-1">Zwei-Faktor-Bestätigung</h1>
+    <x-login-target hint="Bestätige die Anmeldung, um fortzufahren." />
+
+    <h1class="text-lg font-semibold text-gray-900 mb-1">Zwei-Faktor-Bestätigung</h1>
     <p class="text-sm text-gray-500 mb-4">Bestätige die Anmeldung mit deinem zweiten Faktor.</p>
 
     @if ($hasWebauthn)

@@ -1,6 +1,8 @@
 @extends('layouts.auth-card')
 
 @section('auth-content')
+<x-login-target />
+
 <div id="autoLoginNotice" class="hidden mb-4 rounded-md bg-gray-50 border border-gray-200 px-4 py-3 text-sm text-gray-600 flex items-center gap-2">
     <svg class="animate-spin h-4 w-4 text-laravel-600" viewBox="0 0 24 24" fill="none"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path></svg>
     Automatische Anmeldung wird versucht &hellip;
