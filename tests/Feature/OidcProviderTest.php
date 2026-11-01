@@ -216,6 +216,87 @@ class OidcProviderTest extends TestCase
         $this->get(route('login'))->assertOk()->assertDontSee('Weiter zu Gitea');
     }
 
+    /** Authorization Code + PKCE durchlaufen und die Token-Antwort zurückgeben. */
+    private function issueTokens(OauthClient $client): array
+    {
+        [$verifier, $challenge] = $this->pkcePair();
+
+        $location = $this->get(route('oauth.authorize', [
+            'client_id' => $client->client_id,
+            'redirect_uri' => 'https://client.example.test/callback',
+            'response_type' => 'code',
+            'scope' => 'openid',
+            'code_challenge' => $challenge,
+            'code_challenge_method' => 'S256',
+        ]))->headers->get('Location');
+
+        parse_str((string) parse_url($location, PHP_URL_QUERY), $query);
+
+        return $this->postJson(route('oauth.token'), [
+            'grant_type' => 'authorization_code',
+            'client_id' => $client->client_id,
+            'client_secret' => 'demo-secret',
+            'redirect_uri' => 'https://client.example.test/callback',
+            'code' => $query['code'],
+            'code_verifier' => $verifier,
+        ])->assertOk()->json();
+    }
+
+    private function refresh(OauthClient $client, string $refreshToken): \Illuminate\Testing\TestResponse
+    {
+        return $this->postJson(route('oauth.token'), [
+            'grant_type' => 'refresh_token',
+            'client_id' => $client->client_id,
+            'client_secret' => 'demo-secret',
+            'refresh_token' => $refreshToken,
+        ]);
+    }
+
+    public function test_refresh_is_denied_once_the_user_is_deactivated(): void
+    {
+        [, $client] = $this->createApp();
+        $user = $this->loginUser();
+        $tokens = $this->issueTokens($client);
+
+        $user->forceFill(['is_active' => false])->save();
+
+        $this->refresh($client, $tokens['refresh_token'])
+            ->assertStatus(400)
+            ->assertJson(['error' => 'invalid_grant']);
+
+        $this->assertDatabaseHas('audit_logs', ['event' => 'oauth.token.refresh_denied']);
+        $this->assertTrue(\App\Models\OauthToken::query()->where('type', 'refresh_token')->first()->revoked);
+    }
+
+    public function test_refresh_is_denied_when_an_access_policy_now_blocks_the_user(): void
+    {
+        [$application, $client] = $this->createApp();
+        $this->loginUser();
+        $tokens = $this->issueTokens($client);
+
+        AccessPolicy::create([
+            'application_id' => $application->id,
+            'subject_type' => 'user',
+            'subject_value' => 'jdoe',
+            'effect' => 'deny',
+            'priority' => 0,
+        ]);
+
+        $this->refresh($client, $tokens['refresh_token'])->assertStatus(400)->assertJson(['error' => 'invalid_grant']);
+    }
+
+    public function test_refresh_still_works_from_outside_the_allowed_network(): void
+    {
+        [$application, $client] = $this->createApp();
+        $this->loginUser();
+        $tokens = $this->issueTokens($client);
+
+        // Der Server der Anwendung ruft von einer anderen IP an als der Browser.
+        $application->update(['allowed_ip_ranges' => '10.99.0.0/16']);
+
+        $this->refresh($client, $tokens['refresh_token'])->assertOk()->assertJsonStructure(['access_token', 'refresh_token']);
+    }
+
     public function test_pkce_is_enforced_when_required(): void
     {
         [$application, $client] = $this->createApp();

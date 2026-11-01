@@ -19,6 +19,7 @@ class AuditEventLabels
         'login.windows_sso' => 'Anmeldung über Windows',
         'logout' => 'Abmeldung',
         'security.new_device' => 'Anmeldung von neuem Gerät',
+        'oauth.token.refresh_denied' => 'Token-Erneuerung abgelehnt',
 
         'workflow.denied' => 'Von Workflow abgelehnt',
         'workflow.error' => 'Workflow-Fehler',

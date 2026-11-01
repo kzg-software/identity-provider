@@ -121,6 +121,27 @@ class WorkflowTest extends TestCase
         $this->assertDatabaseHas('workflows', ['phase' => 'login', 'application_id' => null]);
     }
 
+    public function test_directory_account_cannot_log_in_through_the_local_password_path(): void
+    {
+        // Verzeichniskonto mit (z. B. aus einem Import stammendem) Passwort-Hash:
+        // die lokale Prüfung darf es nicht berücksichtigen, nur das AD.
+        $this->user(['auth_source' => 'active_directory']);
+
+        $this->from(route('login'))->login()->assertSessionHasErrors('username');
+
+        $this->assertGuest();
+    }
+
+    public function test_local_account_can_log_in_with_email_address(): void
+    {
+        $this->user();
+
+        $this->post(route('login.attempt'), ['username' => 'jdoe@example.test', 'password' => 'Password123!'])
+            ->assertRedirect(route('dashboard'));
+
+        $this->assertAuthenticated();
+    }
+
     public function test_login_workflow_can_deny_by_role(): void
     {
         $this->user(['manual_roles' => ['extern']]);

@@ -52,10 +52,12 @@ class LoginController extends Controller
             ]);
         }
 
+        // Nur lokale Konten; Verzeichniskonten prüft weiter unten das AD.
         $user = User::query()
-            ->where('username', $credentials['username'])
-            ->orWhere('email', $credentials['username'])
             ->where('auth_source', 'local')
+            ->where(fn ($query) => $query
+                ->where('username', $credentials['username'])
+                ->orWhere('email', $credentials['username']))
             ->first();
 
         // Nur die Zugangsdaten prüfen, NICHT anmelden – die eigentliche
