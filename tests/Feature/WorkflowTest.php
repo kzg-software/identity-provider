@@ -293,6 +293,91 @@ class WorkflowTest extends TestCase
         $this->assertDatabaseHas('audit_logs', ['event' => 'oauth.authorize.success']);
     }
 
+    // ----- Ereignisse ---------------------------------------------
+
+    private function eventWorkflow(array $events, array $nodes, array $edges): Workflow
+    {
+        $workflow = Workflow::create(['phase' => 'event', 'name' => 'Ereignis', 'is_active' => true, 'graph' => [], 'version' => 1]);
+        $workflow->replaceGraph([
+            'nodes' => array_merge([self::node('trigger', 'trigger', ['events' => $events]), self::node('end', 'end')], $nodes),
+            'edges' => $edges,
+        ]);
+
+        return $workflow;
+    }
+
+    public function test_event_workflow_sends_signed_webhook_on_failed_login(): void
+    {
+        \Illuminate\Support\Facades\Http::fake(['hooks.example.test/*' => \Illuminate\Support\Facades\Http::response('ok')]);
+        $this->user();
+
+        $this->eventWorkflow(['login.failed'], [
+            self::node('hook', 'action.webhook', ['url' => 'https://hooks.example.test/idp', 'secret' => 's3cret']),
+        ], [
+            self::edge('trigger', 'weiter', 'hook'),
+            self::edge('hook', 'weiter', 'end'),
+        ]);
+
+        $this->post(route('login.attempt'), ['username' => 'jdoe', 'password' => 'falsch']);
+
+        \Illuminate\Support\Facades\Http::assertSent(function ($request) {
+            $expected = 'sha256='.hash_hmac('sha256', $request->body(), 's3cret');
+
+            return $request->url() === 'https://hooks.example.test/idp'
+                && $request['event'] === 'login.failed'
+                && $request->header('X-Signature')[0] === $expected;
+        });
+        $this->assertDatabaseHas('audit_logs', ['event' => 'workflow.action']);
+    }
+
+    public function test_event_workflow_notifies_admins_and_disables_account_on_declined_terms(): void
+    {
+        $admin = User::factory()->create(['username' => 'admin', 'is_admin' => true, 'is_active' => true, 'auth_source' => 'local']);
+        $user = $this->user();
+
+        $this->setGraph('login', [
+            self::node('start', 'start'),
+            self::node('terms', 'terms', ['title' => 'AGB', 'text' => 'Text', 'document' => 'agb', 'version' => '1']),
+            self::node('allow', 'allow'),
+            self::node('deny', 'deny'),
+        ], [
+            self::edge('start', 'weiter', 'terms'),
+            self::edge('terms', 'akzeptiert', 'allow'),
+            self::edge('terms', 'abgelehnt', 'deny'),
+        ]);
+
+        $this->eventWorkflow(['workflow.terms_declined'], [
+            self::node('notify', 'action.notify_admins', ['title' => 'AGB abgelehnt: {benutzer}', 'body' => '']),
+            self::node('disable', 'action.disable_account'),
+        ], [
+            self::edge('trigger', 'weiter', 'notify'),
+            self::edge('notify', 'weiter', 'disable'),
+            self::edge('disable', 'weiter', 'end'),
+        ]);
+
+        $this->login();
+        $this->post(route('workflow.submit'), ['decision' => 'decline']);
+
+        $this->assertFalse($user->fresh()->is_active);
+        $this->assertDatabaseHas('user_notifications', ['user_id' => $admin->id, 'title' => 'AGB abgelehnt: jdoe']);
+    }
+
+    public function test_event_workflow_ignores_other_events(): void
+    {
+        $user = $this->user();
+
+        $this->eventWorkflow(['login.failed'], [
+            self::node('disable', 'action.disable_account'),
+        ], [
+            self::edge('trigger', 'weiter', 'disable'),
+            self::edge('disable', 'weiter', 'end'),
+        ]);
+
+        $this->login()->assertRedirect(route('dashboard'));
+
+        $this->assertTrue($user->fresh()->is_active);
+    }
+
     public function test_second_factor_condition_can_require_mfa_for_an_application(): void
     {
         [$application, $client] = $this->createOidcApp();

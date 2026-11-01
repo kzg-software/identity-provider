@@ -22,6 +22,11 @@ class TimeWindowCondition extends ConditionNode
         return 'Ja, wenn die aktuelle Uhrzeit in einem der Zeitfenster liegt.';
     }
 
+    public function phases(): array
+    {
+        return ['login', 'authorize', 'event'];
+    }
+
     public function fields(): array
     {
         return [

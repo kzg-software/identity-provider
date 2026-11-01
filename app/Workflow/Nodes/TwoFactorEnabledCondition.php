@@ -21,6 +21,11 @@ class TwoFactorEnabledCondition extends ConditionNode
         return 'Ja, wenn das Konto eine Authenticator-App oder einen Passkey als zweiten Faktor hat.';
     }
 
+    public function phases(): array
+    {
+        return ['login', 'authorize', 'event'];
+    }
+
     protected function matches(array $config, WorkflowContext $context): bool
     {
         return (bool) $context->user()?->hasTwoFactorEnabled();

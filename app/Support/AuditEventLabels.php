@@ -18,6 +18,15 @@ class AuditEventLabels
         'login.2fa_skipped_trusted_device' => 'Zweiter Faktor übersprungen (vertrautes Gerät)',
         'login.windows_sso' => 'Anmeldung über Windows',
         'logout' => 'Abmeldung',
+        'security.new_device' => 'Anmeldung von neuem Gerät',
+
+        'workflow.denied' => 'Von Workflow abgelehnt',
+        'workflow.error' => 'Workflow-Fehler',
+        'workflow.terms_accepted' => 'Nutzungsbedingungen akzeptiert',
+        'workflow.terms_declined' => 'Nutzungsbedingungen abgelehnt',
+        'workflow.action' => 'Workflow-Aktion ausgeführt',
+        'workflow.webhook_failed' => 'Workflow-Webhook fehlgeschlagen',
+        'admin.workflow_updated' => 'Workflow geändert',
 
         'password.changed' => 'Passwort geändert',
 

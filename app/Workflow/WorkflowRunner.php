@@ -131,7 +131,10 @@ class WorkflowRunner
 
     public function forget(string $phase): void
     {
-        session()->forget($this->key($phase));
+        // Ereignis-Workflows laufen ohne Sitzung (Queue) und parken nie.
+        if ($phase !== 'event') {
+            session()->forget($this->key($phase));
+        }
     }
 
     private function run(Workflow $workflow, WorkflowContext $context, string $nodeId): NodeResult

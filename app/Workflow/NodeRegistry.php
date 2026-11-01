@@ -33,6 +33,14 @@ class NodeRegistry
         Nodes\RestrictionCheck::class,
         Nodes\PolicyCheck::class,
         Nodes\ConsentNode::class,
+        Nodes\TriggerNode::class,
+        Nodes\EndNode::class,
+        Nodes\EventIsCondition::class,
+        Nodes\NotifyUserAction::class,
+        Nodes\NotifyAdminsAction::class,
+        Nodes\WebhookAction::class,
+        Nodes\DisableAccountAction::class,
+        Nodes\RevokeSessionsAction::class,
     ];
 
     /** @var array<string, NodeType>|null */

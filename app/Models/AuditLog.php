@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Support\AuditForwarder;
+use App\Workflow\EventTriggers;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -19,7 +20,10 @@ class AuditLog extends Model
 
     protected static function booted(): void
     {
-        static::created(fn (self $log) => AuditForwarder::forward($log));
+        static::created(function (self $log) {
+            AuditForwarder::forward($log);
+            EventTriggers::dispatchFor($log);
+        });
     }
 
     public function user(): BelongsTo

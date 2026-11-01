@@ -21,6 +21,11 @@ class AuthSourceCondition extends ConditionNode
         return 'Ja, wenn das Konto lokal bzw. aus dem Verzeichnis (Active Directory) stammt.';
     }
 
+    public function phases(): array
+    {
+        return ['login', 'authorize', 'event'];
+    }
+
     public function fields(): array
     {
         return [

@@ -21,6 +21,11 @@ class AdminCondition extends ConditionNode
         return 'Ja, wenn das Konto Administratorrechte hat.';
     }
 
+    public function phases(): array
+    {
+        return ['login', 'authorize', 'event'];
+    }
+
     protected function matches(array $config, WorkflowContext $context): bool
     {
         return (bool) $context->user()?->is_admin;

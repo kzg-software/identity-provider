@@ -22,6 +22,11 @@ class IpRangeCondition extends ConditionNode
         return 'Ja, wenn die Anfrage aus einem der Netze kommt.';
     }
 
+    public function phases(): array
+    {
+        return ['login', 'authorize', 'event'];
+    }
+
     public function fields(): array
     {
         return [
@@ -31,7 +36,7 @@ class IpRangeCondition extends ConditionNode
 
     protected function matches(array $config, WorkflowContext $context): bool
     {
-        return AccessRestrictions::ipAllowed(request()->ip(), implode("\n", self::lines($config['ranges'] ?? '')));
+        return AccessRestrictions::ipAllowed($context->data['ip'] ?? request()->ip(), implode("\n", self::lines($config['ranges'] ?? '')));
     }
 
     public function validate(array $config): array

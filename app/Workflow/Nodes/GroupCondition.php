@@ -21,6 +21,11 @@ class GroupCondition extends ConditionNode
         return 'Ja, wenn das Konto Mitglied mindestens einer der Gruppen ist.';
     }
 
+    public function phases(): array
+    {
+        return ['login', 'authorize', 'event'];
+    }
+
     public function fields(): array
     {
         return [

@@ -21,6 +21,11 @@ class RoleCondition extends ConditionNode
         return 'Ja, wenn das Konto mindestens eine der Rollen hat (aus Gruppen-Mapping oder manuell vergeben).';
     }
 
+    public function phases(): array
+    {
+        return ['login', 'authorize', 'event'];
+    }
+
     public function fields(): array
     {
         return [

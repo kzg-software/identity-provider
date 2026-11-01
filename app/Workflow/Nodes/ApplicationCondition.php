@@ -22,6 +22,11 @@ class ApplicationCondition extends ConditionNode
         return 'Ja, wenn der Vorgang zu einer der Anwendungen gehört. Beim Login ist das die Anwendung, zu der man nach der Anmeldung weitergeleitet wird.';
     }
 
+    public function phases(): array
+    {
+        return ['login', 'authorize', 'event'];
+    }
+
     public function fields(): array
     {
         return [

@@ -2,6 +2,7 @@
 
 namespace App\Auth;
 
+use App\Models\AuditLog;
 use App\Models\User;
 use App\Models\UserLoginDevice;
 use App\Services\SessionTracker;
@@ -42,7 +43,14 @@ class LoginDeviceAlert
             'login_count' => ($device->login_count ?? 0) + 1,
         ])->save();
 
-        if (! $isNew || ! SecuritySettings::newDeviceEmailEnabled()) {
+        if (! $isNew) {
+            return;
+        }
+
+        // Auslöser für Ereignis-Workflows („Anmeldung von neuem Gerät“).
+        AuditLog::record('security.new_device', $user, ['device' => $label, 'method' => $loginMethod]);
+
+        if (! SecuritySettings::newDeviceEmailEnabled()) {
             return;
         }
 
