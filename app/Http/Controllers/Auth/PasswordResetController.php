@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Auth;
 use App\Http\Controllers\Controller;
 use App\Models\AuditLog;
 use App\Models\User;
+use App\Services\SessionTracker;
 use App\Support\MailSettings;
 use App\Support\Notifier;
 use App\Support\SecuritySettings;
@@ -84,6 +85,8 @@ class PasswordResetController extends Controller
                 }
 
                 $user->forceFill(['password' => Hash::make($password)])->save();
+
+                app(SessionTracker::class)->revokeAccessAfterPasswordChange($user);
 
                 AuditLog::record('password.reset_completed', $user);
                 Notifier::toUser($user, 'security.change', 'Passwort zurückgesetzt', [

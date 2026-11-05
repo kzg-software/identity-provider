@@ -3,6 +3,8 @@
 namespace App\Services;
 
 use App\Auth\LoginDeviceAlert;
+use App\Auth\TrustedDevices;
+use App\Models\OauthToken;
 use App\Models\User;
 use App\Models\UserSession;
 use Illuminate\Http\Request;
@@ -90,6 +92,26 @@ class SessionTracker
         if ($sessionIds->isNotEmpty()) {
             DB::table('sessions')->whereIn('id', $sessionIds)->delete();
         }
+    }
+
+    /**
+     * Entzieht nach einem Passwortwechsel allen bisherigen Zugängen das
+     * Vertrauen: andere Sitzungen werden beendet, OAuth-Tokens (Access- und
+     * Refresh-Tokens) widerrufen und vertraute Geräte vergessen. So bleibt
+     * jemand, der das alte Passwort kannte, nicht angemeldet.
+     *
+     * @param  string|null  $exceptSessionId  die Sitzung, die das Passwort gerade ändert
+     */
+    public function revokeAccessAfterPasswordChange(User $user, ?string $exceptSessionId = null): void
+    {
+        $this->revokeAllForUserExcept($user, $exceptSessionId);
+
+        OauthToken::query()
+            ->where('user_id', $user->id)
+            ->where('revoked', false)
+            ->update(['revoked' => true]);
+
+        app(TrustedDevices::class)->revokeAll($user);
     }
 
     /**

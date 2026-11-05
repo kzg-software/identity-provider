@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\AuditLog;
 use App\Models\User;
 use App\Models\WebauthnCredential;
+use App\Services\SessionTracker;
 use App\Support\Notifier;
 use App\Support\SecuritySettings;
 use Illuminate\Http\RedirectResponse;
@@ -465,6 +466,8 @@ class UserController extends Controller
             'password' => ['required', 'string', 'confirmed', SecuritySettings::passwordRule()],
         ]);
         $user->update(['password' => Hash::make($data['password'])]);
+
+        app(SessionTracker::class)->revokeAccessAfterPasswordChange($user);
 
         AuditLog::record('admin.password_reset', $request->user(), ['target_user_id' => $user->id]);
 
