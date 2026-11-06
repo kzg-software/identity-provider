@@ -40,14 +40,16 @@ class AccessPolicyEvaluator
             return true;
         }
 
-        $groups = $user->groupNames();
+        // Gruppennamen im Verzeichnis sind nicht case-sensitiv; wie bei Benutzer
+        // und Domain wird deshalb ohne Beachtung der Schreibweise verglichen.
+        $groups = array_map('mb_strtolower', $user->groupNames());
         $denies = [];
         $allows = [];
 
         foreach ($policies as $policy) {
             $matches = match ($policy->subject_type) {
                 'user' => strcasecmp($policy->subject_value, $user->username ?? '') === 0 || strcasecmp($policy->subject_value, $user->upn ?? '') === 0,
-                'group' => in_array($policy->subject_value, $groups, true),
+                'group' => in_array(mb_strtolower(trim($policy->subject_value)), $groups, true),
                 'domain' => strcasecmp($policy->subject_value, $user->domain ?? '') === 0,
                 default => false,
             };
