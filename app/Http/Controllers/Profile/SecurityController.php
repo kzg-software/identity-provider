@@ -10,6 +10,7 @@ use App\Models\TrustedDevice;
 use App\Models\TwoFactorCredential;
 use App\Models\User;
 use App\Models\WebauthnCredential;
+use App\Services\SessionTracker;
 use App\Support\Notifier;
 use App\Support\SecuritySettings;
 use App\Webauthn\WebAuthnException;
@@ -77,14 +78,15 @@ class SecurityController extends Controller
 
         $user->forceFill(['password' => Hash::make($request->string('password'))])->save();
 
-        // Passwortwechsel entzieht allen vertrauten Geräten das Vertrauen: wer
-        // sich neu anmeldet, muss den zweiten Faktor wieder nachweisen.
-        app(TrustedDevices::class)->revokeAll($user);
+        // Passwortwechsel beendet alle anderen Sitzungen, widerruft OAuth-Tokens
+        // und entzieht vertrauten Geräten das Vertrauen: wer sich neu anmeldet,
+        // muss den zweiten Faktor wieder nachweisen.
+        app(SessionTracker::class)->revokeAccessAfterPasswordChange($user, $request->session()->getId());
 
         AuditLog::record('password.changed', $user);
         $this->notifySecurity($user, 'Passwort geändert', 'Das Passwort deines Kontos wurde geändert. Warst du das nicht, wende dich sofort an deine Administration.');
 
-        return back()->with('status', 'Passwort wurde geändert. Vertraute Geräte müssen den zweiten Faktor erneut bestätigen.');
+        return back()->with('status', 'Passwort wurde geändert. Alle anderen Sitzungen wurden beendet, vertraute Geräte müssen den zweiten Faktor erneut bestätigen.');
     }
 
     // ----- Vertraute Geräte ----------------------------------------------------
