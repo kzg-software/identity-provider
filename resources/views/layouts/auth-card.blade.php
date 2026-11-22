@@ -1,8 +1,19 @@
 @extends('layouts.app')
 
+@section('body-class', 'idp-login-page')
+
+@push('custom-css')
+    <x-custom-css area="login" />
+@endpush
+
 @section('content')
 @php
-    $hasLoginBg = ! empty($loginBackgroundUrl);
+    try {
+        $loginBackground = \App\Support\LoginBackgrounds::forDisplay();
+    } catch (\Throwable) {
+        $loginBackground = ['urls' => [], 'mode' => 'fixed', 'interval' => 12, 'overlay' => 40];
+    }
+    $hasLoginBg = ! empty($loginBackground['urls']);
     $isSplit = ($loginLayout ?? 'centered') === 'split';
 
     $fpVersion = \App\Support\Version::current();
@@ -12,17 +23,11 @@
 
 @if ($isSplit)
     {{-- Geteiltes Layout: links Bild/Marke, rechts das Anmeldeformular. --}}
-    <div class="min-h-screen flex flex-col lg:flex-row bg-white">
-        <div class="relative hidden lg:flex lg:w-[44%] xl:w-1/2 shrink-0 flex-col justify-between overflow-hidden bg-gray-900 text-white"
-             @if ($hasLoginBg)
-                 style="background-image:url('{{ $loginBackgroundUrl }}');background-size:cover;background-position:center;background-repeat:no-repeat;"
-             @endif
-        >
-            @if ($hasLoginBg)
-                <div class="absolute inset-0 bg-gradient-to-t from-black/70 via-black/10 to-black/30"></div>
-            @endif
+    <div class="idp-login idp-login--split min-h-screen flex flex-col lg:flex-row bg-white">
+        <div class="idp-login-aside relative hidden lg:flex lg:w-[44%] xl:w-1/2 shrink-0 flex-col justify-between overflow-hidden bg-gray-900 text-white">
+            <x-login-background :background="$loginBackground" shade="gradient" />
 
-            <div class="relative z-10 flex items-center gap-2.5 p-10">
+            <div class="idp-login-brand relative z-10 flex items-center gap-2.5 p-10">
                 <x-brand-mark context="login" />
                 @if (! empty($loginTitle))
                     <span class="text-lg font-semibold text-white drop-shadow">{{ $loginTitle }}</span>
@@ -49,7 +54,7 @@
                     @endif
                 </div>
 
-                <div class="w-full sm:max-w-sm">
+                <div class="idp-login-card w-full sm:max-w-sm">
                     <x-flash />
 
                     @yield('auth-content')
@@ -60,7 +65,7 @@
                 </div>
             </div>
 
-            <footer class="shrink-0 w-full px-4 pb-5 flex flex-wrap items-center justify-center gap-x-2 gap-y-1 text-xs text-gray-400">
+            <footer class="idp-login-footer shrink-0 w-full px-4 pb-5 flex flex-wrap items-center justify-center gap-x-2 gap-y-1 text-xs text-gray-400">
                 <span>{{ $systemName }}</span>
                 <span aria-hidden="true">&middot;</span>
                 @if (\App\Support\Version::isRelease())
@@ -75,22 +80,19 @@
     </div>
 @else
     {{-- Zentriertes Layout (Standard): Karte mittig, optional mit Hintergrundbild. --}}
-    <div class="relative min-h-screen flex flex-col {{ $hasLoginBg ? 'bg-gray-900' : 'bg-gray-100' }}"
-         @if ($hasLoginBg) style="background-image:url('{{ $loginBackgroundUrl }}');background-size:cover;background-position:center;background-repeat:no-repeat;" @endif>
-        @if ($hasLoginBg)
-            {{-- Leichter Schleier für Kontrast, unabhängig vom gewählten Bild --}}
-            <div class="absolute inset-0 bg-black/40"></div>
-        @endif
+    <div class="idp-login idp-login--centered relative min-h-screen flex flex-col {{ $hasLoginBg ? 'bg-gray-900' : 'bg-gray-100' }}">
+        {{-- Hintergrundbild(er) mit einstellbarer Abdunklung für Kontrast --}}
+        <x-login-background :background="$loginBackground" />
 
         <div class="relative z-10 flex-1 w-full flex flex-col items-center justify-center px-4 py-10">
-            <div class="mb-6 flex flex-col items-center">
+            <div class="idp-login-brand mb-6 flex flex-col items-center">
                 <x-brand-mark context="login" />
                 @if (! empty($loginTitle))
                     <span class="text-xl font-semibold {{ $hasLoginBg ? 'text-white drop-shadow' : 'text-gray-800' }}">{{ $loginTitle }}</span>
                 @endif
             </div>
 
-            <div class="w-full sm:max-w-md px-6 py-8 bg-white shadow-sm sm:rounded-lg border border-gray-200 {{ $hasLoginBg ? 'shadow-xl' : '' }}">
+            <div class="idp-login-card w-full sm:max-w-md px-6 py-8 bg-white shadow-sm sm:rounded-lg border border-gray-200 {{ $hasLoginBg ? 'shadow-xl' : '' }}">
                 <x-flash />
 
                 @yield('auth-content')
@@ -102,7 +104,7 @@
         </div>
 
         @php $fpMuted = $hasLoginBg ? 'text-white/50 hover:text-white/80' : 'text-gray-400 hover:text-gray-500'; @endphp
-        <footer class="relative z-10 shrink-0 w-full px-4 pb-5 flex flex-wrap items-center justify-center gap-x-2 gap-y-1 text-xs {{ $fpMuted }}">
+        <footer class="idp-login-footer relative z-10 shrink-0 w-full px-4 pb-5 flex flex-wrap items-center justify-center gap-x-2 gap-y-1 text-xs {{ $fpMuted }}">
             <span>{{ $systemName }}</span>
             <span aria-hidden="true">&middot;</span>
             @if (\App\Support\Version::isRelease())

@@ -1,5 +1,11 @@
 @extends('layouts.app')
 
+@section('body-class', 'idp-portal-page')
+
+@push('custom-css')
+    <x-custom-css area="portal" />
+@endpush
+
 @section('content')
 @php
     $isAdmin = (bool) (auth()->user()?->is_admin);

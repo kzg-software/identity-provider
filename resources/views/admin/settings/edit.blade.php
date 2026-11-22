@@ -4,8 +4,8 @@
     $sections = [
         ['id' => 'overview', 'label' => 'Übersicht', 'icon' => 'grid', 'desc' => 'Was ist eingerichtet, was fehlt noch?'],
         ['id' => 'general', 'label' => 'Allgemein', 'icon' => 'cog', 'desc' => 'Name, Adresse, Zeitzone, Sprache'],
-        ['id' => 'appearance', 'label' => 'Erscheinungsbild', 'icon' => 'paint', 'desc' => 'Farbe, Symbol, Titel, Banner-Größe'],
-        ['id' => 'images', 'label' => 'Bilder', 'icon' => 'image', 'desc' => 'Banner, Favicon, Login-Hintergrund'],
+        ['id' => 'appearance', 'label' => 'Erscheinungsbild', 'icon' => 'paint', 'desc' => 'Farbe, Symbol, Titel, Hintergrund, eigenes CSS'],
+        ['id' => 'images', 'label' => 'Bilder', 'icon' => 'image', 'desc' => 'Banner, Favicon, Login-Hintergründe'],
         ['id' => 'login', 'label' => 'Anmeldung', 'icon' => 'login', 'desc' => 'Windows-Anmeldung'],
         ['id' => 'security', 'label' => 'Sicherheit', 'icon' => 'shield-check', 'desc' => 'Passwörter, Sperre, Zwei-Faktor, Passkeys'],
         ['id' => 'email', 'label' => 'E-Mail', 'icon' => 'mail', 'desc' => 'Versand und Testnachricht'],
@@ -34,7 +34,8 @@
         return match (true) {
             in_array($field, ['logo', 'favicon', 'login_background'], true) => 'images',
             in_array($field, ['accent_color', 'login_layout', 'logo_height_header', 'logo_height_login'], true),
-            str_starts_with($field, 'brand_icon_'), str_starts_with($field, 'login_title_'), str_starts_with($field, 'header_title_') => 'appearance',
+            str_starts_with($field, 'brand_icon_'), str_starts_with($field, 'login_title_'), str_starts_with($field, 'header_title_'),
+            str_starts_with($field, 'login_background_'), str_starts_with($field, 'custom_css') => 'appearance',
             $field === 'windows_sso_enabled' => 'login',
             str_starts_with($field, 'password_'), str_starts_with($field, 'login_'), str_starts_with($field, 'trusted_device_'),
             str_starts_with($field, 'passkey_'), str_starts_with($field, 'new_device_') => 'security',
@@ -154,6 +155,8 @@
         logoHeaderH: @js(old('logo_height_header', $settings['logo_height_header'] ?? '')),
         logoLoginH: @js(old('logo_height_login', $settings['logo_height_login'] ?? '')),
         logoUrl: @js($logoPath ? $storage->url($logoPath) : ''),
+        bgMode: @js(old('login_background_mode', $settings['login_background_mode'] ?: 'fixed')),
+        bgOverlay: @js((int) old('login_background_overlay', ($settings['login_background_overlay'] ?? '') === '' ? \App\Support\LoginBackgrounds::DEFAULT_OVERLAY : $settings['login_background_overlay'])),
         get iconInitial() { return (this.systemName.trim()[0] || 'A').toUpperCase(); },
         get shapeClass() { return { rounded: 'rounded-md', circle: 'rounded-full', square: 'rounded-none' }[this.iconShape] || 'rounded-md'; },
         get loginPreview() {
@@ -424,6 +427,76 @@
                                              value="{{ old('header_title_text', $settings['header_title_text']) }}"
                                              placeholder="z. B. Willkommen" class="!w-64" />
                                 </div>
+                            </x-setting-row>
+                        </div>
+                    </x-card>
+
+                    @php($bgCount = count($loginBackgroundPaths))
+                    @php($cssScope = old('custom_css_scope', $settings['custom_css_scope'] ?: 'login'))
+                    <x-card title="Hintergrund der Anmeldeseite"
+                            description="Die Bilder selbst lädst du unter „Bilder“ hoch. Mit mehreren Bildern kann der Hintergrund wechseln.">
+                        <div class="divide-y divide-gray-100">
+                            <x-setting-row label="Welches Bild wird gezeigt?"
+                                           hint="Bei nur einem hinterlegten Bild ist die Auswahl egal.">
+                                <div class="space-y-2">
+                                    <x-select name="login_background_mode" x-model="bgMode" class="!w-72">
+                                        <option value="fixed">Immer das erste Bild</option>
+                                        <option value="random">Bei jedem Aufruf ein zufälliges Bild</option>
+                                        <option value="daily">Jeden Tag ein anderes Bild</option>
+                                        <option value="slideshow">Wechselnd (Diashow mit Überblendung)</option>
+                                    </x-select>
+                                    <p class="text-xs text-gray-500">
+                                        @if ($bgCount === 0)
+                                            Noch kein Hintergrundbild hinterlegt.
+                                        @elseif ($bgCount === 1)
+                                            1 Bild hinterlegt.
+                                        @else
+                                            {{ $bgCount }} Bilder hinterlegt.
+                                        @endif
+                                        <button type="button" class="text-laravel-600 hover:text-laravel-700" @click="tab = 'images'">Bilder verwalten</button>
+                                    </p>
+                                </div>
+                            </x-setting-row>
+
+                            <x-setting-row label="Wechselzeit" hint="Wie lange jedes Bild in der Diashow stehen bleibt. Wer reduzierte Bewegung eingestellt hat, sieht den Wechsel ohne Überblendung."
+                                           x-show="bgMode === 'slideshow'">
+                                <div class="flex items-center gap-2">
+                                    <x-input type="number" name="login_background_interval" min="3" max="600" class="!w-28"
+                                             value="{{ old('login_background_interval', $settings['login_background_interval'] ?: \App\Support\LoginBackgrounds::DEFAULT_INTERVAL) }}" />
+                                    <span class="text-sm text-gray-500">Sekunden</span>
+                                </div>
+                                @error('login_background_interval')<p class="mt-1 text-sm text-red-600">{{ $message }}</p>@enderror
+                            </x-setting-row>
+
+                            <x-setting-row label="Abdunklung" hint="Ein dunkler Schleier über dem Bild, damit Titel und Fußzeile lesbar bleiben. 0 % zeigt das Bild unverändert.">
+                                <div class="flex items-center gap-3">
+                                    <input type="range" name="login_background_overlay" min="0" max="90" step="5" x-model="bgOverlay"
+                                           class="w-56 accent-laravel-600">
+                                    <span class="w-12 text-sm tabular-nums text-gray-700" x-text="bgOverlay + ' %'"></span>
+                                </div>
+                            </x-setting-row>
+                        </div>
+                    </x-card>
+
+                    <x-card title="Eigenes CSS"
+                            description="Für Anpassungen, die es nicht als Einstellung gibt. Wird nach den eingebauten Stilen geladen und überschreibt sie.">
+                        <div class="divide-y divide-gray-100">
+                            <x-setting-row label="Gilt für" hint="Auf „Überall“ wirkt das CSS auch in der Administration. Ein fehlerhafter Stil kann sie dann unbedienbar machen.">
+                                <x-select name="custom_css_scope" class="!w-72">
+                                    <option value="login" @selected($cssScope === 'login')>Nur Anmeldeseite</option>
+                                    <option value="portal" @selected($cssScope === 'portal')>Anmeldeseite und Portal</option>
+                                    <option value="all" @selected($cssScope === 'all')>Überall (auch Administration)</option>
+                                </x-select>
+                            </x-setting-row>
+
+                            <x-setting-row label="CSS"
+                                           hint="Feste Klassen zum Ansprechen: <code>.idp-login-page</code>, <code>.idp-login</code>, <code>.idp-login-card</code>, <code>.idp-login-brand</code>, <code>.idp-login-bg</code>, <code>.idp-login-bg-overlay</code>, <code>.idp-login-footer</code>, <code>.idp-portal-page</code>, <code>.idp-admin-page</code>. Für den Dunkelmodus: <code>html.dark</code>. Spitze Klammern sind nicht erlaubt.">
+                                <x-textarea name="custom_css" rows="12" spellcheck="false" maxlength="{{ \App\Support\CustomCss::MAX_LENGTH }}"
+                                            class="font-mono text-xs leading-relaxed"
+                                            placeholder=".idp-login-card {&#10;    border-radius: 1rem;&#10;    backdrop-filter: blur(8px);&#10;}">{{ old('custom_css', $settings['custom_css'] ?? '') }}</x-textarea>
+                                <p class="mt-2 text-xs text-gray-500">
+                                    Notbremse: Hängst du <code>?custom_css=off</code> an eine Adresse an, wird das CSS für diesen Aufruf nicht geladen.
+                                </p>
                             </x-setting-row>
                         </div>
                     </x-card>
@@ -783,26 +856,56 @@
                     </form>
                 </x-card>
 
-                <x-card title="Login-Hintergrund" description="Vollflächiges Hintergrundbild der Anmeldeseite. Ohne Bild bleibt der Hintergrund schlicht.">
-                    @if ($loginBackgroundPath)
-                        <div class="mb-4">
-                            <img src="{{ $storage->url($loginBackgroundPath) }}" alt="Aktueller Login-Hintergrund" class="max-h-48 w-full rounded-md border border-gray-200 object-cover">
-                            <div class="mt-3">
-                                <x-confirm-form :action="route('admin.settings.login-background.delete')" message="Login-Hintergrund wirklich entfernen?" label="Entfernen" size="sm" />
+                <x-card title="Login-Hintergründe"
+                        description="Vollflächige Hintergrundbilder der Anmeldeseite, bis zu {{ \App\Support\LoginBackgrounds::MAX_IMAGES }} Stück. Ob ein festes, zufälliges oder wechselndes Bild gezeigt wird, stellst du unter „Erscheinungsbild“ ein.">
+                    @if ($loginBackgroundPaths !== [])
+                        <ul class="mb-4 grid grid-cols-2 gap-3 sm:grid-cols-3">
+                            @foreach ($loginBackgroundPaths as $i => $bgPath)
+                                @php($bgFile = basename($bgPath))
+                                <li class="overflow-hidden rounded-md border border-gray-200">
+                                    <div class="relative">
+                                        <img src="{{ $storage->url($bgPath) }}" alt="Hintergrundbild {{ $i + 1 }}" class="h-28 w-full object-cover" loading="lazy">
+                                        @if ($i === 0)
+                                            <span class="absolute left-2 top-2 rounded bg-black/60 px-1.5 py-0.5 text-[11px] font-medium text-white">Erstes Bild</span>
+                                        @endif
+                                    </div>
+                                    <div class="flex items-center justify-between gap-2 px-2 py-1.5">
+                                        @if ($i > 0)
+                                            <form method="POST" action="{{ route('admin.settings.login-background.promote', $bgFile) }}">
+                                                @csrf
+                                                <button type="submit" class="text-xs text-laravel-600 hover:text-laravel-700">Als erstes</button>
+                                            </form>
+                                        @else
+                                            <span class="text-xs text-gray-400">#1</span>
+                                        @endif
+                                        <x-confirm-form :action="route('admin.settings.login-background.destroy-image', $bgFile)"
+                                                        message="Dieses Hintergrundbild wirklich entfernen?" label="Entfernen" size="sm" />
+                                    </div>
+                                </li>
+                            @endforeach
+                        </ul>
+                        @if (count($loginBackgroundPaths) > 1)
+                            <div class="mb-4">
+                                <x-confirm-form :action="route('admin.settings.login-background.delete')"
+                                                message="Wirklich alle Hintergrundbilder entfernen?" label="Alle entfernen" size="sm" />
                             </div>
-                        </div>
+                        @endif
                     @else
                         <p class="mb-4 text-sm text-gray-400">Kein Hintergrundbild. Die Anmeldeseite zeigt einen neutralen Hintergrund.</p>
                     @endif
-                    <form method="POST" action="{{ route('admin.settings.login-background.upload') }}" enctype="multipart/form-data" class="flex items-end gap-3">
-                        @csrf
-                        <div class="flex-1">
-                            <x-input-label value="Neues Hintergrundbild hochladen" />
-                            <x-image-upload-input name="login_background" preview-class="max-h-40 w-full object-cover" required />
-                            <p class="mt-1 text-xs text-gray-400">Empfohlen: breites Bild (z. B. 1920 x 1080), höchstens 8 MB.</p>
-                        </div>
-                        <x-button type="submit" variant="secondary" size="sm">Hochladen</x-button>
-                    </form>
+
+                    @if (count($loginBackgroundPaths) < \App\Support\LoginBackgrounds::MAX_IMAGES)
+                        <form method="POST" action="{{ route('admin.settings.login-background.upload') }}" enctype="multipart/form-data" class="flex items-end gap-3">
+                            @csrf
+                            <div class="flex-1">
+                                <x-input-label value="Hintergrundbilder hinzufügen" />
+                                <x-image-upload-input name="login_background" multiple preview-class="max-h-40 w-full object-cover" required />
+                                @error('login_background')<p class="mt-1 text-sm text-red-600">{{ $message }}</p>@enderror
+                                <p class="mt-1 text-xs text-gray-400">Mehrere Dateien auf einmal möglich. Empfohlen: breite Bilder (z. B. 1920 × 1080), je höchstens 8 MB.</p>
+                            </div>
+                            <x-button type="submit" variant="secondary" size="sm">Hochladen</x-button>
+                        </form>
+                    @endif
                 </x-card>
             </div>
         </div>

@@ -194,6 +194,10 @@ Route::middleware('auth')->group(function () {
         Route::delete('settings/favicon', [SettingController::class, 'deleteFavicon'])->name('settings.favicon.delete');
         Route::post('settings/login-background', [SettingController::class, 'uploadLoginBackground'])->name('settings.login-background.upload');
         Route::delete('settings/login-background', [SettingController::class, 'deleteLoginBackground'])->name('settings.login-background.delete');
+        Route::delete('settings/login-background/{file}', [SettingController::class, 'destroyLoginBackgroundImage'])
+            ->where('file', '[A-Za-z0-9._-]+')->name('settings.login-background.destroy-image');
+        Route::post('settings/login-background/{file}/promote', [SettingController::class, 'promoteLoginBackgroundImage'])
+            ->where('file', '[A-Za-z0-9._-]+')->name('settings.login-background.promote');
 
         Route::get('directories', [DirectoryController::class, 'index'])->name('directories.index');
         Route::get('directories/create', [DirectoryController::class, 'create'])->name('directories.create');

@@ -157,10 +157,14 @@
     </style>
     @stack('styles')
 </head>
-<body class="font-sans antialiased bg-gray-100 text-gray-900">
+<body class="font-sans antialiased bg-gray-100 text-gray-900 @yield('body-class')">
     <div id="page-loading-bar"></div>
 
     @yield('content')
+
+    {{-- Eigenes CSS aus den Systemeinstellungen: bewusst am Ende, damit es
+         die (zur Laufzeit erzeugten) Tailwind-Stile überschreiben kann. --}}
+    @stack('custom-css')
 
     @stack('scripts')
 

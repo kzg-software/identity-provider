@@ -1,5 +1,11 @@
 @extends('layouts.app')
 
+@section('body-class', 'idp-admin-page')
+
+@push('custom-css')
+    <x-custom-css area="admin" />
+@endpush
+
 @section('content')
 @php
     $adminNav = [

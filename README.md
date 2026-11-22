@@ -45,6 +45,10 @@ braucht. Kein Node, kein Build-Schritt, keine externen CDNs.
 - Portal, in dem jeder Benutzer seine Anwendungen sieht
 - AD-Gruppen auf Rollen abbilden, auch Administratoren aus dem AD
 - Audit-Log, Sitzungsübersicht, Systemstatus
+- Eigenes Erscheinungsbild: Farbe, Logo, Layout der Anmeldeseite, bis zu 20 Hintergrundbilder
+  (fest, zufällig, täglich wechselnd oder als Diashow) und eigenes CSS für Anmeldeseite,
+  Portal oder alles. Mit `?custom_css=off` in der Adresse lässt sich das eigene CSS
+  jederzeit abschalten, falls ein Stil die Oberfläche unbedienbar macht.
 - Datensicherung des ganzen Systems in eine verschlüsselte Datei
 - Prüft selbst auf neue Versionen und zeigt die Änderungen an
 
