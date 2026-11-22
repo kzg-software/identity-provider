@@ -196,7 +196,7 @@ Unter http://localhost anmelden:
 Die Demo-Daten lassen sich nur in eine leere Datenbank einspielen. Für den
 echten Betrieb also nicht verwenden, sondern den Einrichtungsassistenten.
 
-Ohne Docker geht es mit PHP 8.3 oder neuer und Composer:
+Ohne Docker geht es mit PHP 8.4 oder neuer und Composer:
 
 ```bash
 composer install

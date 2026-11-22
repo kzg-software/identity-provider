@@ -81,8 +81,8 @@ class InstallController extends Controller
 
         $checks = [
             [
-                'label' => 'PHP-Version >= 8.3',
-                'ok' => version_compare(PHP_VERSION, '8.3.0', '>='),
+                'label' => 'PHP-Version >= 8.4',
+                'ok' => version_compare(PHP_VERSION, '8.4.0', '>='),
                 'detail' => PHP_VERSION,
             ],
         ];

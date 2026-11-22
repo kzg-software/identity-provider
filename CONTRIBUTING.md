@@ -14,7 +14,7 @@ ein neues anlegen (Bug Report, Feature Request oder Frage).
 
 ## Entwicklungsumgebung
 
-Voraussetzungen: PHP 8.3 oder neuer (getestet mit 8.4), Composer 2, die
+Voraussetzungen: PHP 8.4 oder neuer (getestet mit 8.4 bis 8.6), Composer 2, die
 Extensions aus der `README.md`.
 
 ```bash

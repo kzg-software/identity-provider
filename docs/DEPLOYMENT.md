@@ -10,7 +10,7 @@ Es gibt drei Wege. Alle drei sind vollständig unterstützt.
 
 ## Gilt für alle Wege
 
-* PHP 8.3 oder neuer, getestet mit 8.4. Erweiterungen: `openssl`, `pdo` mit Treiber für MySQL oder SQLite, `ldap`, `xml` und `dom`, `curl`, `mbstring`, `intl`, `sodium`, `gd`, `zip`, `bcmath`, `opcache`.
+* PHP 8.4 oder neuer, getestet mit 8.4 bis 8.6. Erweiterungen: `openssl`, `pdo` mit Treiber für MySQL oder SQLite, `ldap`, `xml` und `dom`, `curl`, `mbstring`, `intl`, `sodium`, `gd`, `zip`, `bcmath`, `opcache`.
 * Kein Node, npm oder Vite. Die Oberfläche läuft über Blade. Tailwind, Alpine.js und die Schrift liegen lokal in `public/vendor/`.
 * Das System terminiert kein TLS. Davor gehört ein Reverse Proxy mit gültigem Zertifikat (nginx, Apache, Traefik, Caddy, IIS ARR). SAML, OIDC und Kerberos brauchen HTTPS.
 * Nach der Infrastruktur läuft der Einrichtungs Assistent im Browser (`/install`). Er fragt: neu einrichten oder aus einer Sicherung wiederherstellen. Danach sperrt er sich selbst.
@@ -21,7 +21,7 @@ Es gibt drei Wege. Alle drei sind vollständig unterstützt.
 
 # Weg 1: Docker (empfohlen)
 
-Ein einziges Image enthält PHP 8.5, nginx und supervisor. Über die Variable
+Ein einziges Image enthält PHP 8.6, nginx und supervisor. Über die Variable
 `CONTAINER_ROLE` übernimmt derselbe Container eine Rolle:
 
 | `CONTAINER_ROLE` | Aufgabe |
